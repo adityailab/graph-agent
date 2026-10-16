@@ -1,0 +1,8 @@
+{
+  "session_id": "s-test",
+  "prompt_id": "p-test",
+  "cwd": "/work/app",
+  "permission_mode": "acceptEdits",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "Create a file hello.txt containing the word hi, then change hi to hello in it. Reply done."
+}
