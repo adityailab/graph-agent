@@ -16,6 +16,11 @@ dependencies = [
 handoff-hook = "handoff.hooks.cli:run"
 handoff-mcp = "handoff.mcp.server:main"
 
+[project.optional-dependencies]
+knowledge = [
+    "graphrag-sdk>=1.4,<2",
+]
+
 [dependency-groups]
 dev = ["pytest>=9.1", "mypy>=2.4", "ruff>=0.17"]
 
@@ -45,7 +50,7 @@ python_version = "3.12"
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["falkordb.*", "redis.*", "fastembed.*"]
+module = ["falkordb.*", "redis.*", "fastembed.*", "graphrag_sdk.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
