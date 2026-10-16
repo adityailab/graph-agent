@@ -324,7 +324,9 @@ next phase starts only after the gate. Details are in the implementation plan.
 | 4 | Finish check and live messages, including the waiter. |
 | 5 | Stand-in answers. |
 | 6 | Search by meaning and topic reuse. |
-| 7 | Installer, end-to-end run, README, demo video, submission. |
+| 7 | Knowledge layer: GraphRAG-SDK knowledge graph, FalkorDB MCP server, three model backends. |
+| 8 | Installer, end-to-end run, README, demo video, submission. |
+| 9 | Stretch: an always-on coordinator agent. |
 
 Phase 6 comes after the stand-in because the stand-in works without it, using
 the graph and recency; it is the first phase to drop if time runs short.
