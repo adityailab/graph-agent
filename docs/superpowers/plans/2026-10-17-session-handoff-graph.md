@@ -34,7 +34,7 @@ Deadline: 18 October 2026, 11:59 PM IST. Start: 17 October morning.
 | 6 Search by meaning | 2 h | Sun 16:00, dropped if late |
 | 7 Ship | 4 h | Sun 21:00, leaving 3 h of slack |
 
-If Phase 4 is not through its gate by Sunday 13:00, Phase 6 is dropped.
+Phase 6 was revised and expanded on 17 October (FalkorDB-native search); the schedule allows it.
 
 ## Global Constraints
 
@@ -1668,23 +1668,66 @@ Branch: `phase/5-standin`. No API key and no new dependency: the stand-in runs C
 
 ---
 
-## Phase 6: Search by meaning
+## Phase 6: FalkorDB-native search and graph relevance
 
-Branch: `phase/6-search`. Dropped if Phase 4 has not passed its gate by Sunday 13:00. Before writing steps: confirm `fastembed` 0.9's model list and the embedding size of the chosen small English model.
+Branch: `phase/6-search`. Revised on 17 October after a survey of FalkorDB 4.22.1
+features, each checked live: vector index (score is a cosine *distance*, lower is
+closer), full-text index with parameters, `algo.*` procedures, unique constraints,
+UDFs/FLEX, and `shortestPath` (allowed only in `WITH`/`RETURN`). FalkorDB has no
+graph-embedding feature and does not compute embeddings. Model:
+`BAAI/bge-small-en-v1.5` via fastembed 0.9 (384 dimensions; "auth tokens" vs "login
+tokens" 0.82 cosine similarity, vs "css grid" 0.44). Embeddings are computed only in
+the long-lived MCP server, never in hooks.
 
-### Task 6.1: Embeddings
+### Task 6.1: Schema: constraints, full-text and vector indexes
+- `schema.ensure_schema` adds unique constraints on every id and `Topic.name`, full-text
+  indexes on `Request.text`, `Decision.text`+`reason`, `Need.text`, `Message.text`, and
+  vector indexes (384, cosine) on `Decision.embedding` and `Topic.embedding`.
+- Tests: all present after one call; a second call changes nothing; a duplicate id is
+  rejected by the constraint.
 
-- `embed.py`: `embed(texts: Sequence[str]) -> list[list[float]]`, model loaded once and cached under `home/models`.
-- Tests: fixed size; similar sentences closer than unrelated ones.
+### Task 6.2: Embeddings
+- `embed.py`: `Embedder` protocol (`embed(texts) -> list[list[float]]`), `FastEmbedder`
+  (loads on first use, cache in `home/models`), `EMBED_DIM = 384`.
+- Tests: fake embedder in unit tests; one live test under `HANDOFF_LIVE_TESTS=1` checks
+  the dimension and that paraphrases are closer than unrelated text.
 
-### Task 6.2: Vector indexes and topic reuse
+### Task 6.3: Search queries
+- `graph/search.py`: `fulltext_decisions(graph, query, k)`, `similar_decisions(graph,
+  vector, k)` (distance), `decision_context(graph, ids)` (role, request, files, and other
+  sessions that touched the same files). `decisions.add_decision` takes an optional
+  `embedding`.
+- Tests: exact term found by full-text, paraphrase found by vector, expansion finds the
+  other session that edited the same file.
 
-- `schema.ensure_vector_schema(graph, dim)`; `add_decision` stores `vecf32` embeddings; topics reuse the nearest existing topic above a threshold set from a small labelled list of pairs in the tests.
-- Tests: "auth tokens" and "login tokens" share a topic; "auth tokens" and "css grid" do not.
+### Task 6.4: The `search` tool
+- `mcp/search_tool.py`: `search(ctx, query, k=5, embedder)`: full-text and vector hits
+  merged by reciprocal rank fusion, then expanded through the graph; each result names
+  its role, request, reason, files, and related sessions.
 
-### Task 6.3: `search` tool
+### Task 6.5: Topic reuse by meaning and by graph
+- `decisions.resolve_topic`: reuse the nearest existing topic when its embedding is within
+  the distance threshold, or when it is a little further but its decisions touched the
+  same files as this request; otherwise a new topic. Threshold set from tests.
 
-- `decisions.similar_decisions(graph, vector, k) -> list[tuple[DecisionView, str, float]]` (decision, role, score); `tools.search(ctx, query, k=5)`; stand-in context adds the top matches.
+### Task 6.6: Stand-in context by relevance
+- `gather_context` adds the role's decisions that match the question (hybrid search),
+  beyond the recency window, so an old but relevant decision is not missed.
+
+### Task 6.7: Colliding edits
+- `graph/overlaps.py`: `recent_edits_by_others(graph, path, session_id, since)`.
+- After an edit, the PostToolUse hook adds a fact when another role changed the same
+  file recently: which role, when, and its request. `handoff` lists files changed by more
+  than one role.
+
+### Task 6.8: How two pieces of work connect
+- `connection` tool: the shortest path (FalkorDB `shortestPath`) between this session's
+  latest request and another role's, through files, needs and messages, rendered hop by
+  hop. Shown in the demo.
+
+### Phase 6 gate
+- Live: two sessions edit the same file and the second is told; `search` finds a
+  paraphrased decision; `connection` shows the path; the stand-in uses an old decision.
 
 ---
 
