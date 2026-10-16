@@ -5,6 +5,7 @@ description = "A shared FalkorDB context graph for parallel Claude Code sessions
 requires-python = ">=3.12"
 dependencies = [
     "falkordb>=1.8,<2",
+    "mcp>=2.3,<3",
     "redis>=5",
 ]
 

@@ -133,3 +133,26 @@ def test_bad_configuration_still_exits_cleanly(config: Config, hook_json: HookJs
         check=False,
     )
     assert result.returncode == 0
+
+
+def test_session_is_stored_under_the_project_folder_not_the_shell_folder(
+    config: Config, graph: Graph, hook_json: HookJson
+) -> None:
+    raw = hook_json("user_prompt") | {"cwd": "/work/app/src/deep"}
+    env = os.environ | {
+        "HANDOFF_GRAPH": config.graph_name,
+        "HANDOFF_HOME": str(config.home),
+        "CLAUDE_PROJECT_DIR": "/work/app",
+    }
+    env.pop("HANDOFF_ROLE", None)
+    subprocess.run(
+        [sys.executable, "-m", "handoff.hooks.cli"],
+        input=json.dumps(raw),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=True,
+    )
+    rows = graph.query("MATCH (s:Session) RETURN s.cwd, s.role").result_set
+    assert rows == [["/work/app", "app"]]

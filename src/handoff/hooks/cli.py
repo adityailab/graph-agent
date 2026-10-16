@@ -43,12 +43,11 @@ def _setup_logging(config: Config) -> None:
 
 def _read_event(stdin: str, env: Mapping[str, str]) -> dict[str, Any]:
     data = json.loads(stdin)
-    cwd = str(data.get("cwd", ""))
-    return {
-        "input": prepare_hook_input(data, env.get("CLAUDE_PROJECT_DIR", cwd)),
-        "role": resolve_role(cwd, env),
-        "at": now_ms(),
-    }
+    # The project folder, not the shell's current folder: the agent may `cd`, and the
+    # MCP server finds this session again by role and project folder.
+    project_dir = env.get("CLAUDE_PROJECT_DIR") or str(data.get("cwd", ""))
+    prepared = prepare_hook_input(data, project_dir) | {"cwd": project_dir}
+    return {"input": prepared, "role": resolve_role(project_dir, env), "at": now_ms()}
 
 
 def _apply(config: Config, event: dict[str, Any]) -> HookOutput:
