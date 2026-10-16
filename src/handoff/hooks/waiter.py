@@ -77,8 +77,16 @@ def wait_for_messages(
         time.sleep(poll)
 
 
+def is_unattended(env: Mapping[str, str]) -> bool:
+    """True for headless runs (`claude -p`, the Agent SDK): nobody is there to wake, and
+    Claude Code waits for an asyncRewake hook before exiting, so a waiter would hang it."""
+    return env.get("CLAUDE_CODE_SESSION_ATTENDED") == "0"
+
+
 def main(stdin: str, env: Mapping[str, str]) -> int:
     """Wait for this session's messages. Returns the exit code: 2 to wake, else 0."""
+    if is_unattended(env):
+        return 0
     try:
         config = Config.from_env(env)
         setup_logging(config)

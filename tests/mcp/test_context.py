@@ -20,3 +20,8 @@ def test_context_resolves_a_symlinked_project_folder(tmp_path: Path) -> None:
 def test_context_role_comes_from_the_environment_lower_cased() -> None:
     ctx = context_from_env({"HANDOFF_ROLE": " Backend "}, cwd="/w", connect=lambda: None)
     assert ctx.role == "backend"
+
+
+def test_context_takes_the_session_id_claude_code_provides() -> None:
+    ctx = context_from_env({"CLAUDE_CODE_SESSION_ID": "abc"}, cwd="/w", connect=lambda: None)
+    assert ctx.session_id == "abc"

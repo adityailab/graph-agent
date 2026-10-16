@@ -83,3 +83,15 @@ def test_unreachable_graph_gives_a_sentence_not_an_error(config: Config) -> None
     )
     assert record_decision(dead, "x", "y", "z") == UNREACHABLE
     assert handoff(dead) == UNREACHABLE
+
+
+def test_session_id_from_claude_code_picks_the_exact_session(frontend: ToolContext) -> None:
+    # A second frontend terminal was seen more recently, but this server knows its own id.
+    upsert_session(frontend.graph, session_id="fe2", role="frontend", cwd="/w", at=1_900)
+    add_request(frontend.graph, session_id="fe2", request_id="p2", text="other work", at=1_900)
+    mine = ToolContext(
+        graph=frontend.graph, role="frontend", cwd="/w", now=lambda: 2_000, session_id="fe"
+    )
+    reply = record_decision(mine, "x", "y", "z")
+    assert '"show avatar"' in reply
+    assert "share the role" not in reply

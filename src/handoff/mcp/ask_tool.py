@@ -5,7 +5,8 @@ from __future__ import annotations
 from handoff.config import normalise_role
 from handoff.graph.messages import add_citations, add_message
 from handoff.ids import new_id
-from handoff.mcp.context import ToolContext, current_session, guarded
+from handoff.mcp.context import ToolContext, guarded
+from handoff.mcp.current import current_session
 from handoff.mcp.message_tools import NOT_REGISTERED
 from handoff.redact import redact
 from handoff.standin.answer import ModelClient, StandinUnavailable, answer

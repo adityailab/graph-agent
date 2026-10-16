@@ -58,3 +58,11 @@ def count_sessions(graph: Graph, *, role: str, cwd: str, since: int) -> int:
         {"role": role, "cwd": cwd, "since": since},
     ).result_set
     return int(rows[0][0])
+
+
+def get_session(graph: Graph, session_id: str) -> SessionInfo | None:
+    """Return the session with this id, if it has been registered."""
+    rows = graph.ro_query(
+        f"MATCH (s:Session {{id: $id}}) RETURN {_SESSION_FIELDS}", {"id": session_id}
+    ).result_set
+    return _session(rows[0]) if rows else None
