@@ -92,8 +92,9 @@ def _render_message(m: MessageView) -> str:
         )
     if m.kind == "standin_answer":
         return (
-            f"Stand-in answer {m.id} from the {m.from_role} session's recorded history "
-            f'({when}), replying to {m.reply_to}: "{m.text}"'
+            f"Stand-in answer {m.id} to question {m.reply_to} ({when}), written by a model "
+            f'from this role\'s recorded history: "{m.text}" A correction goes through '
+            f"send_message with reply_to set to {m.reply_to}."
         )
     reply = f", replying to {m.reply_to}" if m.reply_to else ""
     return f'Message {m.id} from the {m.from_role} session ({when}{reply}): "{m.text}"'

@@ -13,6 +13,7 @@ EXPECTED_TOOLS = {
     "handoff",
     "why",
     "send_message",
+    "ask",
 }
 
 
