@@ -87,3 +87,16 @@ class DecisionHit:
     reason: str
     files: tuple[str, ...]
     related_roles: tuple[str, ...]  # other roles that changed the same files
+
+
+@dataclass(frozen=True)
+class OtherEdit:
+    role: str
+    request_text: str
+    at: int
+
+
+@dataclass(frozen=True)
+class SharedFile:
+    path: str
+    roles: tuple[str, ...]

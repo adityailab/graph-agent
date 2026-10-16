@@ -72,3 +72,25 @@ def test_long_request_text_is_shortened_in_listings(frontend: ToolContext) -> No
 def test_out_of_range_window_and_limit_are_clamped(frontend: ToolContext) -> None:
     assert "show avatar" in handoff(frontend, role="frontend", since_minutes=10**12, limit=0)
     assert "-5" not in sessions(frontend, within_minutes=-5)
+
+
+def test_handoff_lists_files_changed_by_more_than_one_role(backend: ToolContext) -> None:
+    add_edit(
+        backend.graph,
+        request_id="p1",
+        edit_id="e1",
+        tool="Edit",
+        path="Card.tsx",
+        summary="",
+        at=1_100,
+    )
+    add_edit(
+        backend.graph,
+        request_id="p9",
+        edit_id="e9",
+        tool="Edit",
+        path="Card.tsx",
+        summary="",
+        at=1_600,
+    )
+    assert "Changed by more than one role: Card.tsx (backend, frontend)" in handoff(backend)
