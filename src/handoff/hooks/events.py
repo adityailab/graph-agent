@@ -9,6 +9,7 @@ from falkordb import Graph
 from handoff.graph.edits import add_edit
 from handoff.graph.requests import add_request, latest_request_id, request_needs_decision
 from handoff.graph.sessions import upsert_session
+from handoff.hooks.delivery import open_needs_text, pending_messages_text
 from handoff.hooks.hook_input import HookInput
 from handoff.ids import new_id
 
@@ -23,7 +24,7 @@ def on_session_start(graph: Graph, hook: HookInput, *, role: str, at: int) -> No
     register_session(graph, hook, role=role, at=at)
 
 
-def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int) -> str:
+def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int, live: bool = True) -> str:
     """Record the prompt as a request. Returns text to add to Claude's context."""
     register_session(graph, hook, role=role, at=at)
     add_request(
@@ -33,15 +34,31 @@ def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int) -> str:
         text=hook.prompt,
         at=at,
     )
-    return ""
+    if not live:
+        return ""
+    parts = [
+        pending_messages_text(graph, session_id=hook.session_id, role=role, at=at),
+        open_needs_text(graph, role),
+    ]
+    return "\n".join(p for p in parts if p)
 
 
-def on_post_tool_use(graph: Graph, hook: HookInput, *, role: str, at: int) -> dict[str, Any] | None:
-    """Record a file edit against the request that caused it. Returns hook JSON output."""
+def on_post_tool_use(
+    graph: Graph, hook: HookInput, *, role: str, at: int, live: bool = True
+) -> dict[str, Any] | None:
+    """Record a file edit, if any, then hand pending messages to the working session."""
     register_session(graph, hook, role=role, at=at)
-    if hook.edit_path is None:
+    if hook.edit_path is not None:
+        _record_edit(graph, hook, hook.edit_path, at)
+    if not live:
         return None
-    path = hook.edit_path
+    text = pending_messages_text(graph, session_id=hook.session_id, role=role, at=at)
+    if not text:
+        return None
+    return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": text}}
+
+
+def _record_edit(graph: Graph, hook: HookInput, path: str, at: int) -> None:
 
     def record(request_id: str) -> bool:
         return add_edit(
@@ -56,11 +73,10 @@ def on_post_tool_use(graph: Graph, hook: HookInput, *, role: str, at: int) -> di
 
     # The prompt may be unrecorded (hooks installed mid-turn); fall back to the latest one.
     if hook.prompt_id and record(hook.prompt_id):
-        return None
+        return
     latest = latest_request_id(graph, hook.session_id)
     if latest is not None:
         record(latest)
-    return None
 
 
 FINISH_CHECK_REASON = (

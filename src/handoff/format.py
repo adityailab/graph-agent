@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import time
 from collections import defaultdict
 from collections.abc import Sequence
 
-from handoff.graph.records import RequestView, WhyRow
+from handoff.graph.records import MessageView, RequestView, WhyRow
 
 
 def select_requests(requests: Sequence[RequestView], limit: int) -> list[RequestView]:
@@ -79,3 +80,24 @@ def render_why(path: str, rows: Sequence[WhyRow]) -> str:
         first_line = row.edit_summary.splitlines()[0] if row.edit_summary else ""
         lines.append(f"  Change: {first_line}")
     return "\n".join(lines)
+
+
+def _render_message(m: MessageView) -> str:
+    when = time.strftime("%H:%M", time.localtime(m.at / 1000))
+    if m.kind == "question":
+        return (
+            f'Question {m.id} from the {m.from_role} session ({when}): "{m.text}" '
+            f"A reply goes through send_message with reply_to set to {m.id}."
+        )
+    if m.kind == "standin_answer":
+        return (
+            f"Stand-in answer {m.id} from the {m.from_role} session's recorded history "
+            f'({when}), replying to {m.reply_to}: "{m.text}"'
+        )
+    reply = f", replying to {m.reply_to}" if m.reply_to else ""
+    return f'Message {m.id} from the {m.from_role} session ({when}{reply}): "{m.text}"'
+
+
+def render_messages(messages: Sequence[MessageView]) -> str:
+    """Render delivered messages as statements of fact, one per line."""
+    return "\n".join(_render_message(m) for m in messages)

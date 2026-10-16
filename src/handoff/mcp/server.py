@@ -13,7 +13,7 @@ from pydantic import Field
 
 from handoff.config import Config
 from handoff.graph.connection import connect
-from handoff.mcp import read_tools, record_tools
+from handoff.mcp import message_tools, read_tools, record_tools
 from handoff.mcp.context import ToolContext, context_from_env
 
 INSTRUCTIONS = (
@@ -24,7 +24,9 @@ INSTRUCTIONS = (
     "when it is recorded there. record_need tells another role what this request needs from "
     "it; resolve_need closes such a need, using the id shown in handoff. When a person asks "
     "this session to pick up another session's work, handoff for that role holds what was "
-    "asked, decided, changed and still needed. why shows the intent behind a file's edits."
+    "asked, decided, changed and still needed. why shows the intent behind a file's edits. "
+    "send_message reaches every session with a role: a working session sees it on its next "
+    "tool call and an idle one is woken."
 )
 
 
@@ -72,6 +74,16 @@ def build_server(ctx: ToolContext) -> MCPServer:
         path: Annotated[str, Field(description="File path, relative to the project or absolute.")],
     ) -> str:
         return read_tools.why(ctx, path)
+
+    @server.tool(description="Send a message to every session with a role; idle ones wake.")
+    def send_message(
+        to_role: Annotated[str, Field(description="Role to send to, e.g. 'deploy'.")],
+        text: Annotated[str, Field(description="The message.")],
+        reply_to: Annotated[
+            str | None, Field(description="Id of the message or question this answers.")
+        ] = None,
+    ) -> str:
+        return message_tools.send_message(ctx, to_role, text, reply_to)
 
     return server
 

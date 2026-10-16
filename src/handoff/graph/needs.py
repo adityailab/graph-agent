@@ -30,3 +30,11 @@ def resolve_need(graph: Graph, *, need_id: str, request_id: str) -> bool:
         {"nid": need_id, "rid": request_id},
     ).result_set
     return bool(rows)
+
+
+def count_open_needs(graph: Graph, role: str) -> int:
+    """Count needs addressed to `role` that are still open."""
+    rows = graph.ro_query(
+        "MATCH (n:Need {for_role: $role, status: 'open'}) RETURN count(n)", {"role": role}
+    ).result_set
+    return int(rows[0][0])

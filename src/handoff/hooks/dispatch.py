@@ -26,9 +26,9 @@ def apply_event(graph: Graph, event: Mapping[str, Any], *, live: bool) -> HookOu
         on_session_start(graph, hook, role=role, at=at)
         return None
     if hook.event_name == "UserPromptSubmit":
-        return on_user_prompt(graph, hook, role=role, at=at)
+        return on_user_prompt(graph, hook, role=role, at=at, live=live)
     if hook.event_name == "PostToolUse":
-        return on_post_tool_use(graph, hook, role=role, at=at)
+        return on_post_tool_use(graph, hook, role=role, at=at, live=live)
     if hook.event_name == "Stop":
         output = on_stop(graph, hook, role=role, at=at)
         return output if live else None
