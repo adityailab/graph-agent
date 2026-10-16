@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from mcp.server.mcpserver import MCPServer
+from pydantic import Field
+
 from handoff.config import normalise_role
 from handoff.format import shorten
+from handoff.graph.history import requests_for_decisions
 from handoff.graph.messages import add_citations, add_message
 from handoff.ids import new_id
 from handoff.mcp.context import ToolContext, guarded
 from handoff.mcp.current import current_session
 from handoff.mcp.message_tools import NOT_REGISTERED
+from handoff.mcp.search_tool import rank_decisions
 from handoff.redact import redact
 from handoff.standin.answer import ModelClient, StandinUnavailable, answer
 from handoff.standin.context import gather_context
@@ -39,8 +46,13 @@ def ask(ctx: ToolContext, role: str, question: str, client: ModelClient) -> str:
         reply_to=None,
         at=now,
     )
+    matching = rank_decisions(ctx, text, k=5)
     history = gather_context(
-        ctx.graph, role=target, since=now - _HISTORY_WINDOW_MS, limit=_HISTORY_LIMIT
+        ctx.graph,
+        role=target,
+        since=now - _HISTORY_WINDOW_MS,
+        limit=_HISTORY_LIMIT,
+        relevant=requests_for_decisions(ctx.graph, decision_ids=matching, role=target),
     )
     if not history.requests and not history.messages:
         return (
@@ -72,3 +84,17 @@ def ask(ctx: ToolContext, role: str, question: str, client: ModelClient) -> str:
         f"Question {question_id} was also delivered to the {target} session, which can "
         "reply with send_message."
     )
+
+
+def register(server: MCPServer, ctx: ToolContext, client: ModelClient) -> None:
+    """Add the ask tool to the server."""
+
+    @server.tool(
+        name="ask",
+        description="Ask another role a question; get a stand-in answer from its history now.",
+    )
+    def _ask(
+        role: Annotated[str, Field(description="Role to ask, e.g. 'frontend'.")],
+        question: Annotated[str, Field(description="The question, in one or two sentences.")],
+    ) -> str:
+        return ask(ctx, role, question, client)

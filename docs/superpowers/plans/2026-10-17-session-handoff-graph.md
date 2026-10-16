@@ -32,7 +32,9 @@ Deadline: 18 October 2026, 11:59 PM IST. Start: 17 October morning.
 | 4 Finish check and live messages | 4 h | Sun 11:00 |
 | 5 Stand-in | 3 h | Sun 14:00 |
 | 6 Search by meaning | 2 h | Sun 16:00, dropped if late |
-| 7 Ship | 4 h | Sun 21:00, leaving 3 h of slack |
+| 7 Knowledge layer (GraphRAG-SDK, FalkorDB MCP, three model backends) | 6 h | Sat evening |
+| 8 Ship | 4 h | Sun afternoon |
+| 9 Coordinator (stretch) | 3 h | Sun evening, only with time to spare |
 
 Phase 6 was revised and expanded on 17 October (FalkorDB-native search); the schedule allows it.
 
@@ -1731,24 +1733,96 @@ the long-lived MCP server, never in hooks.
 
 ---
 
-## Phase 7: Ship
+## Phase 7: Knowledge layer: GraphRAG-SDK, FalkorDB MCP, three model backends
 
-Branch: `phase/7-ship`.
+Branch: `phase/7-knowledge`. Added 17 October at Aditya's request ("GraphRAG-SDK +
+FalkorDB MCP", models: "all three"). Facts from the research (graphrag-sdk 1.4.0,
+@falkordb/mcpserver 1.3.0) are in the ledger.
 
-### Task 7.1: Installer
+Design:
+- **Two layers.** The provenance backbone (graph `handoff`) keeps its shape. The
+  knowledge layer lives in its own graph, `<graph>_kg`, built by GraphRAG-SDK from the
+  text of requests and decisions. Its ontology is not hard-coded: the model proposes it
+  from the recorded text and extends it as new subjects appear.
+- **Link between graphs.** Each ingested text is a GraphRAG `Document` whose id is our
+  Request or Decision id. Cross-graph joins happen in Python.
+- **Optional install.** `graphrag-sdk` pulls torch (about 1 GB), so it is the extra
+  `handoff[knowledge]`. Without it the knowledge tools say so and everything else works.
+- **Models.** One `ModelClient` protocol, three backends chosen by `HANDOFF_MODEL`
+  (`claude-code` default, `anthropic`, `ollama`), used by both the stand-in and GraphRAG.
+
+### Task 7.1: Model backends
+- `handoff/models/`: `ModelClient` (moved from standin), `claude_code.py` (moved),
+  `anthropic_api.py` (official `anthropic` SDK, model `claude-opus-5-5`, needs
+  `ANTHROPIC_API_KEY`), `ollama.py` (`POST /api/chat`, `format: "json"`, default model
+  `qwen2.5:7b`), `choose.py` (`model_from_env(env) -> ModelClient`).
+- Tests: each backend's request shape with a fake transport; selection by env; live
+  tests gated by `HANDOFF_LIVE_TESTS` and the backend being available.
+
+### Task 7.2: GraphRAG adapters
+- `knowledge/adapters.py`: an `LLMInterface` subclass wrapping any `ModelClient`
+  (concurrency 1 for `claude-code`), an `Embedder` adapter wrapping `FastEmbedder` (384).
+- Verify at task start, live: ingest of plain text with `document_id`, ontology
+  discovery from text, `completion()`, provenance query back to document ids.
+
+### Task 7.3: Ontology that grows
+- `knowledge/ontology.py`: discover an ontology from the first texts with the model;
+  extend it from new texts with `suggest_schema_extensions` on a schedule. Nothing about
+  the project's subject is written in code.
+
+### Task 7.4: Ingestion worker
+- `knowledge/worker.py`: a background thread in the MCP server. It claims un-ingested
+  Requests and Decisions from `handoff` (a claim property, set in one query so several
+  servers never double-ingest), ingests each into `<graph>_kg`, and runs `finalize()`
+  every few minutes. Failures leave the item unclaimed for a later try.
+
+### Task 7.5: Knowledge tools
+- `ask_graph(question)`: GraphRAG `completion()`; the answer plus the requests and
+  decisions it drew on (via document ids), with their roles.
+- `concepts(query)`: entities matching a query and which sessions' work mentions them.
+- `search` and the stand-in add work linked by shared concepts, not only shared files.
+
+### Task 7.6: FalkorDB MCP server alongside ours
+- The installer (Phase 8) adds `@falkordb/mcpserver@1.3.0` to `.mcp.json` with
+  `FALKORDB_STRICT_READONLY=true`, so agents can write their own read-only Cypher
+  against both graphs. Here: a config builder function and its test.
+
+### Phase 7 gate
+- Live: a decision about `avatarUrl` in one session and a request mentioning it in
+  another are linked through a concept; `ask_graph` answers a cross-session question with
+  sources; the FalkorDB MCP server lists both graphs and refuses a write.
+
+---
+
+## Phase 8: Ship
+
+Branch: `phase/8-ship`. (Was Phase 7.)
+
+
+
+### Task 8.1: Installer
 
 - `install.py`, command `handoff install <workspace>`: merges hook entries into `<workspace>/.claude/settings.local.json` and the server into `<workspace>/.mcp.json` without removing existing entries; prints the launch command for each role.
 - Tests: fresh workspace; workspace with existing settings keeps them; running twice adds nothing.
 
-### Task 7.2: End-to-end run
+### Task 8.2: End-to-end run
 
 - `scripts/e2e_scenario.sh`: three `claude -p` runs with different `HANDOFF_ROLE` values against a scratch workspace, then a Python check that the deploy handoff contains the frontend request, the resolved need and the backend request.
 
-### Task 7.3: README and licence
+### Task 8.3: README and licence
 
 - README: problem, how it works (graph diagram), setup in three commands, demo walkthrough, graph schema, design decisions, limits.
 - `LICENSE` (MIT).
 
-### Task 7.4: Submission (you)
+### Task 8.4: Submission (you)
 
 - Record the demo video, write the blog post, submit on the WeMakeDevs panel before 18 October 11:59 PM IST.
+
+---
+
+## Phase 9 (stretch): The coordinator
+
+An always-on agent in the spirit of OpenAI's Dots, for a team of coding sessions: it
+watches the graph and acts within rules the person sets, e.g. a need left open for 30
+minutes, two roles changing the same file, an end-of-day digest. Planned only if Phase 8
+is done with time to spare.

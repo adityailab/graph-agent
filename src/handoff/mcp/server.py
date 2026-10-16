@@ -1,19 +1,25 @@
 """The `handoff-mcp` server: registers the tools and runs over stdio.
 
-This file only wires tools to their logic in record_tools and read_tools.
+This file only wires things together: each tool module registers its own tools.
 """
 
 from __future__ import annotations
 
 import os
-from typing import Annotated
 
 from mcp.server.mcpserver import MCPServer
-from pydantic import Field
 
 from handoff.config import Config
+from handoff.embed import FastEmbedder
 from handoff.graph.connection import connect
-from handoff.mcp import ask_tool, message_tools, read_tools, record_tools
+from handoff.mcp import (
+    ask_tool,
+    connection_tool,
+    message_tools,
+    read_tools,
+    record_tools,
+    search_tool,
+)
 from handoff.mcp.context import ToolContext, context_from_env
 from handoff.standin.answer import ModelClient
 from handoff.standin.claude_code import ClaudeCodeClient
@@ -30,75 +36,22 @@ INSTRUCTIONS = (
     "send_message reaches every session with a role: a working session sees it on its next "
     "tool call, and an idle one is woken when its waiter is running. ask puts a question "
     "to another role and returns at once a stand-in answer, written by a model from that "
-    "role's recorded history and labelled as such; the real session also gets the question."
+    "role's recorded history and labelled as such; the real session also gets the question. "
+    "search finds recorded decisions by their words and their meaning, from any role. "
+    "connection shows the chain of shared files, decisions and needs linking this "
+    "session's work to another role's."
 )
 
 
 def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPServer:
     """Create the server with every tool bound to `ctx`."""
     server = MCPServer("handoff", instructions=INSTRUCTIONS)
-    model = standin or ClaudeCodeClient()
-
-    @server.tool(description="Record a choice made for the current request, why, and its topic.")
-    def record_decision(
-        text: Annotated[str, Field(description="What was chosen, in one sentence.")],
-        reason: Annotated[str, Field(description="Why it was chosen over the alternatives.")],
-        topic: Annotated[str, Field(description="Short subject, e.g. 'user profile API'.")],
-    ) -> str:
-        return record_tools.record_decision(ctx, text, reason, topic)
-
-    @server.tool(description="Record something the current request needs from another role.")
-    def record_need(
-        for_role: Annotated[str, Field(description="Role that must act, e.g. 'backend'.")],
-        text: Annotated[str, Field(description="What that role needs to do.")],
-    ) -> str:
-        return record_tools.record_need(ctx, for_role, text)
-
-    @server.tool(description="Mark another role's need as handled by the current request.")
-    def resolve_need(
-        need_id: Annotated[str, Field(description="The id shown after 'id' in handoff.")],
-    ) -> str:
-        return record_tools.resolve_need(ctx, need_id)
-
-    @server.tool(description="List active sessions and what each is working on.")
-    def sessions(within_minutes: int = 120) -> str:
-        return read_tools.sessions(ctx, within_minutes)
-
-    @server.tool(
-        description="Show what a role (or all roles) was asked, decided, changed and needs."
-    )
-    def handoff(
-        role: Annotated[str | None, Field(description="Role to show; omit for all.")] = None,
-        since_minutes: Annotated[int, Field(description="How far back to look.")] = 240,
-        limit: Annotated[int, Field(description="Most requests to show, 1 to 50.")] = 10,
-    ) -> str:
-        return read_tools.handoff(ctx, role, since_minutes, limit)
-
-    @server.tool(description="Show the requests and decisions behind changes to a file.")
-    def why(
-        path: Annotated[str, Field(description="File path, relative to the project or absolute.")],
-    ) -> str:
-        return read_tools.why(ctx, path)
-
-    @server.tool(description="Send a message to every session with a role.")
-    def send_message(
-        to_role: Annotated[str, Field(description="Role to send to, e.g. 'deploy'.")],
-        text: Annotated[str, Field(description="The message.")],
-        reply_to: Annotated[
-            str | None, Field(description="Id of the message or question this answers.")
-        ] = None,
-    ) -> str:
-        return message_tools.send_message(ctx, to_role, text, reply_to)
-
-    @server.tool(
-        description="Ask another role a question; get a stand-in answer from its history now."
-    )
-    def ask(
-        role: Annotated[str, Field(description="Role to ask, e.g. 'frontend'.")],
-        question: Annotated[str, Field(description="The question, in one or two sentences.")],
-    ) -> str:
-        return ask_tool.ask(ctx, role, question, model)
-
+    record_tools.register(server, ctx)
+    read_tools.register(server, ctx)
+    message_tools.register(server, ctx)
+    ask_tool.register(server, ctx, standin or ClaudeCodeClient())
+    search_tool.register(server, ctx)
+    connection_tool.register(server, ctx)
     return server
 
 
@@ -109,7 +62,14 @@ def main() -> None:
     tools answer with a clear sentence) even while FalkorDB is down.
     """
     config = Config.from_env()
-    ctx = context_from_env(os.environ, cwd=os.getcwd(), connect=lambda: connect(config))
+    embedder = FastEmbedder(cache_dir=config.home / "models")
+    embedder.warm_up()  # load the model now, not inside the first tool call
+    ctx = context_from_env(
+        os.environ,
+        cwd=os.getcwd(),
+        connect=lambda: connect(config),
+        embedder=embedder,
+    )
     build_server(ctx).run("stdio")
 
 

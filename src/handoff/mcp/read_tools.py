@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import os
+from typing import Annotated
+
+from mcp.server.mcpserver import MCPServer
+from pydantic import Field
 
 from handoff.config import normalise_role
 from handoff.format import render_handoff, render_why, select_requests, shorten
 from handoff.graph.edits import why_file
 from handoff.graph.history import handoff_requests
+from handoff.graph.overlaps import shared_files
 from handoff.graph.requests import latest_request_id, request_text
 from handoff.graph.sessions import active_sessions
 from handoff.mcp.context import ToolContext, guarded
@@ -45,12 +50,16 @@ def handoff(
 ) -> str:
     """Show what a role (or every role) was asked, decided, changed and needs."""
     minutes = _clamp(since_minutes, 0, _WEEK_MINUTES)
+    since = ctx.now() - minutes * _MINUTE_MS
     requests = handoff_requests(
-        ctx.graph,
-        role=normalise_role(role) if role and role.strip() else None,
-        since=ctx.now() - minutes * _MINUTE_MS,
+        ctx.graph, role=normalise_role(role) if role and role.strip() else None, since=since
     )
-    return render_handoff(select_requests(requests, _clamp(limit, 1, 50)))
+    text = render_handoff(select_requests(requests, _clamp(limit, 1, 50)))
+    shared = shared_files(ctx.graph, since=since)
+    if shared:
+        listed = "; ".join(f"{f.path} ({', '.join(f.roles)})" for f in shared)
+        text += f"\n\nChanged by more than one role: {listed}"
+    return text
 
 
 @guarded
@@ -59,3 +68,30 @@ def why(ctx: ToolContext, path: str) -> str:
     rel = relative_path(path, ctx.cwd) if os.path.isabs(path) else os.path.normpath(path)
     rows = why_file(ctx.graph, rel)
     return render_why(rel, rows) if rows else f"No recorded edits to {rel}."
+
+
+def register(server: MCPServer, ctx: ToolContext) -> None:
+    """Add the reading tools to the server."""
+
+    @server.tool(name="sessions", description="List active sessions and what each is working on.")
+    def _sessions(within_minutes: int = 120) -> str:
+        return sessions(ctx, within_minutes)
+
+    @server.tool(
+        name="handoff",
+        description="Show what a role (or all roles) was asked, decided, changed and needs.",
+    )
+    def _handoff(
+        role: Annotated[str | None, Field(description="Role to show; omit for all.")] = None,
+        since_minutes: Annotated[int, Field(description="How far back to look.")] = 240,
+        limit: Annotated[int, Field(description="Most requests to show, 1 to 50.")] = 10,
+    ) -> str:
+        return handoff(ctx, role, since_minutes, limit)
+
+    @server.tool(
+        name="why", description="Show the requests and decisions behind changes to a file."
+    )
+    def _why(
+        path: Annotated[str, Field(description="File path, relative to the project or absolute.")],
+    ) -> str:
+        return why(ctx, path)

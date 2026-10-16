@@ -14,7 +14,7 @@ from handoff.graph.requests import (
     request_text,
 )
 from handoff.graph.sessions import upsert_session
-from handoff.hooks.delivery import open_needs_text, pending_messages_text
+from handoff.hooks.delivery import collision_text, open_needs_text, pending_messages_text
 from handoff.hooks.hook_input import HookInput
 from handoff.ids import new_id
 
@@ -57,7 +57,14 @@ def on_post_tool_use(
         _record_edit(graph, hook, hook.edit_path, at)
     if not live:
         return None
-    text = pending_messages_text(graph, session_id=hook.session_id, role=role, at=at)
+    parts = [pending_messages_text(graph, session_id=hook.session_id, role=role, at=at)]
+    if hook.edit_path is not None:
+        parts.append(
+            collision_text(
+                graph, path=hook.edit_path, session_id=hook.session_id, at=at, pid=hook.pid
+            )
+        )
+    text = "\n".join(p for p in parts if p)
     if not text:
         return None
     return {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": text}}

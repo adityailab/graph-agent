@@ -5,6 +5,7 @@ description = "A shared FalkorDB context graph for parallel Claude Code sessions
 requires-python = ">=3.12"
 dependencies = [
     "falkordb>=1.8,<2",
+    "fastembed>=0.9,<1",
     "mcp>=2.3,<3",
     "pydantic>=2",
     "redis>=5",
@@ -43,7 +44,7 @@ python_version = "3.12"
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["falkordb.*", "redis.*"]
+module = ["falkordb.*", "redis.*", "fastembed.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

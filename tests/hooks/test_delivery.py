@@ -65,3 +65,18 @@ def test_prompt_mentions_open_needs_for_this_role(graph: Graph, hook_json: HookJ
         graph, request_id="pb", need_id="n1", text="show the new field", for_role="frontend", at=56
     )
     assert "1 open need is addressed to frontend" in _apply(graph, hook_json("user_prompt"))
+
+
+def test_editing_a_file_another_session_just_changed_is_flagged(
+    graph: Graph, hook_json: HookJson
+) -> None:
+    from handoff.graph.edits import add_edit
+
+    _backend_says(graph, "hi")
+    add_request(graph, session_id="be", request_id="pb", text="rename the field", at=90)
+    add_edit(graph, request_id="pb", edit_id="eb", tool="Edit", path="hello.txt", summary="", at=95)
+    _apply(graph, hook_json("user_prompt"))
+    output = _apply(graph, hook_json("post_edit"))
+    context = output["hookSpecificOutput"]["additionalContext"]
+    assert "hello.txt was also changed by the backend session" in context
+    assert '"rename the field"' in context

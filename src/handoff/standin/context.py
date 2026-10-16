@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from falkordb import Graph
@@ -19,9 +20,21 @@ class StandinContext:
     messages: tuple[MessageView, ...]
 
 
-def gather_context(graph: Graph, *, role: str, since: int, limit: int) -> StandinContext:
-    """Collect a role's history without delivering or changing anything."""
-    requests = select_requests(handoff_requests(graph, role=role, since=since), limit)
+def gather_context(
+    graph: Graph,
+    *,
+    role: str,
+    since: int,
+    limit: int,
+    relevant: Sequence[RequestView] = (),
+) -> StandinContext:
+    """Collect a role's history without delivering or changing anything.
+
+    `relevant` adds requests found by searching for the question, however old they are.
+    """
+    recent = select_requests(handoff_requests(graph, role=role, since=since), limit)
+    by_id = {r.id: r for r in [*relevant, *recent]}
+    requests = sorted(by_id.values(), key=lambda r: r.at)
     messages = role_messages(graph, role=role, since=since, limit=limit)
     return StandinContext(role=role, requests=tuple(requests), messages=tuple(messages))
 

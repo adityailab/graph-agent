@@ -88,3 +88,32 @@ def test_long_or_secret_answers_are_trimmed_and_redacted(backend: ToolContext) -
     )
     assert "sk-ant-api03" not in reply
     assert len(reply) < 1_500
+
+
+def test_old_but_relevant_decision_reaches_the_stand_in(backend: ToolContext) -> None:
+    from handoff.graph.requests import add_request
+
+    # A frontend decision from long ago, far outside the stand-in's time window.
+    add_request(backend.graph, session_id="fe", request_id="p-old", text="auth flow", at=1)
+    add_decision(
+        backend.graph,
+        request_id="p-old",
+        decision_id="d-old",
+        text="refresh JWT silently",
+        reason="no logout on expiry",
+        topic="auth",
+        at=2,
+    )
+    seen: list[str] = []
+
+    class Recorder:
+        def complete(self, system: str, user: str) -> str:
+            seen.append(user)
+            return json.dumps({"answer": "Silently.", "cited_ids": ["d-old"], "found": True})
+
+    far_future = ToolContext(
+        graph=backend.graph, role="backend", cwd="/w", now=lambda: 30 * 24 * 60 * 60_000
+    )
+    reply = ask(far_future, "frontend", "How do we refresh the JWT?", Recorder())
+    assert "[decision d-old]" in seen[0]
+    assert "Sources: d-old" in reply

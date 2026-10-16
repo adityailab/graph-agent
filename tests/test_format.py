@@ -81,3 +81,19 @@ def test_many_messages_are_capped() -> None:
     text = render_messages(many)
     assert "5 more messages" in text
     assert len(text) < (MAX_MESSAGES + 1) * 700
+
+
+def test_search_lines_do_not_double_their_full_stops() -> None:
+    from handoff.format_search import render_search
+    from handoff.graph.records import DecisionHit
+
+    hit = DecisionHit(
+        id="d1",
+        role="frontend",
+        request_text="r",
+        text="Keep JWT.",
+        reason="Safer.",
+        files=(),
+        related_roles=(),
+    )
+    assert ".." not in render_search("q", [hit])

@@ -14,6 +14,8 @@ EXPECTED_TOOLS = {
     "why",
     "send_message",
     "ask",
+    "search",
+    "connection",
 }
 
 

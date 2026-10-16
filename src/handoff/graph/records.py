@@ -76,3 +76,34 @@ class MessageView:
     text: str
     reply_to: str | None
     at: int
+
+
+@dataclass(frozen=True)
+class DecisionHit:
+    id: str
+    role: str
+    request_text: str
+    text: str
+    reason: str
+    files: tuple[str, ...]
+    related_roles: tuple[str, ...]  # other roles that changed the same files
+
+
+@dataclass(frozen=True)
+class OtherEdit:
+    role: str
+    request_text: str
+    at: int
+
+
+@dataclass(frozen=True)
+class SharedFile:
+    path: str
+    roles: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PathStep:
+    label: str  # Request, Edit, File, Decision, Topic, Need, Message
+    text: str  # what the node says: request text, file path, decision text, ...
+    via: str  # relationship that led here ('' for the first step)
