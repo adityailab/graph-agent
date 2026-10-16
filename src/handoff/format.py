@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 
-from handoff.graph.records import RequestView
+from handoff.graph.records import RequestView, WhyRow
 
 
 def select_requests(requests: Sequence[RequestView], limit: int) -> list[RequestView]:
@@ -60,3 +60,17 @@ def render_handoff(requests: Sequence[RequestView]) -> str:
             lines.extend(_render_request(r))
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
+
+
+def render_why(path: str, rows: Sequence[WhyRow]) -> str:
+    """Render the requests and decisions behind edits to one file, newest first."""
+    lines = [f"Edits to {path}, newest first:"]
+    for row in rows:
+        lines.append("")
+        lines.append(f'{row.role} session, request: "{row.request_text}"')
+        for d in row.decisions:
+            lines.append(f"  Decided: {d.text}")
+            lines.append(f"  Why: {d.reason}")
+        first_line = row.edit_summary.splitlines()[0] if row.edit_summary else ""
+        lines.append(f"  Change: {first_line}")
+    return "\n".join(lines)
