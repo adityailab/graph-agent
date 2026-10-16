@@ -43,12 +43,28 @@ with a test that reproduces it, in its own commit.
 ## Code standards
 
 **Layout.** Source in `src/handoff/`, tests in `tests/` mirroring the source
-layout. One responsibility per module. If a module passes about 250 lines, split
-it.
+layout: `src/handoff/graph/edits.py` is tested by `tests/graph/test_edits.py`.
+
+**Small files, one job each.** Aditya's standing rule.
+- A module does one job and its name says which: `graph/edits.py` holds the
+  queries about edits, not `graph/utils.py` or `graph/helpers.py`.
+- Split by subject, not by kind of operation. Reads and writes about the same
+  thing live together; no catch-all `writes.py` or `reads.py`.
+- Keep a module under about 150 lines and a function under about 40. When a file
+  approaches that, split it before adding more.
+- Entry points (`hooks/cli.py`, `mcp/server.py`, `install.py`) only parse input
+  and call the small modules. They hold no business logic and no Cypher.
+
+**Names.** Before writing a call to another module, check the name and
+signature in the plan's Interfaces block or in the code itself; never guess.
+Modules and functions are `snake_case`, classes `PascalCase`. Functions are
+named verb first (`add_edit`, `claim_pending_messages`); modules are named for
+their subject (`messages.py`). If a name in the plan turns out wrong or a file
+moves, update the plan in the same commit.
 
 | Package | Owns | Must not |
 |---|---|---|
-| `handoff.graph` | Every Cypher query, the schema, the record types | Read the environment, print, call models |
+| `handoff.graph` | Every Cypher query, the schema, the record types; one module per subject (`sessions`, `requests`, `edits`, `decisions`, `needs`, `history`, `messages`) | Read the environment, print, call models |
 | `handoff.hooks` | The Claude Code hook protocol: stdin JSON in, exit code and stdout/stderr out | Contain Cypher |
 | `handoff.mcp` | The MCP server and its tool functions | Contain Cypher |
 | `handoff.standin` | The stand-in model call | Write Cypher directly |

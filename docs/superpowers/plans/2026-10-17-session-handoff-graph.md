@@ -83,8 +83,13 @@ src/handoff/
     connection.py           connect()
     schema.py               ensure_schema()
     records.py              frozen dataclasses for results
-    writes.py               every write query
-    reads.py                every read query
+    sessions.py             upsert_session, active_session, active_sessions
+    requests.py             add_request, latest_request_id, (P4) request_needs_decision
+    edits.py                add_edit, why_file
+    decisions.py            normalise_topic, add_decision, (P6) similar_decisions
+    needs.py                add_need, resolve_need
+    history.py              handoff_requests
+    messages.py             (P4) add_message, claim_pending_messages
   hooks/                    (P2, P4)
     __init__.py
     cli.py                  handoff-hook entry point
@@ -569,6 +574,21 @@ git tag phase-0
 ## Phase 1: Graph layer
 
 Branch: `phase/1-graph`.
+
+**Module layout (ruling, 17 October, from Aditya's small-files rule in `CLAUDE.md`).**
+The graph code is split by subject, not into one `writes.py` and one `reads.py`.
+Where a task below says `writes.py` or `reads.py`, use this map; the function
+names and signatures are unchanged. Tests mirror it (`tests/graph/test_<module>.py`),
+and the `ready` fixture lives in `tests/graph/conftest.py`.
+
+| Function | Module |
+|---|---|
+| `upsert_session`, `active_session`, `active_sessions` | `handoff.graph.sessions` |
+| `add_request`, `latest_request_id` | `handoff.graph.requests` |
+| `add_edit`, `why_file` | `handoff.graph.edits` |
+| `normalise_topic`, `add_decision` | `handoff.graph.decisions` |
+| `add_need`, `resolve_need` | `handoff.graph.needs` |
+| `handoff_requests` | `handoff.graph.history` |
 
 ### Task 1.1: Schema
 
@@ -1467,9 +1487,13 @@ HANDOFF_GRAPH=demo uv run python - <<'EOF'
 from handoff.config import Config
 from handoff.format import render_handoff
 from handoff.graph.connection import connect
-from handoff.graph.reads import handoff_requests
+from handoff.graph.decisions import add_decision
+from handoff.graph.edits import add_edit
+from handoff.graph.history import handoff_requests
+from handoff.graph.needs import add_need
+from handoff.graph.requests import add_request
 from handoff.graph.schema import ensure_schema
-from handoff.graph.writes import add_decision, add_edit, add_need, add_request, upsert_session
+from handoff.graph.sessions import upsert_session
 
 g = connect(Config.from_env())
 ensure_schema(g)
@@ -1556,14 +1580,14 @@ Branch: `phase/4-messages`.
 
 ### Task 4.1: Finish check
 
-- `reads.request_needs_decision(graph, request_id) -> bool` (has an edit, has no decision).
+- `requests.request_needs_decision(graph, request_id) -> bool` (has an edit, has no decision).
 - `events.on_stop(graph, hook, at) -> dict | None` returns `{"decision": "block", "reason": "No decision is recorded for this request yet; record_decision records it."}` when needed and `stop_hook_active` is false.
 - Tests: blocks once; never blocks when `stop_hook_active`; never blocks a request without edits; allows the stop when the database is down.
 
 ### Task 4.2: Messages in the graph
 
-- `writes.add_message(graph, *, message_id, from_session_id, to_role, kind, text, reply_to: str | None, at) -> bool`.
-- `reads.claim_pending_messages(graph, *, session_id, role, at) -> list[MessageView]`: in one query, matches messages to `role` from other sessions with no `DELIVERED_TO` edge to this session, creates the edge, returns them oldest first.
+- `messages.add_message(graph, *, message_id, from_session_id, to_role, kind, text, reply_to: str | None, at) -> bool` in new module `src/handoff/graph/messages.py`.
+- `messages.claim_pending_messages(graph, *, session_id, role, at) -> list[MessageView]`: in one query, matches messages to `role` from other sessions with no `DELIVERED_TO` edge to this session, creates the edge, returns them oldest first.
 - `MessageView(id, kind, from_role, text, reply_to, at)` in `records.py`.
 - Tests: delivered once; not delivered to the sender; `test_role_message_reaches_each_session_once`; replies keep `REPLY_TO`.
 
@@ -1629,7 +1653,7 @@ Branch: `phase/6-search`. Dropped if Phase 4 has not passed its gate by Sunday 1
 
 ### Task 6.3: `search` tool
 
-- `reads.similar_decisions(graph, vector, k) -> list[tuple[DecisionView, str, float]]` (decision, role, score); `tools.search(ctx, query, k=5)`; stand-in context adds the top matches.
+- `decisions.similar_decisions(graph, vector, k) -> list[tuple[DecisionView, str, float]]` (decision, role, score); `tools.search(ctx, query, k=5)`; stand-in context adds the top matches.
 
 ---
 
