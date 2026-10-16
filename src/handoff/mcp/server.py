@@ -13,8 +13,10 @@ from pydantic import Field
 
 from handoff.config import Config
 from handoff.graph.connection import connect
-from handoff.mcp import message_tools, read_tools, record_tools
+from handoff.mcp import ask_tool, message_tools, read_tools, record_tools
 from handoff.mcp.context import ToolContext, context_from_env
+from handoff.standin.answer import ModelClient
+from handoff.standin.claude_code import ClaudeCodeClient
 
 INSTRUCTIONS = (
     "handoff connects this Claude Code session to the other sessions working in the same "
@@ -26,13 +28,16 @@ INSTRUCTIONS = (
     "this session to pick up another session's work, handoff for that role holds what was "
     "asked, decided, changed and still needed. why shows the intent behind a file's edits. "
     "send_message reaches every session with a role: a working session sees it on its next "
-    "tool call, and an idle one is woken when its waiter is running."
+    "tool call, and an idle one is woken when its waiter is running. ask puts a question "
+    "to another role and returns at once a stand-in answer, written by a model from that "
+    "role's recorded history and labelled as such; the real session also gets the question."
 )
 
 
-def build_server(ctx: ToolContext) -> MCPServer:
+def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPServer:
     """Create the server with every tool bound to `ctx`."""
     server = MCPServer("handoff", instructions=INSTRUCTIONS)
+    model = standin or ClaudeCodeClient()
 
     @server.tool(description="Record a choice made for the current request, why, and its topic.")
     def record_decision(
@@ -84,6 +89,15 @@ def build_server(ctx: ToolContext) -> MCPServer:
         ] = None,
     ) -> str:
         return message_tools.send_message(ctx, to_role, text, reply_to)
+
+    @server.tool(
+        description="Ask another role a question; get a stand-in answer from its history now."
+    )
+    def ask(
+        role: Annotated[str, Field(description="Role to ask, e.g. 'frontend'.")],
+        question: Annotated[str, Field(description="The question, in one or two sentences.")],
+    ) -> str:
+        return ask_tool.ask(ctx, role, question, model)
 
     return server
 

@@ -10,7 +10,8 @@ from handoff.graph.edits import why_file
 from handoff.graph.history import handoff_requests
 from handoff.graph.requests import latest_request_id, request_text
 from handoff.graph.sessions import active_sessions
-from handoff.mcp.context import ToolContext, current_session, guarded
+from handoff.mcp.context import ToolContext, guarded
+from handoff.mcp.current import current_session
 from handoff.paths import relative_path
 
 _MINUTE_MS = 60_000

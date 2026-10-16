@@ -6,7 +6,8 @@ from handoff.config import normalise_role
 from handoff.graph import needs as graph_needs
 from handoff.graph.decisions import add_decision
 from handoff.ids import new_id
-from handoff.mcp.context import NO_REQUEST, ToolContext, blank_field, current_request, guarded
+from handoff.mcp.context import NO_REQUEST, ToolContext, blank_field, guarded
+from handoff.mcp.current import current_request
 from handoff.redact import redact
 
 

@@ -40,6 +40,7 @@ def _waiter(config: Config, *, wait: float, port: int | None = None) -> subproce
         "CLAUDE_PROJECT_DIR": "/work/app",
         "HANDOFF_WAIT_SECONDS": str(wait),
         "HANDOFF_WAIT_POLL": "0.2",
+        "CLAUDE_CODE_SESSION_ATTENDED": "1",
     }
     proc = subprocess.Popen(
         [sys.executable, "-m", "handoff.hooks.cli", "wait"],
@@ -136,3 +137,32 @@ def test_new_prompt_stops_a_running_waiter(
         check=True,
     )
     assert proc.wait(timeout=10) == 0
+
+
+def test_unattended_session_gets_no_waiter(config: Config, sessions: Graph) -> None:
+    _send(sessions, "would wake an attended session")
+    env = os.environ | {
+        "HANDOFF_GRAPH": config.graph_name,
+        "HANDOFF_HOME": str(config.home),
+        "HANDOFF_ROLE": "frontend",
+        "CLAUDE_PROJECT_DIR": "/work/app",
+        "CLAUDE_CODE_SESSION_ATTENDED": "0",
+    }
+    start = time.monotonic()
+    done = subprocess.run(
+        [sys.executable, "-m", "handoff.hooks.cli", "wait"],
+        input=STOP_INPUT,
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    assert done.returncode == 0
+    assert time.monotonic() - start < 5
+    assert (
+        len(
+            claim_pending_messages(sessions, session_id="fe", role="frontend", since=0, at=now_ms())
+        )
+        == 1
+    )

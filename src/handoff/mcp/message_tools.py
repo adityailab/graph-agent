@@ -5,7 +5,8 @@ from __future__ import annotations
 from handoff.config import normalise_role
 from handoff.graph.messages import add_message
 from handoff.ids import new_id
-from handoff.mcp.context import ToolContext, current_session, guarded
+from handoff.mcp.context import ToolContext, guarded
+from handoff.mcp.current import current_session
 from handoff.redact import redact
 
 NOT_REGISTERED = "Not sent: this session is not registered yet; it is after its first prompt."

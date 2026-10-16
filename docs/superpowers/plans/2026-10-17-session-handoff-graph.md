@@ -1656,6 +1656,12 @@ Branch: `phase/5-standin`. No API key and no new dependency: the stand-in runs C
 - When the client raises `StandinUnavailable`: returns that the question was delivered and no stand-in answer is available.
 - Tests for both paths and the stored graph shape.
 
+**Changed during Phase 5** (code is the source of truth):
+- Stand-in modules: `standin/context.py` (`StandinContext`, `gather_context(graph, *, role, since, limit)`, `context_ids`), `standin/prompt.py` (`build_prompt`), `standin/answer.py` (`ModelClient`, `StandinUnavailable`, `StandinAnswer`, `parse_answer`, `answer`), `standin/claude_code.py` (`ClaudeCodeClient`, default model `opus`, `HANDOFF_STANDIN_MODEL` to change). `mcp/ask_tool.py` holds `ask`.
+- `messages.role_messages` (read-only) and `messages.add_citations`.
+- The waiter exits at once when `CLAUDE_CODE_SESSION_ATTENDED=0`: `claude -p` waits for asyncRewake hooks before exiting.
+- MCP servers receive `CLAUDE_CODE_SESSION_ID`; `ToolContext.session_id` finds the exact session (`sessions.get_session`), with role and folder as the fallback. Lookup lives in `mcp/current.py`.
+
 ### Phase 5 gate
 
 - Show it working: the backend asks the frontend a question answered by a recorded decision; the answer cites it; the idle frontend session wakes with the question.

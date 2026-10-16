@@ -91,7 +91,8 @@ Facts verified in the Claude Code hooks reference on 17 October:
   code 2 its stderr is shown to Claude and Claude wakes immediately, even if the
   session is idle. Its `timeout` is enforced.
 - Hook processes inherit the environment. Stdio MCP servers receive
-  `CLAUDE_PROJECT_DIR` but no session id.
+  `CLAUDE_PROJECT_DIR`, `CLAUDE_CODE_SESSION_ID` and `CLAUDE_PID` (observed
+  17 October). Under `claude -p`, hooks see `CLAUDE_CODE_SESSION_ATTENDED=0`.
 - Context text should be written as plain statements of fact, not as commands,
   to avoid tripping prompt-injection defences.
 
@@ -128,8 +129,9 @@ unreachable, the stop is allowed.
 - The MCP server receives the role through its configuration
   (`"env": {"HANDOFF_ROLE": "${HANDOFF_ROLE}"}`) and addresses writes to the
   active session for that role in that workspace.
-- Constraint: one active session per role per workspace. MCP servers do not
-  receive a session id, so this constraint stays.
+- The server finds its own session by Claude Code's process id (`CLAUDE_PID`,
+  which survives `/clear`), then by `CLAUDE_CODE_SESSION_ID`, and only then by
+  role and project folder. Hooks store the pid on the `Session` node.
 
 ### 4.5 Live messages
 
@@ -157,8 +159,10 @@ unreachable, the stop is allowed.
 - It then gathers that role's recent requests, decisions with reasons, open needs
   and messages, plus decisions that match the question by meaning, and sends them
   with the question to Claude through Claude Code itself, run headless:
-  `claude -p --output-format json --model haiku --tools "" --setting-sources ""
-  --strict-mcp-config --no-session-persistence`, from a temporary folder. This
+  `claude -p --output-format json --model opus --tools "" --setting-sources ""
+  --strict-mcp-config --no-session-persistence`, from a temporary folder, with
+  handoff and Claude Code session variables and any API key removed from its
+  environment. `HANDOFF_STANDIN_MODEL` changes the model. This
   runs on whatever Claude Code login the person already has (Pro or Max plan),
   so no API key is needed. With no tools, settings or MCP servers loaded, the
   call cannot trigger this project's own hooks. Measured on 17 October: about 4

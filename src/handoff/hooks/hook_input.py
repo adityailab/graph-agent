@@ -21,6 +21,7 @@ class HookInput:
     edit_path: str | None = None
     edit_summary: str = ""
     stop_hook_active: bool = False
+    pid: int | None = None
 
 
 def parse_hook_input(data: Mapping[str, Any]) -> HookInput:
@@ -41,4 +42,5 @@ def parse_hook_input(data: Mapping[str, Any]) -> HookInput:
         edit_path=str(edit_path) if edit_path else None,
         edit_summary=str(data.get("edit_summary", "")),
         stop_hook_active=bool(data.get("stop_hook_active", False)),
+        pid=int(data["pid"]) if isinstance(data.get("pid"), int) else None,
     )

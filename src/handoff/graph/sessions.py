@@ -11,13 +11,18 @@ from handoff.graph.records import SessionInfo
 _SESSION_FIELDS = "s.id, s.role, s.cwd, s.started_at, s.last_seen_at"
 
 
-def upsert_session(graph: Graph, *, session_id: str, role: str, cwd: str, at: int) -> None:
-    """Create the session on first sight; refresh its role, folder and last-seen time."""
+def upsert_session(
+    graph: Graph, *, session_id: str, role: str, cwd: str, at: int, pid: int | None = None
+) -> None:
+    """Create the session on first sight; refresh its role, folder, process and last-seen time.
+
+    `pid` is the Claude Code process: it survives /clear, which starts a new session id.
+    """
     graph.query(
         "MERGE (s:Session {id: $id}) "
         "ON CREATE SET s.started_at = $at "
-        "SET s.role = $role, s.cwd = $cwd, s.last_seen_at = $at",
-        {"id": session_id, "role": role, "cwd": cwd, "at": at},
+        "SET s.role = $role, s.cwd = $cwd, s.last_seen_at = $at, s.pid = coalesce($pid, s.pid)",
+        {"id": session_id, "role": role, "cwd": cwd, "at": at, "pid": pid},
     )
 
 
@@ -58,3 +63,21 @@ def count_sessions(graph: Graph, *, role: str, cwd: str, since: int) -> int:
         {"role": role, "cwd": cwd, "since": since},
     ).result_set
     return int(rows[0][0])
+
+
+def get_session(graph: Graph, session_id: str) -> SessionInfo | None:
+    """Return the session with this id, if it has been registered."""
+    rows = graph.ro_query(
+        f"MATCH (s:Session {{id: $id}}) RETURN {_SESSION_FIELDS}", {"id": session_id}
+    ).result_set
+    return _session(rows[0]) if rows else None
+
+
+def session_for_pid(graph: Graph, *, pid: int, cwd: str) -> SessionInfo | None:
+    """Return the newest session of this Claude Code process in this folder."""
+    rows = graph.ro_query(
+        f"MATCH (s:Session {{pid: $pid, cwd: $cwd}}) RETURN {_SESSION_FIELDS} "
+        "ORDER BY s.last_seen_at DESC LIMIT 1",
+        {"pid": pid, "cwd": cwd},
+    ).result_set
+    return _session(rows[0]) if rows else None
