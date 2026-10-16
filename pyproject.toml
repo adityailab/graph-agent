@@ -5,11 +5,14 @@ description = "A shared FalkorDB context graph for parallel Claude Code sessions
 requires-python = ">=3.12"
 dependencies = [
     "falkordb>=1.8,<2",
+    "mcp>=2.3,<3",
+    "pydantic>=2",
     "redis>=5",
 ]
 
 [project.scripts]
 handoff-hook = "handoff.hooks.cli:run"
+handoff-mcp = "handoff.mcp.server:main"
 
 [dependency-groups]
 dev = ["pytest>=9.1", "mypy>=2.4", "ruff>=0.17"]

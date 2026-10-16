@@ -46,3 +46,11 @@ def latest_request_id(graph: Graph, session_id: str) -> str | None:
         {"sid": session_id},
     ).result_set
     return str(rows[0][0]) if rows else None
+
+
+def request_text(graph: Graph, request_id: str) -> str | None:
+    """Return what the person asked in this request, if it exists."""
+    rows = graph.ro_query(
+        "MATCH (r:Request {id: $rid}) RETURN r.text", {"rid": request_id}
+    ).result_set
+    return str(rows[0][0]) if rows else None

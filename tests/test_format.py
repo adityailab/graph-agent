@@ -25,7 +25,7 @@ def test_render_shows_prompt_decision_files_and_need() -> None:
     assert "Decided: read avatarUrl" in text
     assert "Why: server owns urls" in text
     assert "Changed: Card.tsx" in text
-    assert "Needs from backend: return avatarUrl (open)" in text
+    assert "Needs from backend: return avatarUrl (open, id n1)" in text
 
 
 def test_render_of_nothing_says_so() -> None:

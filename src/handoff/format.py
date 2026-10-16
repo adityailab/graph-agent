@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 
-from handoff.graph.records import RequestView
+from handoff.graph.records import RequestView, WhyRow
 
 
 def select_requests(requests: Sequence[RequestView], limit: int) -> list[RequestView]:
@@ -25,6 +25,11 @@ def select_requests(requests: Sequence[RequestView], limit: int) -> list[Request
     return [requests[i] for i in sorted(chosen)]
 
 
+def shorten(text: str, limit: int = 300) -> str:
+    """Cut text to `limit` characters, marking the cut."""
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
 def _plural(n: int, word: str) -> str:
     return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
@@ -37,7 +42,7 @@ def _render_request(r: RequestView) -> list[str]:
     if r.files:
         lines.append(f"  Changed: {', '.join(r.files)}")
     for n in r.needs:
-        lines.append(f"  Needs from {n.for_role}: {n.text} ({n.status})")
+        lines.append(f"  Needs from {n.for_role}: {n.text} ({n.status}, id {n.id})")
     return lines
 
 
@@ -60,3 +65,17 @@ def render_handoff(requests: Sequence[RequestView]) -> str:
             lines.extend(_render_request(r))
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
+
+
+def render_why(path: str, rows: Sequence[WhyRow]) -> str:
+    """Render the requests and decisions behind edits to one file, newest first."""
+    lines = [f"Edits to {path}, newest first:"]
+    for row in rows:
+        lines.append("")
+        lines.append(f'{row.role} session, request: "{shorten(row.request_text)}"')
+        for d in row.decisions:
+            lines.append(f"  Decided: {d.text}")
+            lines.append(f"  Why: {d.reason}")
+        first_line = row.edit_summary.splitlines()[0] if row.edit_summary else ""
+        lines.append(f"  Change: {first_line}")
+    return "\n".join(lines)

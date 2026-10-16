@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import difflib
 from collections.abc import Mapping
-from pathlib import Path
 from typing import Any
 
 MAX_SUMMARY_LINES = 40
@@ -15,16 +14,6 @@ def edited_path(tool_input: Mapping[str, Any]) -> str | None:
     """Return the file an edit tool changed, if its input names one."""
     path = tool_input.get("file_path") or tool_input.get("notebook_path")
     return str(path) if path else None
-
-
-def relative_path(file_path: str, project_dir: str) -> str:
-    """Return the path relative to the project, or unchanged if it lies outside it.
-
-    Both sides are resolved first, so a symlinked project folder (or macOS's
-    /tmp -> /private/tmp) still gives one File node per file.
-    """
-    path, root = Path(file_path).resolve(), Path(project_dir).resolve()
-    return str(path.relative_to(root)) if path.is_relative_to(root) else file_path
 
 
 def _cap(lines: list[str]) -> str:

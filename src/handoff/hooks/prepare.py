@@ -9,8 +9,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from handoff.hooks.edits import edited_path, relative_path, summarise
+from handoff.hooks.edits import edited_path, summarise
 from handoff.ids import new_id
+from handoff.paths import relative_path
 from handoff.redact import redact
 
 EDIT_TOOLS = frozenset({"Edit", "Write", "NotebookEdit"})

@@ -1577,6 +1577,15 @@ Branch: `phase/3-mcp`. Checked 17 October against `mcp` 2.3.0: `FastMCP` is now 
 - Registers each tool with a one-line description written for the agent, reads `HANDOFF_ROLE` and `CLAUDE_PROJECT_DIR`, calls `ensure_schema` once at start.
 - Test: start the server over stdio with the `mcp` client in a test and list its tools.
 
+**Changed at the Phase 3 gate review** (code is the source of truth):
+- Tools live in `mcp/context.py`, `mcp/record_tools.py`, `mcp/read_tools.py`; `mcp/server.py` only wires them.
+- `ToolContext(*, role, cwd, graph=None, connect=None, now)`; `ToolContext.lazy(connect=, role=, cwd=)` connects and applies the schema on the first call, so the server starts while FalkorDB is down. `context_from_env(env, *, cwd, connect)` resolves the project folder and normalises the role.
+- `@guarded` turns a database outage into the sentence `UNREACHABLE` instead of a tool error.
+- `current_session(ctx)` and `current_request(ctx) -> CurrentRequest(id, text, note)`; `note` warns when several sessions share a role and folder (`sessions.count_sessions`).
+- `config.normalise_role`: roles are lower-case and trimmed everywhere.
+- Handoff text shows need ids: `(open, id <id>)`, so another role can resolve them.
+- Hooks store `Session.cwd` as the resolved `CLAUDE_PROJECT_DIR`.
+
 ### Phase 3 gate
 
 - Show it working: add the server to the scratch folder's `.mcp.json`, run two sessions (`frontend`, `backend`), record a decision and a need in one, call `handoff` from the other.

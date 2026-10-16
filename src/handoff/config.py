@@ -29,9 +29,11 @@ class Config:
         )
 
 
+def normalise_role(role: str) -> str:
+    """Roles match without regard to case or surrounding spaces."""
+    return role.strip().lower()
+
+
 def resolve_role(cwd: str, env: Mapping[str, str]) -> str:
     """Return the session's role: HANDOFF_ROLE, else the folder name, else 'unknown'."""
-    role = env.get("HANDOFF_ROLE", "").strip()
-    if role:
-        return role
-    return Path(cwd).name or "unknown"
+    return normalise_role(env.get("HANDOFF_ROLE", "") or Path(cwd).name) or "unknown"

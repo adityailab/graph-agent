@@ -49,3 +49,12 @@ def active_sessions(graph: Graph, *, since: int) -> list[SessionInfo]:
         {"since": since},
     ).result_set
     return [_session(row) for row in rows]
+
+
+def count_sessions(graph: Graph, *, role: str, cwd: str, since: int) -> int:
+    """Count sessions with this role in this folder seen at or after `since`."""
+    rows = graph.ro_query(
+        "MATCH (s:Session {role: $role, cwd: $cwd}) WHERE s.last_seen_at >= $since RETURN count(s)",
+        {"role": role, "cwd": cwd, "since": since},
+    ).result_set
+    return int(rows[0][0])
