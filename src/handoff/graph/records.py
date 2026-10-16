@@ -76,3 +76,14 @@ class MessageView:
     text: str
     reply_to: str | None
     at: int
+
+
+@dataclass(frozen=True)
+class DecisionHit:
+    id: str
+    role: str
+    request_text: str
+    text: str
+    reason: str
+    files: tuple[str, ...]
+    related_roles: tuple[str, ...]  # other roles that changed the same files

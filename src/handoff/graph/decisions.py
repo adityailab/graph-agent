@@ -39,3 +39,11 @@ def add_decision(
         },
     ).result_set
     return bool(rows)
+
+
+def set_decision_embedding(graph: Graph, decision_id: str, vector: list[float]) -> None:
+    """Store a decision's embedding for FalkorDB's vector index."""
+    graph.query(
+        "MATCH (d:Decision {id: $id}) SET d.embedding = vecf32($v)",
+        {"id": decision_id, "v": vector},
+    )
