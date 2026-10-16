@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import Any
 
 from falkordb import Graph
 from redis.exceptions import ConnectionError as RedisConnectionError
@@ -34,8 +35,10 @@ class ToolContext:
         session_id: str | None = None,
         pid: int | None = None,
         embedder: Embedder | None = None,
+        knowledge: Any = None,
     ) -> None:
         self.role, self.cwd, self.now = role, cwd, now
+        self.knowledge = knowledge  # handoff.knowledge.startup.Knowledge, when running
         self.embedder = embedder  # None: decisions are stored and searched without vectors
         # From Claude Code, when it provides them. The pid survives /clear; the id does not.
         self.session_id, self.pid = session_id, pid
@@ -51,6 +54,7 @@ class ToolContext:
         session_id: str | None = None,
         pid: int | None = None,
         embedder: Embedder | None = None,
+        knowledge: Any = None,
     ) -> ToolContext:
         """A context that connects, and applies the schema, on the first tool call."""
         return cls(
@@ -60,6 +64,7 @@ class ToolContext:
             session_id=session_id,
             pid=pid,
             embedder=embedder,
+            knowledge=knowledge,
         )
 
     @property
@@ -79,6 +84,7 @@ def context_from_env(
     cwd: str,
     connect: Callable[[], Graph],
     embedder: Embedder | None = None,
+    knowledge: Any = None,
 ) -> ToolContext:
     """Build the server's context: resolved project folder and normalised role."""
     project = str(Path(env.get("CLAUDE_PROJECT_DIR") or cwd).resolve())
@@ -89,6 +95,7 @@ def context_from_env(
         session_id=env.get("CLAUDE_CODE_SESSION_ID") or None,
         pid=int(env["CLAUDE_PID"]) if env.get("CLAUDE_PID", "").isdigit() else None,
         embedder=embedder,
+        knowledge=knowledge,
     )
 
 

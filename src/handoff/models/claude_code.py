@@ -11,24 +11,34 @@ import os
 import subprocess
 import tempfile
 
-from handoff.standin.answer import StandinUnavailable
+from handoff.models.base import ModelUnavailable
 
-DEFAULT_MODEL = "opus"
+DEFAULT_MODEL = "opus"  # Claude Code's alias for its current Opus model
 TIMEOUT_SECONDS = 90
 
 
+# How Claude Code itself logs in and where its settings live; the child needs these.
+_LOGIN_VARIABLES = frozenset(
+    {
+        "CLAUDE_CONFIG_DIR",
+        "CLAUDE_CODE_OAUTH_TOKEN",
+        "CLAUDE_CODE_USE_BEDROCK",
+        "CLAUDE_CODE_USE_VERTEX",
+        "CLAUDE_CODE_USE_FOUNDRY",
+    }
+)
+
+
 def child_environment() -> dict[str, str]:
-    """The environment for the stand-in's `claude`: no handoff or Claude Code session
-    variables (it is not part of any session), and no ANTHROPIC_API_KEY, so it uses the
-    person's Claude Code login rather than billing an API key."""
-    env = {
+    """The environment for a headless `claude`: no handoff or Claude Code session
+    variables (it is not part of any session) except how Claude Code logs in, and no
+    ANTHROPIC_API_KEY, so it uses the person's Claude Code login rather than billing a key."""
+    return {
         k: v
         for k, v in os.environ.items()
-        if not k.startswith(("HANDOFF_", "CLAUDE")) and k != "ANTHROPIC_API_KEY"
+        if (not k.startswith(("HANDOFF_", "CLAUDE")) or k in _LOGIN_VARIABLES)
+        and k != "ANTHROPIC_API_KEY"
     }
-    if "CLAUDE_CONFIG_DIR" in os.environ:
-        env["CLAUDE_CONFIG_DIR"] = os.environ["CLAUDE_CONFIG_DIR"]
-    return env
 
 
 class ClaudeCodeClient:
@@ -36,7 +46,7 @@ class ClaudeCodeClient:
 
     def __init__(self, *, binary: str = "claude", model: str | None = None) -> None:
         self.binary = binary
-        self.model = model or os.environ.get("HANDOFF_STANDIN_MODEL") or DEFAULT_MODEL
+        self.model = model or DEFAULT_MODEL
 
     def _command(self, system: str) -> list[str]:
         return [
@@ -46,7 +56,7 @@ class ClaudeCodeClient:
         ]  # fmt: skip
 
     def complete(self, system: str, user: str) -> str:
-        """Return the model's reply text. Raises StandinUnavailable on any failure."""
+        """Return the model's reply text. Raises ModelUnavailable on any failure."""
         try:
             with tempfile.TemporaryDirectory() as scratch:
                 done = subprocess.run(  # noqa: S603 - fixed argv, no shell
@@ -60,13 +70,13 @@ class ClaudeCodeClient:
                     check=False,
                 )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            raise StandinUnavailable(f"claude could not run: {type(exc).__name__}") from exc
+            raise ModelUnavailable(f"claude could not run: {type(exc).__name__}") from exc
         if done.returncode != 0:
-            raise StandinUnavailable(f"claude exited with code {done.returncode}")
+            raise ModelUnavailable(f"claude exited with code {done.returncode}")
         try:
             result = json.loads(done.stdout)
         except json.JSONDecodeError as exc:
-            raise StandinUnavailable("claude returned unreadable output") from exc
+            raise ModelUnavailable("claude returned unreadable output") from exc
         if not isinstance(result, dict) or result.get("is_error") or "result" not in result:
-            raise StandinUnavailable("claude reported an error")
+            raise ModelUnavailable("claude reported an error")
         return str(result["result"])

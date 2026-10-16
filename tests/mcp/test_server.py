@@ -16,6 +16,8 @@ EXPECTED_TOOLS = {
     "ask",
     "search",
     "connection",
+    "ask_graph",
+    "concepts",
 }
 
 

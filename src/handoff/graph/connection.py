@@ -20,3 +20,8 @@ def connect(config: Config) -> Graph:
         socket_timeout=5,
     )
     return db.select_graph(config.graph_name)
+
+
+def ping(graph: Graph) -> None:
+    """Raise a redis error if the database cannot be reached."""
+    graph.ro_query("RETURN 1")

@@ -6,6 +6,7 @@ This file only wires things together: each tool module registers its own tools.
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 
@@ -15,14 +16,15 @@ from handoff.graph.connection import connect
 from handoff.mcp import (
     ask_tool,
     connection_tool,
+    knowledge_tools,
     message_tools,
     read_tools,
     record_tools,
     search_tool,
 )
 from handoff.mcp.context import ToolContext, context_from_env
-from handoff.standin.answer import ModelClient
-from handoff.standin.claude_code import ClaudeCodeClient
+from handoff.models.base import ModelClient
+from handoff.models.choose import model_from_env
 
 INSTRUCTIONS = (
     "handoff connects this Claude Code session to the other sessions working in the same "
@@ -43,16 +45,42 @@ INSTRUCTIONS = (
 )
 
 
-def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPServer:
+def build_server(
+    ctx: ToolContext,
+    standin: ModelClient | None = None,
+    knowledge_unavailable: str = knowledge_tools.NOT_RUNNING,
+) -> MCPServer:
     """Create the server with every tool bound to `ctx`."""
     server = MCPServer("handoff", instructions=INSTRUCTIONS)
     record_tools.register(server, ctx)
     read_tools.register(server, ctx)
     message_tools.register(server, ctx)
-    ask_tool.register(server, ctx, standin or ClaudeCodeClient())
+    ask_tool.register(server, ctx, standin or model_from_env(os.environ))
     search_tool.register(server, ctx)
     connection_tool.register(server, ctx)
+    knowledge_tools.register(server, ctx, unavailable=knowledge_unavailable)
     return server
+
+
+def _start_knowledge(config: Config, model: ModelClient, embedder: FastEmbedder) -> tuple[Any, str]:
+    """The knowledge layer, or None with the reason it is off."""
+    try:
+        from handoff.knowledge.startup import start_knowledge
+    except ImportError:
+        return None, knowledge_tools.NOT_RUNNING  # the optional extra is not installed
+    if os.environ.get("HANDOFF_KNOWLEDGE", "on").strip().lower() == "off":
+        return None, "The knowledge layer is switched off for this session (HANDOFF_KNOWLEDGE=off)."
+    ingest_name = os.environ.get("HANDOFF_KNOWLEDGE_MODEL")
+    ingest_model = (
+        model_from_env({**os.environ, "HANDOFF_MODEL_NAME": ingest_name}) if ingest_name else None
+    )
+    knowledge = start_knowledge(config, model, embedder, env=os.environ, ingest_model=ingest_model)
+    if knowledge is None:
+        return None, (
+            "The knowledge layer did not start because the database was unreachable when "
+            "this session began; it starts with the next session."
+        )
+    return knowledge, ""
 
 
 def main() -> None:
@@ -64,13 +92,16 @@ def main() -> None:
     config = Config.from_env()
     embedder = FastEmbedder(cache_dir=config.home / "models")
     embedder.warm_up()  # load the model now, not inside the first tool call
+    model = model_from_env(os.environ)
+    knowledge, unavailable = _start_knowledge(config, model, embedder)
     ctx = context_from_env(
         os.environ,
         cwd=os.getcwd(),
         connect=lambda: connect(config),
         embedder=embedder,
+        knowledge=knowledge,
     )
-    build_server(ctx).run("stdio")
+    build_server(ctx, standin=model, knowledge_unavailable=unavailable).run("stdio")
 
 
 if __name__ == "__main__":

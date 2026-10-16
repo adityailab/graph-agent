@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A shared FalkorDB context graph for parallel Claude Code sessions"
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=1.15,<2",
     "falkordb>=1.8,<2",
     "fastembed>=0.9,<1",
     "mcp>=2.3,<3",
@@ -14,6 +15,12 @@ dependencies = [
 [project.scripts]
 handoff-hook = "handoff.hooks.cli:run"
 handoff-mcp = "handoff.mcp.server:main"
+handoff-knowledge = "handoff.knowledge.cli:main"
+
+[project.optional-dependencies]
+knowledge = [
+    "graphrag-sdk>=1.4,<2",
+]
 
 [dependency-groups]
 dev = ["pytest>=9.1", "mypy>=2.4", "ruff>=0.17"]
@@ -44,7 +51,7 @@ python_version = "3.12"
 files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["falkordb.*", "redis.*", "fastembed.*"]
+module = ["falkordb.*", "redis.*", "fastembed.*", "graphrag_sdk.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

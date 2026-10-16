@@ -9,7 +9,7 @@ from falkordb import Graph
 from handoff.graph.records import DecisionHit
 
 
-def _fulltext_query(text: str) -> str:
+def fulltext_query(text: str) -> str:
     """Words only, OR-ed, so the person's text can never be read as query syntax."""
     words = re.findall(r"\w+", text)
     return " | ".join(words)
@@ -17,7 +17,7 @@ def _fulltext_query(text: str) -> str:
 
 def fulltext_decisions(graph: Graph, query: str, *, k: int) -> list[tuple[str, float]]:
     """Decision ids matching words of `query` in their text or reason, best first."""
-    q = _fulltext_query(query)
+    q = fulltext_query(query)
     if not q:
         return []
     rows = graph.ro_query(

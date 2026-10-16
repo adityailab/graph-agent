@@ -5,18 +5,14 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import Protocol
 
+from handoff.models.base import ModelClient, ModelUnavailable
 from handoff.standin.context import StandinContext, context_ids
 from handoff.standin.prompt import build_prompt
 
 
-class StandinUnavailable(Exception):  # noqa: N818 - reads as a state, matching how it is used
-    """Raised when the model cannot be reached or fails."""
-
-
-class ModelClient(Protocol):
-    def complete(self, system: str, user: str) -> str: ...
+class StandinUnavailable(ModelUnavailable):
+    """The model replied, but not with a usable answer."""
 
 
 @dataclass(frozen=True)
