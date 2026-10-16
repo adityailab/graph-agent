@@ -45,7 +45,11 @@ INSTRUCTIONS = (
 )
 
 
-def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPServer:
+def build_server(
+    ctx: ToolContext,
+    standin: ModelClient | None = None,
+    knowledge_unavailable: str = knowledge_tools.NOT_RUNNING,
+) -> MCPServer:
     """Create the server with every tool bound to `ctx`."""
     server = MCPServer("handoff", instructions=INSTRUCTIONS)
     record_tools.register(server, ctx)
@@ -54,16 +58,29 @@ def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPSer
     ask_tool.register(server, ctx, standin or model_from_env(os.environ))
     search_tool.register(server, ctx)
     connection_tool.register(server, ctx)
-    knowledge_tools.register(server, ctx)
+    knowledge_tools.register(server, ctx, unavailable=knowledge_unavailable)
     return server
 
 
-def _start_knowledge(config: Config, model: ModelClient, embedder: FastEmbedder) -> Any:
+def _start_knowledge(config: Config, model: ModelClient, embedder: FastEmbedder) -> tuple[Any, str]:
+    """The knowledge layer, or None with the reason it is off."""
     try:
         from handoff.knowledge.startup import start_knowledge
     except ImportError:
-        return None  # the optional 'knowledge' extra is not installed
-    return start_knowledge(config, model, embedder, env=os.environ)
+        return None, knowledge_tools.NOT_RUNNING  # the optional extra is not installed
+    if os.environ.get("HANDOFF_KNOWLEDGE", "on").strip().lower() == "off":
+        return None, "The knowledge layer is switched off for this session (HANDOFF_KNOWLEDGE=off)."
+    ingest_name = os.environ.get("HANDOFF_KNOWLEDGE_MODEL")
+    ingest_model = (
+        model_from_env({**os.environ, "HANDOFF_MODEL_NAME": ingest_name}) if ingest_name else None
+    )
+    knowledge = start_knowledge(config, model, embedder, env=os.environ, ingest_model=ingest_model)
+    if knowledge is None:
+        return None, (
+            "The knowledge layer did not start because the database was unreachable when "
+            "this session began; it starts with the next session."
+        )
+    return knowledge, ""
 
 
 def main() -> None:
@@ -76,7 +93,7 @@ def main() -> None:
     embedder = FastEmbedder(cache_dir=config.home / "models")
     embedder.warm_up()  # load the model now, not inside the first tool call
     model = model_from_env(os.environ)
-    knowledge = _start_knowledge(config, model, embedder)
+    knowledge, unavailable = _start_knowledge(config, model, embedder)
     ctx = context_from_env(
         os.environ,
         cwd=os.getcwd(),
@@ -84,7 +101,7 @@ def main() -> None:
         embedder=embedder,
         knowledge=knowledge,
     )
-    build_server(ctx, standin=model).run("stdio")
+    build_server(ctx, standin=model, knowledge_unavailable=unavailable).run("stdio")
 
 
 if __name__ == "__main__":

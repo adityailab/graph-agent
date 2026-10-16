@@ -17,4 +17,4 @@ def test_falkordb_server_is_pinned_and_strictly_read_only(config: Config) -> Non
 def test_handoff_server_passes_the_role_through(config: Config) -> None:
     entry = handoff_server_entry("/opt/handoff/bin/handoff-mcp")
     assert entry["command"] == "/opt/handoff/bin/handoff-mcp"
-    assert entry["env"]["HANDOFF_ROLE"] == "${HANDOFF_ROLE}"
+    assert entry["env"]["HANDOFF_ROLE"] == "${HANDOFF_ROLE:-}"

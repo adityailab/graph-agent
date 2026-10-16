@@ -1,7 +1,7 @@
 """The background worker that feeds requests and decisions into the knowledge graph.
 
-It runs inside the MCP server. One worker per machine holds the lead (a file lock), so
-several sessions never run model calls for the same work.
+It runs inside the MCP server, or alone as `handoff-knowledge`. One worker per graph per
+machine holds the lead (a file lock), so sessions never run model calls for the same work.
 """
 
 from __future__ import annotations
@@ -17,11 +17,13 @@ from falkordb import Graph
 
 from handoff.graph.knowledge_queue import claim_next, mark_ingested
 from handoff.ids import now_ms
+from handoff.knowledge.pacing import Pacer
 
 log = logging.getLogger(__name__)
 
 STALE_CLAIM_MS = 10 * 60_000
 IDLE_SECONDS = 5.0
+MIN_REQUEST_CHARS = 10  # "yes", "continue", "go ahead" carry no knowledge worth a model call
 
 
 class KnowledgeWorker:
@@ -31,19 +33,20 @@ class KnowledgeWorker:
         graph: Graph,
         rag: Any,
         home: Path,
-        extractor: Any = None,
+        lock_name: str = "default",
         now: Callable[[], int] = now_ms,
         finalize_every: int = 10,
+        max_per_hour: int = 60,
     ) -> None:
-        self._graph, self._rag, self._extractor = graph, rag, extractor
-        self._lock_path = home / "locks" / "knowledge-worker.lock"
-        self._now, self._finalize_every = now, finalize_every
-        self._since_finalize = 0
+        self._graph, self._rag, self._now = graph, rag, now
+        self._lock_path = home / "locks" / f"knowledge-{lock_name}.lock"
+        self._finalize_every, self._since_finalize = finalize_every, 0
+        self._pacer = Pacer(max_per_hour=max_per_hour)
         self._lock_file: IO[str] | None = None
         self._stop = threading.Event()
 
     def try_lead(self) -> bool:
-        """Become this machine's worker, unless another server already is."""
+        """Become this graph's worker on this machine, unless another one already is."""
         self._lock_path.parent.mkdir(parents=True, exist_ok=True)
         handle = self._lock_path.open("a")
         try:
@@ -61,33 +64,43 @@ class KnowledgeWorker:
             self._lock_file = None
 
     def step(self) -> bool:
-        """Ingest one item. True if one was ingested; False if none, or it failed."""
-        item = claim_next(self._graph, now=self._now(), stale_ms=STALE_CLAIM_MS)
+        """Handle one item. True if one was ingested or skipped; False if none was
+        available, the hourly cap is reached, or the ingest failed."""
+        now = self._now()
+        if not self._pacer.allows(now):
+            return False
+        item = claim_next(self._graph, now=now, stale_ms=STALE_CLAIM_MS)
         if item is None:
             return False
-        kwargs = {"extractor": self._extractor} if self._extractor is not None else {}
+        if item.label == "Request" and item.size < MIN_REQUEST_CHARS:
+            mark_ingested(self._graph, item, at=now)
+            return True
         try:
-            self._rag.ingest_sync(text=item.text, document_id=item.id, **kwargs)
+            self._rag.ingest_sync(text=item.text, document_id=item.id)
         except Exception:
-            # Model or extraction failures of any kind: the claim goes stale and the item
-            # is tried again later; the backbone graph is unaffected.
+            # Model, extraction or database trouble of any kind: the item is retried later
+            # with backoff (see knowledge_queue); the backbone graph is unaffected.
             log.exception("knowledge ingest failed for %s", item.id)
+            self._pacer.failed()
             return False
-        mark_ingested(self._graph, item.id, at=self._now())
+        mark_ingested(self._graph, item, at=self._now())
+        self._pacer.ingested(now)
         self._since_finalize += 1
         if self._since_finalize >= self._finalize_every:
-            self._rag.finalize_sync()
-            self._since_finalize = 0
+            self._finalize()
         return True
 
-    def drain(self) -> int:
-        """Ingest everything pending, finalize, and return how many items went in."""
-        count = 0
-        while self.step():
-            count += 1
+    def _finalize(self) -> None:
         if self._since_finalize:
             self._rag.finalize_sync()
             self._since_finalize = 0
+
+    def drain(self) -> int:
+        """Handle everything pending (within the cap), finalize, and return the count."""
+        count = 0
+        while self.step():
+            count += 1
+        self._finalize()
         return count
 
     def run(self) -> None:
@@ -100,12 +113,11 @@ class KnowledgeWorker:
                 worked = self.step()
             except Exception:
                 log.exception("knowledge worker step failed")  # e.g. database down
+                self._pacer.failed()
                 worked = False
             if not worked:
-                if self._since_finalize:
-                    self._rag.finalize_sync()
-                    self._since_finalize = 0
-                self._stop.wait(IDLE_SECONDS)
+                self._finalize()
+                self._stop.wait(self._pacer.pause_seconds(IDLE_SECONDS))
         self.stand_down()
 
     def start(self) -> threading.Thread:

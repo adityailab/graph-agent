@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from graphrag_sdk import Embedder, LLMInterface
@@ -9,7 +10,7 @@ from graphrag_sdk.core.models import LLMResponse
 
 from handoff.embed import MODEL_NAME
 from handoff.embed import Embedder as OurEmbedder
-from handoff.models.base import ModelClient
+from handoff.models.base import ModelClient, ModelUnavailable
 
 
 class ModelLLM(LLMInterface):
@@ -22,9 +23,23 @@ class ModelLLM(LLMInterface):
     def __init__(self, model: ModelClient, *, name: str, max_concurrency: int = 2) -> None:
         super().__init__(model_name=name, max_concurrency=max_concurrency)
         self._model = model
+        self._failures = 0
+        self._lock = threading.Lock()
+
+    @property
+    def failures(self) -> int:
+        """How many calls have failed so far. GraphRAG's extraction swallows model errors,
+        so callers compare this before and after an ingest."""
+        with self._lock:
+            return self._failures
 
     def invoke(self, prompt: str, **kwargs: Any) -> LLMResponse:
-        return LLMResponse(content=self._model.complete("", prompt))
+        try:
+            return LLMResponse(content=self._model.complete("", prompt))
+        except ModelUnavailable:
+            with self._lock:
+                self._failures += 1
+            raise
 
 
 class EmbedderAdapter(Embedder):

@@ -11,7 +11,8 @@ from handoff.format import shorten
 from handoff.graph.knowledge import describe_items, entity_documents, find_entities
 from handoff.graph.records import ItemRef
 
-_ENTITY_LINE = re.compile(r"^- ([^:\n]+):", re.MULTILINE)
+# "- name: description", or "- name" when the entity has no description.
+_ENTITY_LINE = re.compile(r"^- (.+?)(?:: |$)", re.MULTILINE)
 
 
 def _key_entities(result: Any) -> list[str]:

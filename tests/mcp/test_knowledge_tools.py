@@ -37,18 +37,23 @@ def test_without_the_knowledge_layer_the_tools_say_how_to_enable_it(ready: Graph
 
 
 def test_ask_graph_answers_with_sources(kg: Graph, backend_with_decision: Graph) -> None:
-    knowledge = SimpleNamespace(rag=FakeRag(), kg=kg)
+    knowledge = SimpleNamespace(client=FakeRag(), kg=kg)
     reply = ask_graph(_ctx(backend_with_decision, knowledge), "Who touches avatarUrl?")
     assert reply.startswith("Both roles touch avatarUrl.")
     assert "frontend decision d1" in reply
 
 
 def test_concepts_tool_lists_linked_work(kg: Graph, backend_with_decision: Graph) -> None:
-    knowledge = SimpleNamespace(rag=FakeRag(), kg=kg)
+    knowledge = SimpleNamespace(client=FakeRag(), kg=kg)
     assert "backend request p9" in concepts(_ctx(backend_with_decision, knowledge), "avatarUrl")
 
 
 def test_model_failure_is_a_plain_sentence(kg: Graph, backend_with_decision: Graph) -> None:
-    knowledge = SimpleNamespace(rag=FakeRag(fail=True), kg=kg)
+    knowledge = SimpleNamespace(client=FakeRag(fail=True), kg=kg)
     reply = ask_graph(_ctx(backend_with_decision, knowledge), "q?")
     assert reply.startswith("No answer from the knowledge graph:")
+
+
+def test_the_reason_the_layer_is_off_is_passed_on(ready: Graph) -> None:
+    reason = "The knowledge layer did not start: the database was unreachable."
+    assert ask_graph(_ctx(ready, None), "q?", unavailable=reason) == reason

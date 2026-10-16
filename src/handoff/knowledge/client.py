@@ -1,0 +1,51 @@
+"""A GraphRAG instance with its own event loop, and failures we can see."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from falkordb import Graph
+from graphrag_sdk import GraphExtraction, GraphRAG, GraphRAGError
+
+from handoff.knowledge.adapters import ModelLLM
+from handoff.knowledge.runner import AsyncRunner
+from handoff.models.base import ModelUnavailable
+
+TIMEOUT_SECONDS = 300
+
+
+class KnowledgeUnavailable(ModelUnavailable):
+    """The knowledge graph could not answer or ingest (model or database trouble)."""
+
+
+class KnowledgeClient:
+    """Synchronous calls on one GraphRAG instance, all through one event loop."""
+
+    def __init__(self, *, rag: GraphRAG, llm: ModelLLM, extractor: GraphExtraction, kg: Graph):
+        self.rag, self.kg = rag, kg
+        self._llm, self._extractor = llm, extractor
+        self._runner = AsyncRunner()
+
+    def _call(self, coro: Any) -> Any:
+        try:
+            return self._runner.run(coro, timeout=TIMEOUT_SECONDS)
+        except GraphRAGError as exc:
+            raise KnowledgeUnavailable(f"knowledge graph: {exc}") from exc
+
+    def ingest_sync(self, *, text: str, document_id: str) -> None:
+        """Ingest one item. Raises KnowledgeUnavailable, after removing the partial
+        document, if any model call failed during extraction."""
+        failures = self._llm.failures
+        self._call(self.rag.ingest(text=text, document_id=document_id, extractor=self._extractor))
+        if self._llm.failures > failures:
+            self._call(self.rag.delete_document(document_id, if_missing="ignore"))
+            raise KnowledgeUnavailable("the model failed while extracting; will retry later")
+
+    def finalize_sync(self) -> None:
+        self._call(self.rag.finalize())
+
+    def completion_sync(self, question: str, **kwargs: Any) -> Any:
+        return self._call(self.rag.completion(question, **kwargs))
+
+    def close(self) -> None:
+        self._runner.close()

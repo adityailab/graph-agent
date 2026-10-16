@@ -34,13 +34,15 @@ class AnthropicClient:
             response = self._sdk().beta.messages.create(
                 model=self.model,
                 max_tokens=MAX_TOKENS,
-                system=system,
                 messages=[{"role": "user", "content": user}],
                 betas=[_FALLBACK_BETA],
                 fallbacks="default",
+                **({"system": system} if system else {}),
             )
         except anthropic.AnthropicError as exc:
             raise ModelUnavailable(f"Anthropic API: {type(exc).__name__}") from exc
         if response.stop_reason == "refusal":
             raise ModelUnavailable("the model declined this request")
+        if response.stop_reason == "max_tokens":
+            raise ModelUnavailable("the reply was cut off at the token limit")
         return "".join(block.text for block in response.content if block.type == "text")

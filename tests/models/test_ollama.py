@@ -44,3 +44,14 @@ def test_malformed_reply_is_reported_as_unavailable() -> None:
 @pytest.mark.skipif(os.environ.get("HANDOFF_LIVE_OLLAMA") != "1", reason="needs ollama running")
 def test_live_ollama_answers() -> None:
     assert OllamaClient().complete("Reply with the single word: ok", "go").strip()
+
+
+def test_host_without_a_scheme_is_accepted() -> None:
+    assert OllamaClient(host="localhost:11434", post=lambda u, p: {}).host == (
+        "http://localhost:11434"
+    )
+
+
+def test_non_object_reply_is_reported_as_unavailable() -> None:
+    with pytest.raises(ModelUnavailable):
+        OllamaClient(post=lambda url, payload: ["not", "a", "dict"]).complete("s", "u")  # type: ignore[arg-type,return-value]

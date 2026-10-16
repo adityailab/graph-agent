@@ -6,22 +6,32 @@ from dataclasses import dataclass
 
 from falkordb import Graph
 
-# Each claim is one query, so two workers can never take the same item. A claim older
-# than `stale_ms` belongs to a worker that died, and is taken again.
-_CLAIM_DECISION = (
-    "MATCH (s:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(n:Decision) "
-    "WHERE n.kg_at IS NULL AND (n.kg_claim IS NULL OR n.kg_claim < $stale) "
+MAX_ATTEMPTS = 5
+
+# One query per claim, so two workers never take the same item. A claim makes the item
+# ineligible until kg_retry_at, which doubles with each attempt (1, 2, 4, 8, 16 x stale);
+# after MAX_ATTEMPTS the item is left out of the knowledge graph.
+_ELIGIBLE = (
+    "n.kg_at IS NULL AND coalesce(n.kg_attempts, 0) < 5 AND coalesce(n.kg_retry_at, 0) <= $now "
+)
+_CLAIM = (
     "WITH s, n ORDER BY n.at LIMIT 1 "
-    "SET n.kg_claim = $now "
-    "RETURN n.id, s.role, 'The ' + s.role + ' session decided: ' + n.text + "
-    "'. Reason: ' + n.reason + '.'"
+    "SET n.kg_retry_at = $now + $stale * [1, 2, 4, 8, 16][coalesce(n.kg_attempts, 0)] "
+    "SET n.kg_attempts = coalesce(n.kg_attempts, 0) + 1 "
+)
+_CLAIM_DECISION = (
+    "MATCH (s:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(n:Decision) WHERE "
+    + _ELIGIBLE
+    + _CLAIM
+    + "RETURN n.id, s.role, 'The ' + s.role + ' session decided: ' + n.text + "
+    "'. Reason: ' + n.reason + '.', 'Decision', size(n.text)"
 )
 _CLAIM_REQUEST = (
-    "MATCH (s:Session)-[:RECEIVED]->(n:Request) "
-    "WHERE n.kg_at IS NULL AND (n.kg_claim IS NULL OR n.kg_claim < $stale) "
-    "WITH s, n ORDER BY n.at LIMIT 1 "
-    "SET n.kg_claim = $now "
-    "RETURN n.id, s.role, 'The ' + s.role + ' session was asked: \"' + n.text + '\"'"
+    "MATCH (s:Session)-[:RECEIVED]->(n:Request) WHERE "
+    + _ELIGIBLE
+    + _CLAIM
+    + "RETURN n.id, s.role, 'The ' + s.role + ' session was asked: \"' + n.text + '\"', "
+    "'Request', size(n.text)"
 )
 
 
@@ -30,20 +40,23 @@ class KnowledgeItem:
     id: str
     role: str
     text: str  # what the knowledge graph ingests, naming the role it came from
+    label: str  # "Request" or "Decision"
+    size: int  # length of the original text
 
 
 def claim_next(graph: Graph, *, now: int, stale_ms: int) -> KnowledgeItem | None:
-    """Claim the oldest un-ingested decision, else request. None when there is none."""
+    """Claim the oldest eligible decision, else request. None when there is none."""
     for query in (_CLAIM_DECISION, _CLAIM_REQUEST):
-        rows = graph.query(query, {"now": now, "stale": now - stale_ms}).result_set
+        rows = graph.query(query, {"now": now, "stale": stale_ms}).result_set
         if rows:
-            return KnowledgeItem(id=str(rows[0][0]), role=str(rows[0][1]), text=str(rows[0][2]))
+            r = rows[0]
+            return KnowledgeItem(
+                id=str(r[0]), role=str(r[1]), text=str(r[2]), label=str(r[3]), size=int(r[4])
+            )
     return None
 
 
-def mark_ingested(graph: Graph, item_id: str, *, at: int) -> None:
-    """Record that an item is in the knowledge graph."""
-    graph.query(
-        "MATCH (n) WHERE (n:Request OR n:Decision) AND n.id = $id SET n.kg_at = $at",
-        {"id": item_id, "at": at},
-    )
+def mark_ingested(graph: Graph, item: KnowledgeItem, *, at: int) -> None:
+    """Record that an item is in the knowledge graph (or deliberately left out of it)."""
+    label = "Decision" if item.label == "Decision" else "Request"
+    graph.query(f"MATCH (n:{label} {{id: $id}}) SET n.kg_at = $at", {"id": item.id, "at": at})

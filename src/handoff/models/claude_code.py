@@ -17,18 +17,28 @@ DEFAULT_MODEL = "opus"  # Claude Code's alias for its current Opus model
 TIMEOUT_SECONDS = 90
 
 
+# How Claude Code itself logs in and where its settings live; the child needs these.
+_LOGIN_VARIABLES = frozenset(
+    {
+        "CLAUDE_CONFIG_DIR",
+        "CLAUDE_CODE_OAUTH_TOKEN",
+        "CLAUDE_CODE_USE_BEDROCK",
+        "CLAUDE_CODE_USE_VERTEX",
+        "CLAUDE_CODE_USE_FOUNDRY",
+    }
+)
+
+
 def child_environment() -> dict[str, str]:
-    """The environment for the stand-in's `claude`: no handoff or Claude Code session
-    variables (it is not part of any session), and no ANTHROPIC_API_KEY, so it uses the
-    person's Claude Code login rather than billing an API key."""
-    env = {
+    """The environment for a headless `claude`: no handoff or Claude Code session
+    variables (it is not part of any session) except how Claude Code logs in, and no
+    ANTHROPIC_API_KEY, so it uses the person's Claude Code login rather than billing a key."""
+    return {
         k: v
         for k, v in os.environ.items()
-        if not k.startswith(("HANDOFF_", "CLAUDE")) and k != "ANTHROPIC_API_KEY"
+        if (not k.startswith(("HANDOFF_", "CLAUDE")) or k in _LOGIN_VARIABLES)
+        and k != "ANTHROPIC_API_KEY"
     }
-    if "CLAUDE_CONFIG_DIR" in os.environ:
-        env["CLAUDE_CONFIG_DIR"] = os.environ["CLAUDE_CONFIG_DIR"]
-    return env
 
 
 class ClaudeCodeClient:

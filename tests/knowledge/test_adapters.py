@@ -48,3 +48,26 @@ def test_embedder_adapter_uses_stored_text_vectors_both_ways() -> None:
     adapter = EmbedderAdapter(TinyEmbedder())
     assert adapter.model_name == "BAAI/bge-small-en-v1.5"
     assert adapter.embed_query("abcd") == [4.0, 1.0]
+
+
+def test_model_failures_are_counted() -> None:
+    llm = ModelLLM(DownModel(), name="x")
+    for _ in range(2):
+        with pytest.raises(ModelUnavailable):
+            llm.invoke("p")
+    assert llm.failures == 2
+
+
+def test_runner_keeps_one_event_loop_across_calls() -> None:
+    import asyncio
+
+    from handoff.knowledge.runner import AsyncRunner
+
+    async def loop_id() -> int:
+        return id(asyncio.get_running_loop())
+
+    runner = AsyncRunner()
+    try:
+        assert runner.run(loop_id()) == runner.run(loop_id())
+    finally:
+        runner.close()

@@ -28,3 +28,15 @@ def test_child_process_gets_a_clean_environment(monkeypatch: pytest.MonkeyPatch)
     assert "CLAUDE_CODE_SESSION_ID" not in env
     assert "ANTHROPIC_API_KEY" not in env
     assert env["CLAUDE_CONFIG_DIR"] == "/cfg"
+
+
+def test_claude_code_login_variables_survive(monkeypatch: pytest.MonkeyPatch) -> None:
+    from handoff.models.claude_code import child_environment
+
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "tok")
+    monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "1")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "abc")
+    env = child_environment()
+    assert env["CLAUDE_CODE_OAUTH_TOKEN"] == "tok"
+    assert env["CLAUDE_CODE_USE_BEDROCK"] == "1"
+    assert "CLAUDE_CODE_SESSION_ID" not in env

@@ -15,7 +15,7 @@ def handoff_server_entry(command: str) -> dict[str, Any]:
     return {
         "command": command,
         "env": {
-            "HANDOFF_ROLE": "${HANDOFF_ROLE}",
+            "HANDOFF_ROLE": "${HANDOFF_ROLE:-}",
             "HANDOFF_GRAPH": "${HANDOFF_GRAPH:-handoff}",
             "HANDOFF_MODEL": "${HANDOFF_MODEL:-claude-code}",
         },

@@ -67,3 +67,14 @@ def test_api_errors_are_reported_as_unavailable() -> None:
 )
 def test_live_anthropic_answers() -> None:
     assert AnthropicClient().complete("Reply with the single word: ok", "go").strip()
+
+
+def test_empty_system_prompt_is_left_out() -> None:
+    messages = FakeMessages(_response("hi"))
+    _client(messages).complete("", "hello")
+    assert "system" not in messages.calls[0]
+
+
+def test_cut_off_reply_is_reported_as_unavailable() -> None:
+    with pytest.raises(ModelUnavailable):
+        _client(FakeMessages(_response('{"answer": ', stop="max_tokens"))).complete("s", "u")

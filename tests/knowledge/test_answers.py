@@ -42,3 +42,14 @@ def test_unknown_concept_says_so(kg: Graph, backend_with_decision: Graph) -> Non
     assert find_concepts(kg, backend_with_decision, "kubernetes") == (
         "No concepts in the knowledge graph match."
     )
+
+
+def test_entity_names_without_descriptions_or_with_colons_are_read() -> None:
+    from handoff.knowledge.answers import _key_entities
+
+    section = SimpleNamespace(
+        content="## Key Entities\n- std::string: a type\n- CDN_URL\n",
+        metadata={"section": "entities"},
+    )
+    result = SimpleNamespace(retriever_result=SimpleNamespace(items=[section]))
+    assert _key_entities(result) == ["std::string", "CDN_URL"]
