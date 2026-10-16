@@ -1546,6 +1546,13 @@ Branch: `phase/2-hooks`. Steps are written at the Phase 1 gate.
 - `main()` reads the event name from `argv[1]` and JSON from stdin, replays the spool, runs the handler, prints its output; on a connection error appends the event to the spool. Note from the Phase 0 review: `connect()` itself talks to the server (FalkorDB's constructor runs `INFO`), and failures raise `redis.exceptions.ConnectionError` or `TimeoutError`, not the builtins, so the fallback wraps `connect()` and every query and catches `redis.exceptions.RedisError`; on any other exception logs it; always exits 0 (the waiter in Phase 4 is the exception).
 - Tests run `handoff-hook` as a subprocess: with the database up the request appears; with `HANDOFF_DB_PORT` pointing at a closed port the event lands in the spool and the exit code is 0; a later run with the database up replays it.
 
+**Changed at the Phase 2 gate review** (code is the source of truth):
+- `hooks/prepare.py` `prepare_hook_input(data, project_dir) -> dict` slims, redacts and caps raw hook input and fills every id the moment the hook fires; only this slim form is applied or saved.
+- `HookInput` now carries `edit_path` and `edit_summary` instead of `tool_input`; `on_post_tool_use(graph, hook, *, role, at)` (no `project_dir`).
+- Saved event shape: `{"input": prepared, "role", "at"}`.
+- `spool.replay(home, apply, *, is_outage) -> ReplayResult(applied, pending)`: stops at the first outage, at most `MAX_REPLAY` (100) per call, bad events go to `spool.dead.jsonl`, files are 0600, rewrite is atomic. When `pending`, the live event is queued behind the saved ones.
+- `cli.is_outage(exc)`: only redis `ConnectionError`/`TimeoutError` count as the database being down.
+
 ### Phase 2 gate
 
 - Show it working: in a scratch folder, add the hooks to `.claude/settings.local.json` by hand, run `HANDOFF_ROLE=frontend claude`, ask for a small edit, and see the `Session → Request → Edit → File` chain in the browser.
@@ -1554,7 +1561,7 @@ Branch: `phase/2-hooks`. Steps are written at the Phase 1 gate.
 
 ## Phase 3: MCP server
 
-Branch: `phase/3-mcp`. Before writing steps: read the installed `mcp` 2.3 package's server API (`FastMCP` or its successor) and record the exact decorator and run calls here.
+Branch: `phase/3-mcp`. Checked 17 October against `mcp` 2.3.0: `FastMCP` is now `MCPServer`, imported from `mcp.server.mcpserver`. Construct with `MCPServer(name, instructions=...)`, register with `@server.tool(description=...)`, run with `server.run("stdio")`. `await server.list_tools()` lists tools in-process, so the server test needs no subprocess (async tests via anyio's pytest plugin, which `mcp` installs).
 
 ### Task 3.1: Tool logic
 

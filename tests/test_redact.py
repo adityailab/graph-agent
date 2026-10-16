@@ -53,3 +53,19 @@ def test_env_file_secret_line_keeps_its_name() -> None:
 )
 def test_ordinary_prose_and_code_are_unchanged(text: str) -> None:
     assert redact(text) == text
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("+DB_PASSWORD=hunter2hunter2", f"+DB_PASSWORD={REDACTED}"),
+        ("export GITHUB_TOKEN=abcdef123456", f"export GITHUB_TOKEN={REDACTED}"),
+        ('{"api_key": "abcdef123456"}', f'{{"api_key": "{REDACTED}"}}'),
+    ],
+)
+def test_secrets_in_diffs_exports_and_json_are_redacted(text: str, expected: str) -> None:
+    assert redact(text) == expected
+
+
+def test_private_key_without_its_end_line_is_redacted() -> None:
+    assert redact("-----BEGIN PRIVATE KEY-----\nMIIEow\nabc") == REDACTED

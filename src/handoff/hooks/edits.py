@@ -18,8 +18,12 @@ def edited_path(tool_input: Mapping[str, Any]) -> str | None:
 
 
 def relative_path(file_path: str, project_dir: str) -> str:
-    """Return the path relative to the project, or unchanged if it lies outside it."""
-    path, root = Path(file_path), Path(project_dir)
+    """Return the path relative to the project, or unchanged if it lies outside it.
+
+    Both sides are resolved first, so a symlinked project folder (or macOS's
+    /tmp -> /private/tmp) still gives one File node per file.
+    """
+    path, root = Path(file_path).resolve(), Path(project_dir).resolve()
     return str(path.relative_to(root)) if path.is_relative_to(root) else file_path
 
 

@@ -8,7 +8,10 @@ REDACTED = "[redacted]"
 
 # Whole matches that are always secrets.
 _WHOLE = [
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
+    # A key cut off before its END line is still a key.
+    re.compile(
+        r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)"
+    ),
     re.compile(r"\bsk-[A-Za-z0-9_-]{20,}"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"),
@@ -20,10 +23,14 @@ _WHOLE = [
 _VALUE = [
     re.compile(r"(?i)\bbearer\s+(?P<value>[A-Za-z0-9._~+/=-]{16,})"),
     re.compile(
-        r"(?i)\b\w*(?:password|passwd|secret|token|api[_-]?key)\w*\s*[:=]\s*"
+        r"(?i)\b\w*(?:password|passwd|secret|token|api[_-]?key)\w*[\"']?\s*[:=]\s*"
         r"(?P<quote>[\"'])(?P<value>[^\"'\n]{6,})(?P=quote)"
     ),
-    re.compile(r"(?m)^[A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|API_KEY)[A-Z0-9_]*=(?P<value>\S+)$"),
+    # Env-file lines, also as a diff line (+/-) or after `export`.
+    re.compile(
+        r"(?m)^[+\- ]?(?:export\s+)?[A-Z0-9_]*(?:PASSWORD|SECRET|TOKEN|API_KEY)[A-Z0-9_]*"
+        r"=(?P<value>\S+)$"
+    ),
 ]
 
 

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import fcntl
 import json
 import os
+import stat
 import subprocess
 import sys
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -72,3 +75,61 @@ def test_unreadable_input_is_logged_and_exits_cleanly(config: Config) -> None:
     result = _run_hook(config, "{not json")
     assert result.returncode == 0
     assert "hook failed" in (config.home / "logs" / "hooks.log").read_text()
+
+
+def test_saved_events_are_private_and_hold_no_raw_tool_output(
+    config: Config, hook_json: HookJson
+) -> None:
+    raw = hook_json("post_edit") | {"tool_response": {"originalFile": "secret body"}}
+    _run_hook(config, json.dumps(raw), port=1)
+    spool_file = config.home / "spool.jsonl"
+    assert stat.S_IMODE(spool_file.stat().st_mode) == 0o600
+    assert "secret body" not in spool_file.read_text()
+
+
+def test_live_event_queues_while_another_hook_replays(
+    config: Config, graph: Graph, hook_json: HookJson
+) -> None:
+    _run_hook(config, json.dumps(hook_json("user_prompt") | {"prompt_id": "p-old"}), port=1)
+    env = os.environ | {
+        "HANDOFF_GRAPH": config.graph_name,
+        "HANDOFF_HOME": str(config.home),
+        "HANDOFF_ROLE": "frontend",
+    }
+    with (config.home / "spool.lock").open("a") as lock:
+        # Another hook is mid-replay for 3 seconds.
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "handoff.hooks.cli"], stdin=subprocess.PIPE, env=env, text=True
+        )
+        assert proc.stdin is not None
+        proc.stdin.write(json.dumps(hook_json("user_prompt") | {"prompt_id": "p-new"}))
+        proc.stdin.close()
+        time.sleep(3)
+        fcntl.flock(lock, fcntl.LOCK_UN)
+    assert proc.wait(timeout=30) == 0
+    assert _request_texts(graph) == []
+    assert (config.home / "spool.jsonl").read_text().count("\n") == 2
+
+
+def test_edit_reaches_the_graph_through_the_command(
+    config: Config, graph: Graph, hook_json: HookJson
+) -> None:
+    _run_hook(config, json.dumps(hook_json("user_prompt")))
+    _run_hook(config, json.dumps(hook_json("post_edit")))
+    rows = graph.query("MATCH (:Edit)-[:TOUCHED]->(f:File) RETURN f.path").result_set
+    assert rows == [["hello.txt"]]
+
+
+def test_bad_configuration_still_exits_cleanly(config: Config, hook_json: HookJson) -> None:
+    env = os.environ | {"HANDOFF_DB_PORT": "not-a-port", "HANDOFF_HOME": str(config.home)}
+    result = subprocess.run(
+        [sys.executable, "-m", "handoff.hooks.cli"],
+        input=json.dumps(hook_json("user_prompt")),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0

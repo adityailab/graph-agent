@@ -14,7 +14,7 @@ HookOutput = str | dict[str, Any] | None
 
 
 def apply_event(graph: Graph, event: Mapping[str, Any]) -> HookOutput:
-    """Apply one event: {"input": hook JSON, "role", "project_dir", "at"}.
+    """Apply one event: {"input": prepared hook input, "role", "at"}.
 
     The same shape is saved to the replay file, so live and replayed events take
     one path. Returns what the hook should print, if anything.
@@ -27,6 +27,5 @@ def apply_event(graph: Graph, event: Mapping[str, Any]) -> HookOutput:
     if hook.event_name == "UserPromptSubmit":
         return on_user_prompt(graph, hook, role=role, at=at)
     if hook.event_name == "PostToolUse":
-        project_dir = str(event["project_dir"])
-        return on_post_tool_use(graph, hook, role=role, project_dir=project_dir, at=at)
+        return on_post_tool_use(graph, hook, role=role, at=at)
     return None

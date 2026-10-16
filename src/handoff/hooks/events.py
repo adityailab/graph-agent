@@ -1,4 +1,4 @@
-"""What each hook event records in the graph."""
+"""What each hook event records in the graph. Input is already prepared and redacted."""
 
 from __future__ import annotations
 
@@ -9,13 +9,8 @@ from falkordb import Graph
 from handoff.graph.edits import add_edit
 from handoff.graph.requests import add_request, latest_request_id
 from handoff.graph.sessions import upsert_session
-from handoff.hooks.edits import edited_path, relative_path, summarise
 from handoff.hooks.hook_input import HookInput
 from handoff.ids import new_id
-from handoff.redact import redact
-
-EDIT_TOOLS = frozenset({"Edit", "Write", "NotebookEdit"})
-MAX_PROMPT_CHARS = 20_000
 
 
 def register_session(graph: Graph, hook: HookInput, *, role: str, at: int) -> None:
@@ -35,30 +30,27 @@ def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int) -> str:
         graph,
         session_id=hook.session_id,
         request_id=hook.prompt_id or new_id(),
-        text=redact(hook.prompt)[:MAX_PROMPT_CHARS],
+        text=hook.prompt,
         at=at,
     )
     return ""
 
 
-def on_post_tool_use(
-    graph: Graph, hook: HookInput, *, role: str, project_dir: str, at: int
-) -> dict[str, Any] | None:
+def on_post_tool_use(graph: Graph, hook: HookInput, *, role: str, at: int) -> dict[str, Any] | None:
     """Record a file edit against the request that caused it. Returns hook JSON output."""
     register_session(graph, hook, role=role, at=at)
-    path = edited_path(hook.tool_input) if hook.tool_name in EDIT_TOOLS else None
-    if path is None:
+    if hook.edit_path is None:
         return None
-    summary = redact(summarise(hook.tool_name, hook.tool_input))
+    path = hook.edit_path
 
     def record(request_id: str) -> bool:
         return add_edit(
             graph,
             request_id=request_id,
-            edit_id=hook.tool_use_id or new_id(),
+            edit_id=hook.tool_use_id,
             tool=hook.tool_name,
-            path=relative_path(path, project_dir),
-            summary=summary,
+            path=path,
+            summary=hook.edit_summary,
             at=at,
         )
 

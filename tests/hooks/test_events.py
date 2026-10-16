@@ -8,20 +8,23 @@ from falkordb import Graph
 from handoff.graph.edits import why_file
 from handoff.graph.requests import latest_request_id
 from handoff.graph.schema import ensure_schema
-from handoff.hooks.events import MAX_PROMPT_CHARS, on_post_tool_use, on_user_prompt
-from handoff.hooks.hook_input import parse_hook_input
+from handoff.hooks.events import on_post_tool_use, on_user_prompt
+from handoff.hooks.hook_input import HookInput, parse_hook_input
+from handoff.hooks.prepare import prepare_hook_input
 
 HookJson = Callable[[str], dict[str, Any]]
 
 
+def _hook(raw: dict[str, Any]) -> HookInput:
+    return parse_hook_input(prepare_hook_input(raw, "/work/app"))
+
+
 def _prompt(graph: Graph, hook_json: HookJson, **changes: Any) -> None:
-    data = hook_json("user_prompt") | changes
-    on_user_prompt(graph, parse_hook_input(data), role="frontend", at=10)
+    on_user_prompt(graph, _hook(hook_json("user_prompt") | changes), role="frontend", at=10)
 
 
 def _edit(graph: Graph, hook_json: HookJson, **changes: Any) -> None:
-    data = hook_json("post_edit") | changes
-    on_post_tool_use(graph, parse_hook_input(data), role="frontend", project_dir="/work/app", at=11)
+    on_post_tool_use(graph, _hook(hook_json("post_edit") | changes), role="frontend", at=11)
 
 
 def test_prompt_is_recorded_under_its_prompt_id(graph: Graph, hook_json: HookJson) -> None:
@@ -31,14 +34,6 @@ def test_prompt_is_recorded_under_its_prompt_id(graph: Graph, hook_json: HookJso
         "MATCH (:Session {id: 's-test'})-[:RECEIVED]->(r:Request) RETURN r.id, r.text"
     )
     assert rows.result_set == [["p-test", "Add the avatar"]]
-
-
-def test_prompt_is_redacted_and_capped(graph: Graph, hook_json: HookJson) -> None:
-    secret = "sk-ant-api03-abcdefghijklmnopqrstuvwxyz012345"
-    _prompt(graph, hook_json, prompt=f"use {secret} " + "x" * 30_000)
-    text = graph.query("MATCH (r:Request) RETURN r.text").result_set[0][0]
-    assert secret not in text
-    assert len(text) == MAX_PROMPT_CHARS
 
 
 def test_edit_is_recorded_under_its_tool_use_id(graph: Graph, hook_json: HookJson) -> None:
@@ -57,7 +52,7 @@ def test_edit_without_prompt_id_attaches_to_latest_request(
     _prompt(graph, hook_json)
     data = hook_json("post_edit")
     del data["prompt_id"]
-    on_post_tool_use(graph, parse_hook_input(data), role="frontend", project_dir="/work/app", at=11)
+    on_post_tool_use(graph, _hook(data), role="frontend", at=11)
     assert len(why_file(graph, "hello.txt")) == 1
 
 
@@ -80,7 +75,7 @@ def test_edit_before_any_prompt_records_nothing_and_does_not_fail(
 def test_tools_that_do_not_edit_record_nothing(graph: Graph, hook_json: HookJson) -> None:
     _prompt(graph, hook_json)
     data = hook_json("post_edit") | {"tool_name": "Read", "tool_input": {"file_path": "/x"}}
-    on_post_tool_use(graph, parse_hook_input(data), role="frontend", project_dir="/work/app", at=11)
+    on_post_tool_use(graph, _hook(data), role="frontend", at=11)
     assert graph.query("MATCH (e:Edit) RETURN count(e)").result_set == [[0]]
 
 
