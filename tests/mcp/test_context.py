@@ -25,3 +25,8 @@ def test_context_role_comes_from_the_environment_lower_cased() -> None:
 def test_context_takes_the_session_id_claude_code_provides() -> None:
     ctx = context_from_env({"CLAUDE_CODE_SESSION_ID": "abc"}, cwd="/w", connect=lambda: None)
     assert ctx.session_id == "abc"
+
+
+def test_context_takes_the_claude_process_id() -> None:
+    ctx = context_from_env({"CLAUDE_PID": "4242"}, cwd="/w", connect=lambda: None)
+    assert ctx.pid == 4242

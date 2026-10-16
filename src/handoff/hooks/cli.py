@@ -29,7 +29,11 @@ log = logging.getLogger("handoff.hooks")
 def _read_event(stdin: str, env: Mapping[str, str]) -> dict[str, Any]:
     data = json.loads(stdin)
     project_dir, role = project_and_role(data, env)
-    prepared = prepare_hook_input(data, project_dir) | {"cwd": project_dir}
+    pid = env.get("CLAUDE_PID", "")
+    prepared = prepare_hook_input(data, project_dir) | {
+        "cwd": project_dir,
+        "pid": int(pid) if pid.isdigit() else None,
+    }
     return {"input": prepared, "role": role, "at": now_ms()}
 
 

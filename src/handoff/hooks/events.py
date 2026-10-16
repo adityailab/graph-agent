@@ -21,7 +21,7 @@ from handoff.ids import new_id
 
 def register_session(graph: Graph, hook: HookInput, *, role: str, at: int) -> None:
     """Every event registers its session: SessionStart does not always fire."""
-    upsert_session(graph, session_id=hook.session_id, role=role, cwd=hook.cwd, at=at)
+    upsert_session(graph, session_id=hook.session_id, role=role, cwd=hook.cwd, at=at, pid=hook.pid)
 
 
 def on_session_start(graph: Graph, hook: HookInput, *, role: str, at: int) -> None:

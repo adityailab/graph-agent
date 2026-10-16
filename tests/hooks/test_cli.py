@@ -200,3 +200,24 @@ def test_tool_calls_without_edits_are_not_saved_during_an_outage(
     assert not (config.home / "spool.jsonl").exists()
     _run_hook(config, json.dumps(hook_json("post_edit")), port=1)
     assert (config.home / "spool.jsonl").read_text().count("\n") == 1
+
+
+def test_hooks_store_the_claude_process_id(
+    config: Config, graph: Graph, hook_json: HookJson
+) -> None:
+    env = os.environ | {
+        "HANDOFF_GRAPH": config.graph_name,
+        "HANDOFF_HOME": str(config.home),
+        "HANDOFF_ROLE": "frontend",
+        "CLAUDE_PID": "4242",
+    }
+    subprocess.run(
+        [sys.executable, "-m", "handoff.hooks.cli"],
+        input=json.dumps(hook_json("user_prompt")),
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=True,
+    )
+    assert graph.query("MATCH (s:Session) RETURN s.pid").result_set == [[4242]]

@@ -17,6 +17,20 @@ DEFAULT_MODEL = "opus"
 TIMEOUT_SECONDS = 90
 
 
+def child_environment() -> dict[str, str]:
+    """The environment for the stand-in's `claude`: no handoff or Claude Code session
+    variables (it is not part of any session), and no ANTHROPIC_API_KEY, so it uses the
+    person's Claude Code login rather than billing an API key."""
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("HANDOFF_", "CLAUDE")) and k != "ANTHROPIC_API_KEY"
+    }
+    if "CLAUDE_CONFIG_DIR" in os.environ:
+        env["CLAUDE_CONFIG_DIR"] = os.environ["CLAUDE_CONFIG_DIR"]
+    return env
+
+
 class ClaudeCodeClient:
     """A ModelClient backed by `claude -p --output-format json`."""
 
@@ -42,6 +56,7 @@ class ClaudeCodeClient:
                     text=True,
                     timeout=TIMEOUT_SECONDS,
                     cwd=scratch,
+                    env=child_environment(),
                     check=False,
                 )
         except (OSError, subprocess.TimeoutExpired) as exc:

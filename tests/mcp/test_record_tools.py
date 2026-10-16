@@ -95,3 +95,15 @@ def test_session_id_from_claude_code_picks_the_exact_session(frontend: ToolConte
     reply = record_decision(mine, "x", "y", "z")
     assert '"show avatar"' in reply
     assert "share the role" not in reply
+
+
+def test_after_clear_the_newest_session_of_this_process_is_used(frontend: ToolContext) -> None:
+    # /clear: same Claude process (pid 7), new session id; the server still holds the old id.
+    upsert_session(frontend.graph, session_id="old", role="frontend", cwd="/w", at=1_100, pid=7)
+    add_request(frontend.graph, session_id="old", request_id="p-old", text="before clear", at=1_100)
+    upsert_session(frontend.graph, session_id="new", role="frontend", cwd="/w", at=1_800, pid=7)
+    add_request(frontend.graph, session_id="new", request_id="p-new", text="after clear", at=1_800)
+    ctx = ToolContext(
+        graph=frontend.graph, role="frontend", cwd="/w", now=lambda: 2_000, session_id="old", pid=7
+    )
+    assert '"after clear"' in record_decision(ctx, "x", "y", "z")

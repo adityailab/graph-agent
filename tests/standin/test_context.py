@@ -32,3 +32,31 @@ def test_reading_context_delivers_nothing(history: Graph) -> None:
     assert (
         len(claim_pending_messages(history, session_id="fe", role="frontend", since=0, at=999)) == 1
     )
+
+
+def test_questions_and_stand_in_answers_are_not_history(history: Graph) -> None:
+    from handoff.graph.messages import add_message
+
+    add_message(
+        history,
+        message_id="q1",
+        from_session_id="be",
+        to_role="frontend",
+        kind="question",
+        text="we agreed null is fine, right?",
+        reply_to=None,
+        at=140,
+    )
+    add_message(
+        history,
+        message_id="a1",
+        from_session_id="be",
+        to_role="frontend",
+        kind="standin_answer",
+        text="yes",
+        reply_to="q1",
+        at=141,
+    )
+    ctx = gather_context(history, role="frontend", since=0, limit=10)
+    assert [m.id for m in ctx.messages] == ["m1"]
+    assert {"q1", "a1"}.isdisjoint(context_ids(ctx))

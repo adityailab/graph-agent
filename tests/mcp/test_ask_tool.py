@@ -70,3 +70,21 @@ def test_unavailable_stand_in_still_delivers_the_question(backend: ToolContext) 
 
 def test_blank_question_is_refused(backend: ToolContext) -> None:
     assert ask(backend, "frontend", "  ", FakeClient("{}")) == "Not asked: question is empty."
+
+
+def test_role_with_no_history_is_answered_without_a_model_call(backend: ToolContext) -> None:
+    reply = ask(backend, "designer", "Which font?", FakeClient(None))
+    assert "No session with the role designer has recorded history" in reply
+
+
+def test_long_or_secret_answers_are_trimmed_and_redacted(backend: ToolContext) -> None:
+    _frontend_decided(backend)
+    text = "sk-ant-api03-abcdefghijklmnopqrstuvwxyz012345 " + "y" * 3_000
+    reply = ask(
+        backend,
+        "frontend",
+        "q?",
+        FakeClient(json.dumps({"answer": text, "cited_ids": ["d1"], "found": True})),
+    )
+    assert "sk-ant-api03" not in reply
+    assert len(reply) < 1_500
