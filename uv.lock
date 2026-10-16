@@ -98,6 +98,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "falkordb" },
+    { name = "redis" },
 ]
 
 [package.dev-dependencies]
@@ -108,7 +109,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "falkordb", specifier = ">=1.8,<2" }]
+requires-dist = [
+    { name = "falkordb", specifier = ">=1.8,<2" },
+    { name = "redis", specifier = ">=5" },
+]
 
 [package.metadata.requires-dev]
 dev = [

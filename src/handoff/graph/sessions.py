@@ -1,0 +1,51 @@
+"""Queries about sessions: one per running Claude Code terminal."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from falkordb import Graph
+
+from handoff.graph.records import SessionInfo
+
+_SESSION_FIELDS = "s.id, s.role, s.cwd, s.started_at, s.last_seen_at"
+
+
+def upsert_session(graph: Graph, *, session_id: str, role: str, cwd: str, at: int) -> None:
+    """Create the session on first sight; refresh its role, folder and last-seen time."""
+    graph.query(
+        "MERGE (s:Session {id: $id}) "
+        "ON CREATE SET s.started_at = $at "
+        "SET s.role = $role, s.cwd = $cwd, s.last_seen_at = $at",
+        {"id": session_id, "role": role, "cwd": cwd, "at": at},
+    )
+
+
+def _session(row: list[Any]) -> SessionInfo:
+    return SessionInfo(
+        id=str(row[0]),
+        role=str(row[1]),
+        cwd=str(row[2]),
+        started_at=int(row[3]),
+        last_seen_at=int(row[4]),
+    )
+
+
+def active_session(graph: Graph, *, role: str, cwd: str) -> SessionInfo | None:
+    """Return the most recently seen session with this role in this folder."""
+    rows = graph.ro_query(
+        f"MATCH (s:Session {{role: $role, cwd: $cwd}}) RETURN {_SESSION_FIELDS} "
+        "ORDER BY s.last_seen_at DESC LIMIT 1",
+        {"role": role, "cwd": cwd},
+    ).result_set
+    return _session(rows[0]) if rows else None
+
+
+def active_sessions(graph: Graph, *, since: int) -> list[SessionInfo]:
+    """Return sessions seen at or after `since`, ordered by role."""
+    rows = graph.ro_query(
+        f"MATCH (s:Session) WHERE s.last_seen_at >= $since RETURN {_SESSION_FIELDS} "
+        "ORDER BY s.role",
+        {"since": since},
+    ).result_set
+    return [_session(row) for row in rows]
