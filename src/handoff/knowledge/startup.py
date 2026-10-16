@@ -55,7 +55,12 @@ class Knowledge:
 
 
 def start_knowledge(
-    config: Config, model: ModelClient, embedder: Embedder, *, env: Mapping[str, str]
+    config: Config,
+    model: ModelClient,
+    embedder: Embedder,
+    *,
+    env: Mapping[str, str],
+    background: bool = True,
 ) -> Knowledge | None:
     """Start the knowledge layer and its ingestion worker, or return None when it is
     switched off (HANDOFF_KNOWLEDGE=off) or the database cannot be reached."""
@@ -69,6 +74,7 @@ def start_knowledge(
         log.warning("knowledge worker not started: %s", exc)
         return None
     worker = KnowledgeWorker(graph=graph, rag=rag, home=config.home, extractor=extractor)
-    worker.start()
+    if background:
+        worker.start()
     kg = connect(Config(config.host, config.port, knowledge_graph_name(config), config.home))
     return Knowledge(rag=rag, kg=kg, worker=worker)

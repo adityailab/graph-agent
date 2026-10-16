@@ -80,6 +80,16 @@ class KnowledgeWorker:
             self._since_finalize = 0
         return True
 
+    def drain(self) -> int:
+        """Ingest everything pending, finalize, and return how many items went in."""
+        count = 0
+        while self.step():
+            count += 1
+        if self._since_finalize:
+            self._rag.finalize_sync()
+            self._since_finalize = 0
+        return count
+
     def run(self) -> None:
         """Loop until stopped: lead if possible, ingest, rest when there is nothing to do."""
         while not self._stop.is_set():

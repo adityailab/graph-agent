@@ -69,3 +69,12 @@ def test_only_one_worker_runs_per_machine(ready: Graph, tmp_path: Path) -> None:
     assert second.try_lead() is False
     first.stand_down()
     assert second.try_lead() is True
+
+
+def test_draining_ingests_everything_then_finalizes(ready: Graph, tmp_path: Path) -> None:
+    for i in range(3):
+        add_request(ready, session_id="s1", request_id=f"p{i}", text="x", at=10 + i)
+    rag = FakeRag()
+    assert _worker(ready, rag, tmp_path).drain() == 3
+    assert [d for d, _ in rag.ingested] == ["p0", "p1", "p2"]
+    assert rag.finalized >= 1

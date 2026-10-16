@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 handoff-hook = "handoff.hooks.cli:run"
 handoff-mcp = "handoff.mcp.server:main"
+handoff-knowledge = "handoff.knowledge.cli:main"
 
 [project.optional-dependencies]
 knowledge = [
