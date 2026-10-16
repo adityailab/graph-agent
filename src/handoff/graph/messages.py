@@ -90,3 +90,37 @@ def has_pending_messages(graph: Graph, *, session_id: str, role: str, since: int
         {"sid": session_id, "role": role, "since": since},
     ).result_set
     return bool(rows and rows[0][0])
+
+
+def role_messages(graph: Graph, *, role: str, since: int, limit: int) -> list[MessageView]:
+    """Read (without delivering) recent messages sent by or to a role, oldest first."""
+    rows = graph.ro_query(
+        "MATCH (sender:Session)-[:SENT]->(m:Message) "
+        "WHERE (sender.role = $role OR m.to_role = $role) AND m.at >= $since "
+        "OPTIONAL MATCH (m)-[:REPLY_TO]->(q:Message) "
+        "WITH sender, m, collect(q.id)[0] AS reply "
+        "RETURN m.id, m.kind, sender.role, m.text, reply, m.at "
+        "ORDER BY m.at DESC LIMIT $limit",
+        {"role": role, "since": since, "limit": limit},
+    ).result_set
+    return [
+        MessageView(
+            id=str(r[0]),
+            kind=str(r[1]),
+            from_role=str(r[2]),
+            text=str(r[3]),
+            reply_to=None if r[4] is None else str(r[4]),
+            at=int(r[5]),
+        )
+        for r in reversed(rows)
+    ]
+
+
+def add_citations(graph: Graph, *, message_id: str, cited_ids: list[str]) -> None:
+    """Link a stand-in answer to the requests and decisions it relied on."""
+    for label in ("Request", "Decision"):
+        graph.query(
+            f"MATCH (m:Message {{id: $mid}}) UNWIND $ids AS cid "
+            f"MATCH (n:{label} {{id: cid}}) MERGE (m)-[:CITES]->(n)",
+            {"mid": message_id, "ids": cited_ids},
+        )
