@@ -24,18 +24,23 @@ def fuse(ranked_lists: list[list[str]], *, k: int) -> list[str]:
     return sorted(scores, key=lambda item: -scores[item])[:k]
 
 
+def rank_decisions(ctx: ToolContext, query: str, *, k: int) -> list[str]:
+    """Decision ids matching `query` by words and (when an embedder is set) meaning."""
+    lists = [[d for d, _ in fulltext_decisions(ctx.graph, query, k=2 * k)]]
+    if ctx.embedder is not None:
+        vector = ctx.embedder.embed([query])[0]
+        near = similar_decisions(ctx.graph, vector, k=2 * k)
+        lists.append([d for d, distance in near if distance <= MAX_DISTANCE])
+    return fuse(lists, k=k)
+
+
 @guarded
 def search(ctx: ToolContext, query: str, k: int = 5) -> str:
     """Find recorded decisions by words and by meaning, with who made them and why."""
     if not query.strip():
         return "Not searched: query is empty."
     k = max(1, min(k, 20))
-    lists = [[d for d, _ in fulltext_decisions(ctx.graph, query, k=2 * k)]]
-    if ctx.embedder is not None:
-        vector = ctx.embedder.embed([query])[0]
-        near = similar_decisions(ctx.graph, vector, k=2 * k)
-        lists.append([d for d, distance in near if distance <= MAX_DISTANCE])
-    hits = decision_hits(ctx.graph, fuse(lists, k=k))
+    hits = decision_hits(ctx.graph, rank_decisions(ctx, query, k=k))
     return render_search(query, hits) if hits else "No recorded decisions match."
 
 

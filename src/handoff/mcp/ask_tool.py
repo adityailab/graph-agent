@@ -9,11 +9,13 @@ from pydantic import Field
 
 from handoff.config import normalise_role
 from handoff.format import shorten
+from handoff.graph.history import requests_for_decisions
 from handoff.graph.messages import add_citations, add_message
 from handoff.ids import new_id
 from handoff.mcp.context import ToolContext, guarded
 from handoff.mcp.current import current_session
 from handoff.mcp.message_tools import NOT_REGISTERED
+from handoff.mcp.search_tool import rank_decisions
 from handoff.redact import redact
 from handoff.standin.answer import ModelClient, StandinUnavailable, answer
 from handoff.standin.context import gather_context
@@ -44,8 +46,13 @@ def ask(ctx: ToolContext, role: str, question: str, client: ModelClient) -> str:
         reply_to=None,
         at=now,
     )
+    matching = rank_decisions(ctx, text, k=5)
     history = gather_context(
-        ctx.graph, role=target, since=now - _HISTORY_WINDOW_MS, limit=_HISTORY_LIMIT
+        ctx.graph,
+        role=target,
+        since=now - _HISTORY_WINDOW_MS,
+        limit=_HISTORY_LIMIT,
+        relevant=requests_for_decisions(ctx.graph, decision_ids=matching, role=target),
     )
     if not history.requests and not history.messages:
         return (

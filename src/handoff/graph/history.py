@@ -8,9 +8,14 @@ from falkordb import Graph
 
 from handoff.graph.records import NeedView, RequestView, decision_views
 
-_HANDOFF_QUERY = (
+_BY_TIME = "WHERE ($role IS NULL OR s.role = $role) AND r.at >= $since "
+# FalkorDB 4.22 has no EXISTS {} subqueries, so match the decisions, then de-duplicate.
+_BY_DECISION = (
+    "MATCH (r)-[:LED_TO]->(x:Decision) WHERE s.role = $role AND x.id IN $ids WITH DISTINCT s, r "
+)
+_REQUEST_VIEWS = (
     "MATCH (s:Session)-[:RECEIVED]->(r:Request) "
-    "WHERE ($role IS NULL OR s.role = $role) AND r.at >= $since "
+    "{where}"
     "OPTIONAL MATCH (r)-[:CAUSED]->(:Edit)-[:TOUCHED]->(f:File) "
     "WITH s, r, collect(DISTINCT f.path) AS files "
     "OPTIONAL MATCH (r)-[:LED_TO]->(d:Decision) "
@@ -49,5 +54,17 @@ def handoff_requests(graph: Graph, *, role: str | None, since: int) -> list[Requ
 
     `role=None` covers every role.
     """
-    rows = graph.ro_query(_HANDOFF_QUERY, {"role": role, "since": since}).result_set
+    query = _REQUEST_VIEWS.format(where=_BY_TIME)
+    rows = graph.ro_query(query, {"role": role, "since": since}).result_set
+    return [_request_view(row) for row in rows]
+
+
+def requests_for_decisions(
+    graph: Graph, *, decision_ids: list[str], role: str
+) -> list[RequestView]:
+    """The role's requests that led to any of these decisions, whenever they were made."""
+    if not decision_ids:
+        return []
+    query = _REQUEST_VIEWS.format(where=_BY_DECISION)
+    rows = graph.ro_query(query, {"role": role, "ids": decision_ids}).result_set
     return [_request_view(row) for row in rows]
