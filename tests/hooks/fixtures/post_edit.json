@@ -1,0 +1,15 @@
+{
+  "session_id": "s-test",
+  "prompt_id": "p-test",
+  "cwd": "/work/app",
+  "permission_mode": "acceptEdits",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/work/app/hello.txt",
+    "old_string": "hi",
+    "new_string": "hello",
+    "replace_all": false
+  },
+  "tool_use_id": "t-edit"
+}
