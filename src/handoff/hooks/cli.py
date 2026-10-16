@@ -55,13 +55,13 @@ def _apply(config: Config, event: dict[str, Any]) -> HookOutput:
     try:
         graph = connect(config)
         replayed = spool.replay(
-            config.home, lambda saved: apply_event(graph, saved), is_outage=is_outage
+            config.home, lambda saved: apply_event(graph, saved, live=False), is_outage=is_outage
         )
         if replayed.pending:
             # Older events are still waiting; applying this one first would break order.
             spool.append(config.home, event)
             return None
-        return apply_event(graph, event)
+        return apply_event(graph, event, live=True)
     except _OUTAGE:
         log.warning("database unreachable; event saved for replay")
         spool.append(config.home, event)

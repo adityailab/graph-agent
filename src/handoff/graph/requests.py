@@ -54,3 +54,16 @@ def request_text(graph: Graph, request_id: str) -> str | None:
         "MATCH (r:Request {id: $rid}) RETURN r.text", {"rid": request_id}
     ).result_set
     return str(rows[0][0]) if rows else None
+
+
+def request_needs_decision(graph: Graph, request_id: str) -> bool:
+    """True when the request changed files but has no decision recorded yet."""
+    rows = graph.ro_query(
+        "MATCH (r:Request {id: $rid}) "
+        "OPTIONAL MATCH (r)-[:CAUSED]->(e:Edit) "
+        "WITH r, count(e) AS edits "
+        "OPTIONAL MATCH (r)-[:LED_TO]->(d:Decision) "
+        "RETURN edits, count(d)",
+        {"rid": request_id},
+    ).result_set
+    return bool(rows) and int(rows[0][0]) > 0 and int(rows[0][1]) == 0

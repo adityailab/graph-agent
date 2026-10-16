@@ -7,7 +7,7 @@ from typing import Any
 from falkordb import Graph
 
 from handoff.graph.edits import add_edit
-from handoff.graph.requests import add_request, latest_request_id
+from handoff.graph.requests import add_request, latest_request_id, request_needs_decision
 from handoff.graph.sessions import upsert_session
 from handoff.hooks.hook_input import HookInput
 from handoff.ids import new_id
@@ -61,3 +61,20 @@ def on_post_tool_use(graph: Graph, hook: HookInput, *, role: str, at: int) -> di
     if latest is not None:
         record(latest)
     return None
+
+
+FINISH_CHECK_REASON = (
+    "This request changed files but no decision is recorded for it yet. Other sessions "
+    "learn why these files changed only from record_decision."
+)
+
+
+def on_stop(graph: Graph, hook: HookInput, *, role: str, at: int) -> dict[str, Any] | None:
+    """The finish check: block the stop once if edits were made with no decision."""
+    register_session(graph, hook, role=role, at=at)
+    if hook.stop_hook_active:
+        return None
+    request_id = hook.prompt_id or latest_request_id(graph, hook.session_id)
+    if request_id is None or not request_needs_decision(graph, request_id):
+        return None
+    return {"decision": "block", "reason": FINISH_CHECK_REASON}
