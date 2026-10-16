@@ -66,3 +66,13 @@ def decision_views(raw: list[list[Any]]) -> tuple[DecisionView, ...]:
             key=lambda d: d.id,
         )
     )
+
+
+@dataclass(frozen=True)
+class MessageView:
+    id: str
+    kind: str  # "message", "question" or "standin_answer"
+    from_role: str
+    text: str
+    reply_to: str | None
+    at: int
