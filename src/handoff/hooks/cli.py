@@ -1,6 +1,7 @@
 """The `handoff-hook` command that Claude Code runs for each hook event.
 
-It never blocks a session: every error is logged and the exit code is 0.
+`handoff-hook` handles one event from stdin; `handoff-hook wait` runs the background
+waiter (see waiter.py). Neither ever blocks a session: errors are logged, exit is 0.
 """
 
 from __future__ import annotations
@@ -10,45 +11,26 @@ import logging
 import os
 import sys
 from collections.abc import Mapping
-from pathlib import Path
 from typing import Any
 
-from redis.exceptions import ConnectionError as RedisConnectionError
-from redis.exceptions import TimeoutError as RedisTimeoutError
-
 from handoff import spool
-from handoff.config import Config, resolve_role
+from handoff.config import Config
 from handoff.graph.connection import connect
+from handoff.hooks import waiter
 from handoff.hooks.dispatch import HookOutput, apply_event
+from handoff.hooks.identity import project_and_role
+from handoff.hooks.logs import OUTAGE, is_outage, setup_logging
 from handoff.hooks.prepare import prepare_hook_input
 from handoff.ids import now_ms
 
 log = logging.getLogger("handoff.hooks")
-_OUTAGE = (RedisConnectionError, RedisTimeoutError)
-
-
-def is_outage(exc: Exception) -> bool:
-    """True when the database could not be reached, as opposed to a bad query or event."""
-    return isinstance(exc, _OUTAGE)
-
-
-def _setup_logging(config: Config) -> None:
-    logs = config.home / "logs"
-    logs.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(
-        filename=logs / "hooks.log",
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
 
 
 def _read_event(stdin: str, env: Mapping[str, str]) -> dict[str, Any]:
     data = json.loads(stdin)
-    # The project folder, not the shell's current folder: the agent may `cd`, and the
-    # MCP server finds this session again by role and project folder.
-    project_dir = str(Path(env.get("CLAUDE_PROJECT_DIR") or str(data.get("cwd", ""))).resolve())
+    project_dir, role = project_and_role(data, env)
     prepared = prepare_hook_input(data, project_dir) | {"cwd": project_dir}
-    return {"input": prepared, "role": resolve_role(project_dir, env), "at": now_ms()}
+    return {"input": prepared, "role": role, "at": now_ms()}
 
 
 def _apply(config: Config, event: dict[str, Any]) -> HookOutput:
@@ -62,7 +44,7 @@ def _apply(config: Config, event: dict[str, Any]) -> HookOutput:
             spool.append(config.home, event)
             return None
         return apply_event(graph, event, live=True)
-    except _OUTAGE:
+    except OUTAGE:
         log.warning("database unreachable; event saved for replay")
         spool.append(config.home, event)
         return None
@@ -79,7 +61,7 @@ def main() -> int:
     """Handle one hook event from stdin. Always returns 0."""
     try:
         config = Config.from_env()
-        _setup_logging(config)
+        setup_logging(config)
         _emit(_apply(config, _read_event(sys.stdin.read(), os.environ)))
     except Exception:
         # The only broad catch in the project: a hook must never block a session.
@@ -89,6 +71,8 @@ def main() -> int:
 
 def run() -> None:
     """Console-script entry point."""
+    if sys.argv[1:2] == ["wait"]:
+        sys.exit(waiter.main(sys.stdin.read(), os.environ))
     sys.exit(main())
 
 
