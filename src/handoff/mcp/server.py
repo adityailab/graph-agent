@@ -55,6 +55,14 @@ def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPSer
     return server
 
 
+def _start_knowledge(config: Config, model: ModelClient, embedder: FastEmbedder) -> None:
+    try:
+        from handoff.knowledge.startup import start_knowledge_worker
+    except ImportError:
+        return  # the optional 'knowledge' extra is not installed
+    start_knowledge_worker(config, model, embedder, env=os.environ)
+
+
 def main() -> None:
     """Console-script entry point: serve this session's tools over stdio.
 
@@ -64,13 +72,15 @@ def main() -> None:
     config = Config.from_env()
     embedder = FastEmbedder(cache_dir=config.home / "models")
     embedder.warm_up()  # load the model now, not inside the first tool call
+    model = model_from_env(os.environ)
+    _start_knowledge(config, model, embedder)
     ctx = context_from_env(
         os.environ,
         cwd=os.getcwd(),
         connect=lambda: connect(config),
         embedder=embedder,
     )
-    build_server(ctx).run("stdio")
+    build_server(ctx, standin=model).run("stdio")
 
 
 if __name__ == "__main__":

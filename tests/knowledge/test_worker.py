@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import pytest
+from falkordb import Graph
+
+pytest.importorskip("graphrag_sdk")
+
+from handoff.graph.requests import add_request
+from handoff.knowledge.worker import KnowledgeWorker
+from handoff.models.base import ModelUnavailable
+
+
+class FakeRag:
+    def __init__(self, fail: bool = False) -> None:
+        self.ingested: list[tuple[str, str]] = []
+        self.finalized = 0
+        self.fail = fail
+
+    def ingest_sync(self, *, text: str, document_id: str, **kwargs: Any) -> None:
+        if self.fail:
+            raise ModelUnavailable("down")
+        self.ingested.append((document_id, text))
+
+    def finalize_sync(self) -> None:
+        self.finalized += 1
+
+
+def _worker(graph: Graph, rag: FakeRag, home: Path) -> KnowledgeWorker:
+    clock = iter(range(1_000, 10**9, 1_000))
+    return KnowledgeWorker(
+        graph=graph, rag=rag, home=home, now=lambda: next(clock), finalize_every=2
+    )
+
+
+def test_one_step_ingests_one_item_under_our_id(ready: Graph, tmp_path: Path) -> None:
+    add_request(ready, session_id="s1", request_id="p1", text="show avatar", at=10)
+    rag = FakeRag()
+    worker = _worker(ready, rag, tmp_path)
+    assert worker.step() is True
+    assert rag.ingested == [("p1", 'The frontend session was asked: "show avatar"')]
+    assert worker.step() is False  # nothing left
+
+
+def test_knowledge_graph_is_finalized_after_a_batch(ready: Graph, tmp_path: Path) -> None:
+    for i in range(2):
+        add_request(ready, session_id="s1", request_id=f"p{i}", text="x", at=10 + i)
+    rag = FakeRag()
+    worker = _worker(ready, rag, tmp_path)
+    worker.step()
+    worker.step()
+    assert rag.finalized == 1
+
+
+def test_a_failed_ingest_leaves_the_item_for_later(ready: Graph, tmp_path: Path) -> None:
+    add_request(ready, session_id="s1", request_id="p1", text="x", at=10)
+    worker = _worker(ready, FakeRag(fail=True), tmp_path)
+    assert worker.step() is False
+    rows = ready.query("MATCH (r:Request {id: 'p1'}) RETURN r.kg_at").result_set
+    assert rows == [[None]]
+
+
+def test_only_one_worker_runs_per_machine(ready: Graph, tmp_path: Path) -> None:
+    first = _worker(ready, FakeRag(), tmp_path)
+    second = _worker(ready, FakeRag(), tmp_path)
+    assert first.try_lead() is True
+    assert second.try_lead() is False
+    first.stand_down()
+    assert second.try_lead() is True
