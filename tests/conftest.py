@@ -80,3 +80,45 @@ def two_sessions(graph: Graph) -> Graph:
     )
     add_request(graph, session_id="be", request_id="p3", text="pick up frontend", at=210)
     return graph
+
+
+@pytest.fixture
+def kg(config: Config) -> Iterator[Graph]:
+    """A throwaway knowledge graph shaped like GraphRAG-SDK's: avatarUrl is mentioned by
+    frontend decision d1 and backend request p9; CDN_URL only by p9."""
+    g = connect(Config(config.host, config.port, f"{config.graph_name}_kg", config.home))
+    g.query(
+        "CREATE (d1:Document {id: 'd1'}), (p9:Document {id: 'p9'}), "
+        "(c1:Chunk {text: 'a'}), (c2:Chunk {text: 'b'}), "
+        "(d1)-[:PART_OF]->(c1), (p9)-[:PART_OF]->(c2), "
+        "(a:__Entity__:Concept {name: 'avatarUrl', type: 'Concept', "
+        "description: 'avatar field'}), "
+        "(u:__Entity__:Technology {name: 'CDN_URL', type: 'Technology', "
+        "description: 'cdn setting'}), "
+        "(a)-[:MENTIONED_IN]->(c1), (a)-[:MENTIONED_IN]->(c2), (u)-[:MENTIONED_IN]->(c2)"
+    )
+    with contextlib.suppress(ResponseError):
+        g.query("CALL db.idx.fulltext.createNodeIndex('__Entity__', 'name', 'description')")
+    yield g
+    with contextlib.suppress(ResponseError):
+        g.delete()
+
+
+@pytest.fixture
+def backend_with_decision(ready: Graph) -> Graph:
+    """Frontend session s1 decided d1 for request p1; backend session be asked p9."""
+    from handoff.graph.decisions import add_decision
+
+    add_request(ready, session_id="s1", request_id="p1", text="show avatar", at=10)
+    add_decision(
+        ready,
+        request_id="p1",
+        decision_id="d1",
+        text="read avatarUrl",
+        reason="server owns urls",
+        topic="profile",
+        at=11,
+    )
+    upsert_session(ready, session_id="be", role="backend", cwd="/w", at=12)
+    add_request(ready, session_id="be", request_id="p9", text="add avatarUrl to the API", at=13)
+    return ready

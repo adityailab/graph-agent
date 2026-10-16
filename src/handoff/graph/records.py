@@ -107,3 +107,17 @@ class PathStep:
     label: str  # Request, Edit, File, Decision, Topic, Need, Message
     text: str  # what the node says: request text, file path, decision text, ...
     via: str  # relationship that led here ('' for the first step)
+
+
+@dataclass(frozen=True)
+class ItemRef:
+    id: str
+    kind: str  # "request" or "decision"
+    role: str
+    text: str
+
+
+@dataclass(frozen=True)
+class EntityRef:
+    name: str
+    type: str

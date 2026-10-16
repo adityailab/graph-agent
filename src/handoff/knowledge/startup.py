@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from dataclasses import dataclass
 
+from falkordb import Graph
 from graphrag_sdk import ConnectionConfig, GraphExtraction, GraphRAG, LLMExtractor
 from redis.exceptions import RedisError
 
@@ -43,11 +45,20 @@ def build_rag(
     return rag, GraphExtraction(llm, entity_extractor=LLMExtractor(llm))
 
 
-def start_knowledge_worker(
+@dataclass(frozen=True)
+class Knowledge:
+    """What the knowledge tools need: GraphRAG for answers, the knowledge graph for links."""
+
+    rag: GraphRAG
+    kg: Graph
+    worker: KnowledgeWorker
+
+
+def start_knowledge(
     config: Config, model: ModelClient, embedder: Embedder, *, env: Mapping[str, str]
-) -> KnowledgeWorker | None:
-    """Start the background ingestion worker, or return None when it is switched off
-    (HANDOFF_KNOWLEDGE=off) or the database cannot be reached."""
+) -> Knowledge | None:
+    """Start the knowledge layer and its ingestion worker, or return None when it is
+    switched off (HANDOFF_KNOWLEDGE=off) or the database cannot be reached."""
     if env.get("HANDOFF_KNOWLEDGE", "on").strip().lower() == "off":
         return None
     try:
@@ -59,4 +70,5 @@ def start_knowledge_worker(
         return None
     worker = KnowledgeWorker(graph=graph, rag=rag, home=config.home, extractor=extractor)
     worker.start()
-    return worker
+    kg = connect(Config(config.host, config.port, knowledge_graph_name(config), config.home))
+    return Knowledge(rag=rag, kg=kg, worker=worker)

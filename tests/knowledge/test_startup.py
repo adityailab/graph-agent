@@ -7,7 +7,7 @@ import pytest
 pytest.importorskip("graphrag_sdk")
 
 from handoff.config import Config
-from handoff.knowledge.startup import knowledge_graph_name, start_knowledge_worker
+from handoff.knowledge.startup import knowledge_graph_name, start_knowledge
 
 
 class NoModel:
@@ -28,12 +28,10 @@ def test_knowledge_graph_sits_beside_ours(config: Config) -> None:
 
 
 def test_worker_can_be_switched_off(config: Config) -> None:
-    worker = start_knowledge_worker(
-        config, NoModel(), NoEmbedder(), env={"HANDOFF_KNOWLEDGE": "off"}
-    )
+    worker = start_knowledge(config, NoModel(), NoEmbedder(), env={"HANDOFF_KNOWLEDGE": "off"})
     assert worker is None
 
 
 def test_unreachable_database_means_no_worker_not_a_crash(config: Config) -> None:
     down = Config(host="localhost", port=1, graph_name=config.graph_name, home=config.home)
-    assert start_knowledge_worker(down, NoModel(), NoEmbedder(), env={}) is None
+    assert start_knowledge(down, NoModel(), NoEmbedder(), env={}) is None

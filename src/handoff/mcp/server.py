@@ -6,6 +6,7 @@ This file only wires things together: each tool module registers its own tools.
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 
@@ -15,6 +16,7 @@ from handoff.graph.connection import connect
 from handoff.mcp import (
     ask_tool,
     connection_tool,
+    knowledge_tools,
     message_tools,
     read_tools,
     record_tools,
@@ -52,15 +54,16 @@ def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPSer
     ask_tool.register(server, ctx, standin or model_from_env(os.environ))
     search_tool.register(server, ctx)
     connection_tool.register(server, ctx)
+    knowledge_tools.register(server, ctx)
     return server
 
 
-def _start_knowledge(config: Config, model: ModelClient, embedder: FastEmbedder) -> None:
+def _start_knowledge(config: Config, model: ModelClient, embedder: FastEmbedder) -> Any:
     try:
-        from handoff.knowledge.startup import start_knowledge_worker
+        from handoff.knowledge.startup import start_knowledge
     except ImportError:
-        return  # the optional 'knowledge' extra is not installed
-    start_knowledge_worker(config, model, embedder, env=os.environ)
+        return None  # the optional 'knowledge' extra is not installed
+    return start_knowledge(config, model, embedder, env=os.environ)
 
 
 def main() -> None:
@@ -73,12 +76,13 @@ def main() -> None:
     embedder = FastEmbedder(cache_dir=config.home / "models")
     embedder.warm_up()  # load the model now, not inside the first tool call
     model = model_from_env(os.environ)
-    _start_knowledge(config, model, embedder)
+    knowledge = _start_knowledge(config, model, embedder)
     ctx = context_from_env(
         os.environ,
         cwd=os.getcwd(),
         connect=lambda: connect(config),
         embedder=embedder,
+        knowledge=knowledge,
     )
     build_server(ctx, standin=model).run("stdio")
 
