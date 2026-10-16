@@ -47,3 +47,37 @@ def test_selection_respects_the_limit_and_keeps_order() -> None:
 def test_selection_never_drops_a_request_with_an_open_need() -> None:
     requests = [_request(1, need=True)] + [_request(i) for i in range(2, 21)]
     assert requests[0] in select_requests(requests, limit=5)
+
+
+def test_messages_render_as_facts_with_reply_ids() -> None:
+    from handoff.format import render_messages
+    from handoff.graph.records import MessageView
+
+    text = render_messages(
+        [
+            MessageView(
+                id="m1", kind="message", from_role="backend", text="done", reply_to=None, at=0
+            ),
+            MessageView(
+                id="q1", kind="question", from_role="deploy", text="env?", reply_to=None, at=0
+            ),
+        ]
+    )
+    assert "from the backend session" in text
+    assert "Question q1 from the deploy session" in text
+    assert "reply_to set to q1" in text
+
+
+def test_many_messages_are_capped() -> None:
+    from handoff.format import MAX_MESSAGES, render_messages
+    from handoff.graph.records import MessageView
+
+    many = [
+        MessageView(
+            id=f"m{i}", kind="message", from_role="b", text="x" * 2_000, reply_to=None, at=0
+        )
+        for i in range(MAX_MESSAGES + 5)
+    ]
+    text = render_messages(many)
+    assert "5 more messages" in text
+    assert len(text) < (MAX_MESSAGES + 1) * 700

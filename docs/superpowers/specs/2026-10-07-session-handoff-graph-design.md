@@ -70,7 +70,7 @@ Claude Code settings.
 
 | Hook event | What it does |
 |---|---|
-| `SessionStart` | Registers the session with its role and folder. Starts the message waiter (4.5). |
+| `SessionStart` | Registers the session with its role and folder. |
 | `UserPromptSubmit` | Records the prompt verbatim as a `Request`. Prints pending messages and open needs for this role as context. |
 | `PostToolUse` on `Edit\|Write\|MultiEdit\|NotebookEdit` | Records an `Edit` with a short diff, linked to the session's latest `Request` and to the `File`. |
 | `PostToolUse` on all tools | Delivers pending messages as `additionalContext`, so a working session sees them mid-task. |
@@ -139,11 +139,14 @@ unreachable, the stop is allowed.
   undelivered messages to its role, returns them as `additionalContext`, and
   marks them delivered.
 - **Next prompt:** the `UserPromptSubmit` hook does the same.
-- **Idle session:** the `Stop` and `SessionStart` hooks start a background
-  waiter with `asyncRewake: true`. The waiter polls the graph every 2 seconds.
+- **Idle session:** the `Stop` hook starts a background waiter with
+  `asyncRewake: true`. (Not `SessionStart`: a waiter there claimed messages
+  before the first prompt could deliver them; found in the Phase 4 live run.) The waiter polls the graph every 2 seconds.
   When a message arrives it marks it delivered, writes it to stderr and exits
   with code 2, which wakes the session. If nothing arrives before its timeout it
-  exits 0. A lock file per session keeps at most one waiter running.
+  exits 0. A lock file per session keeps at most one waiter running, and a
+  generation token lets a newer waiter, or a new prompt, make an older waiter quit
+  at its next poll, so no waiter claims messages while a turn is running.
 - Each message is delivered to a session once. Delivery is recorded as an edge,
   so the graph shows who received what and when.
 
@@ -247,7 +250,7 @@ when history is long is a design decision left for the build.
 
 | What goes wrong | What happens |
 |---|---|
-| FalkorDB is down | Hooks never block a session. They append the event to a local file and exit 0. The file is replayed when the database is back. The waiter exits 0. |
+| FalkorDB is down | Hooks never block a session. Events that record something (prompts, edits) go to a local file and are replayed when the database is back; a Stop or a tool call that edited nothing is not saved. The waiter keeps polling until its deadline, then exits 0. |
 | An event is written twice after a replay | Event ids are generated when the hook fires and stored in the replay file. Writes use `MERGE` on the id, so duplicates collapse. |
 | The agent records no decision | The finish check blocks the stop once. |
 | The agent records a misleading decision | `handoff` shows the original message beside it. |

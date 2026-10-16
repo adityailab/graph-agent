@@ -3,7 +3,9 @@ from __future__ import annotations
 import pytest
 from falkordb import Graph
 
-from handoff.graph.requests import add_request, latest_request_id
+from handoff.graph.decisions import add_decision
+from handoff.graph.edits import add_edit
+from handoff.graph.requests import add_request, latest_request_id, request_needs_decision
 
 
 def test_requests_are_numbered_and_chained(ready: Graph) -> None:
@@ -51,3 +53,12 @@ def test_repeated_request_adds_no_extra_links(ready: Graph) -> None:
         add_request(ready, session_id="s1", request_id="p2", text="two", at=2)
     assert ready.query("MATCH ()-[n:NEXT]->() RETURN count(n)").result_set == [[1]]
     assert ready.query("MATCH ()-[x:RECEIVED]->() RETURN count(x)").result_set == [[2]]
+
+
+def test_request_with_edits_and_no_decision_needs_one(ready: Graph) -> None:
+    add_request(ready, session_id="s1", request_id="p1", text="one", at=1)
+    assert not request_needs_decision(ready, "p1")
+    add_edit(ready, request_id="p1", edit_id="e1", tool="Edit", path="a", summary="", at=2)
+    assert request_needs_decision(ready, "p1")
+    add_decision(ready, request_id="p1", decision_id="d1", text="t", reason="r", topic="x", at=3)
+    assert not request_needs_decision(ready, "p1")

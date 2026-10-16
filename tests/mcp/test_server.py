@@ -5,7 +5,15 @@ import pytest
 from handoff.mcp.context import ToolContext
 from handoff.mcp.server import build_server
 
-EXPECTED_TOOLS = {"record_decision", "record_need", "resolve_need", "sessions", "handoff", "why"}
+EXPECTED_TOOLS = {
+    "record_decision",
+    "record_need",
+    "resolve_need",
+    "sessions",
+    "handoff",
+    "why",
+    "send_message",
+}
 
 
 @pytest.fixture
