@@ -53,3 +53,12 @@ def test_unique_ids_are_enforced(graph: Graph) -> None:
     graph.query("CREATE (:Session {id: 'dup'})")
     with pytest.raises(ResponseError):
         graph.query("CREATE (:Session {id: 'dup'})")
+
+
+def test_existing_duplicate_ids_are_logged_not_fatal(
+    graph: Graph, caplog: pytest.LogCaptureFixture
+) -> None:
+    graph.query("CREATE (:Session {id: 'dup'}), (:Session {id: 'dup'})")
+    ensure_schema(graph)
+    ensure_schema(graph)
+    assert any("Session.id" in r.getMessage() for r in caplog.records)

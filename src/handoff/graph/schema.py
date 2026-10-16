@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
 from falkordb import Graph
 from redis.exceptions import ResponseError
+
+from handoff.graph.schema_check import log_failed_constraints
+
+log = logging.getLogger(__name__)
 
 EMBED_DIM = 384  # BAAI/bge-small-en-v1.5, see handoff.embed
 
@@ -52,13 +57,15 @@ def _create(make: Callable[..., object], *args: object, **kwargs: object) -> Non
     try:
         make(*args, **kwargs)
     except ResponseError as exc:
-        # FalkorDB refuses to create an index or constraint that already exists.
+        # "already" means it exists. Anything else is logged, not raised: every item here
+        # is an index or a constraint, and the graph works (more slowly) without one.
         if "already" not in str(exc).lower():
-            raise
+            log.warning("schema step %s%s failed: %s", make.__name__, args, exc)
 
 
 def ensure_schema(graph: Graph) -> None:
-    """Create any missing index or constraint. Existing ones are left alone."""
+    """Create any missing index or constraint. Existing ones are left alone. Never raises
+    for a schema step; failures, including constraints broken by existing data, are logged."""
     for label, prop in INDEXED:
         _create(graph.create_node_range_index, label, prop)
     for label, prop in UNIQUE:
@@ -69,3 +76,5 @@ def ensure_schema(graph: Graph) -> None:
         _create(
             graph.create_node_vector_index, label, prop, dim=EMBED_DIM, similarity_function="cosine"
         )
+    # Constraints are built asynchronously, so a failure shows on the next call at the latest.
+    log_failed_constraints(graph)

@@ -59,7 +59,11 @@ def on_post_tool_use(
         return None
     parts = [pending_messages_text(graph, session_id=hook.session_id, role=role, at=at)]
     if hook.edit_path is not None:
-        parts.append(collision_text(graph, path=hook.edit_path, session_id=hook.session_id, at=at))
+        parts.append(
+            collision_text(
+                graph, path=hook.edit_path, session_id=hook.session_id, at=at, pid=hook.pid
+            )
+        )
     text = "\n".join(p for p in parts if p)
     if not text:
         return None

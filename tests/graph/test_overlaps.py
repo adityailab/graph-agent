@@ -36,3 +36,21 @@ def test_files_changed_by_more_than_one_role_are_listed(ready: Graph) -> None:
     assert [(f.path, f.roles) for f in shared_files(ready, since=0)] == [
         ("Card.tsx", ("backend", "frontend"))
     ]
+
+
+def test_latest_of_several_edits_by_a_session_is_reported(ready: Graph) -> None:
+    _setup(ready)
+    add_request(ready, session_id="be", request_id="p3", text="newest change", at=30)
+    add_edit(ready, request_id="p3", edit_id="e4", tool="Edit", path="Card.tsx", summary="", at=31)
+    found = recent_edits_by_others(ready, path="Card.tsx", session_id="s1", since=15)
+    assert [(o.request_text, o.at) for o in found] == [("newest change", 31)]
+
+
+def test_own_process_is_not_reported_after_clear(ready: Graph) -> None:
+    # /clear: same Claude process (pid 7) gets a new session id.
+    upsert_session(ready, session_id="old", role="frontend", cwd="/w", at=1, pid=7)
+    add_request(ready, session_id="old", request_id="p1", text="before clear", at=10)
+    add_edit(ready, request_id="p1", edit_id="e1", tool="Edit", path="Card.tsx", summary="", at=11)
+    upsert_session(ready, session_id="new", role="frontend", cwd="/w", at=20, pid=7)
+    found = recent_edits_by_others(ready, path="Card.tsx", session_id="new", since=0, pid=7)
+    assert found == []

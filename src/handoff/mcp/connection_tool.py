@@ -10,7 +10,7 @@ from pydantic import Field
 
 from handoff.config import normalise_role
 from handoff.format import shorten
-from handoff.graph.paths import connection_path
+from handoff.graph.paths import ConnectionSearchTooSlow, connection_path
 from handoff.graph.records import PathStep
 from handoff.mcp.context import NO_REQUEST, ToolContext, guarded
 from handoff.mcp.current import current_request
@@ -51,7 +51,13 @@ def connection(ctx: ToolContext, role: str) -> str:
     if request is None:
         return NO_REQUEST
     target = normalise_role(role)
-    steps = connection_path(ctx.graph, from_request=request.id, to_role=target)
+    try:
+        steps = connection_path(ctx.graph, from_request=request.id, to_role=target)
+    except ConnectionSearchTooSlow:
+        return (
+            f"The search for a connection to the {target} session took too long and was "
+            "stopped; nothing was changed. handoff shows that role's recent work instead."
+        )
     if steps is None:
         return f"No chain of work links this session's current request to the {target} session."
     return render_connection(steps, target)

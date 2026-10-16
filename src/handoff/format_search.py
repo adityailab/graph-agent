@@ -8,10 +8,14 @@ from handoff.format import shorten
 from handoff.graph.records import DecisionHit
 
 
+def _sentence(text: str, limit: int) -> str:
+    return shorten(text, limit).rstrip(" .")
+
+
 def _render_hit(hit: DecisionHit) -> str:
     line = (
         f'{hit.id} {hit.role}, request "{shorten(hit.request_text, 120)}": '
-        f"{shorten(hit.text, 200)}. Why: {shorten(hit.reason, 200)}."
+        f"{_sentence(hit.text, 200)}. Why: {_sentence(hit.reason, 200)}."
     )
     if hit.files:
         line += f" Files: {', '.join(hit.files)}"

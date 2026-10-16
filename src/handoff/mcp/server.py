@@ -62,11 +62,13 @@ def main() -> None:
     tools answer with a clear sentence) even while FalkorDB is down.
     """
     config = Config.from_env()
+    embedder = FastEmbedder(cache_dir=config.home / "models")
+    embedder.warm_up()  # load the model now, not inside the first tool call
     ctx = context_from_env(
         os.environ,
         cwd=os.getcwd(),
         connect=lambda: connect(config),
-        embedder=FastEmbedder(cache_dir=config.home / "models"),
+        embedder=embedder,
     )
     build_server(ctx).run("stdio")
 

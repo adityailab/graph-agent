@@ -8,17 +8,21 @@ from handoff.graph.records import OtherEdit, SharedFile
 
 
 def recent_edits_by_others(
-    graph: Graph, *, path: str, session_id: str, since: int
+    graph: Graph, *, path: str, session_id: str, since: int, pid: int | None = None
 ) -> list[OtherEdit]:
-    """Other sessions' latest edits to `path` since `since`, one per session, newest first."""
+    """Other sessions' latest edits to `path` since `since`, one per session, newest first.
+
+    Sessions of the same Claude Code process (`pid`, the same terminal before /clear)
+    do not count as others."""
     rows = graph.ro_query(
         "MATCH (:File {path: $path})<-[:TOUCHED]-(e:Edit)<-[:CAUSED]-(r:Request)"
         "<-[:RECEIVED]-(s:Session) "
         "WHERE s.id <> $sid AND e.at >= $since "
+        "AND ($pid IS NULL OR s.pid IS NULL OR s.pid <> $pid) "
         "WITH s, r, e ORDER BY e.at DESC "
         "WITH s, collect([r.text, e.at])[0] AS latest "
         "RETURN s.role, latest[0], latest[1] ORDER BY latest[1] DESC",
-        {"path": path, "sid": session_id, "since": since},
+        {"path": path, "sid": session_id, "since": since, "pid": pid},
     ).result_set
     return [OtherEdit(role=str(r[0]), request_text=str(r[1]), at=int(r[2])) for r in rows]
 

@@ -47,3 +47,50 @@ def test_live_question_finds_the_relevant_decision(tmp_path: Path) -> None:
     )
     question = embedder.embed_query("where is the auth token stored")
     assert 1 - _cosine(question, stored) < 0.45 < 1 - _cosine(question, unrelated)
+
+
+def test_failing_model_load_is_reported_as_unavailable(tmp_path: Path) -> None:
+    from handoff.embed import EmbedderUnavailable
+
+    def broken() -> object:
+        raise OSError("no network")
+
+    embedder = FastEmbedder(cache_dir=tmp_path, loader=broken)
+    with pytest.raises(EmbedderUnavailable):
+        embedder.embed(["x"])
+
+
+def test_model_is_loaded_once_even_when_asked_concurrently(tmp_path: Path) -> None:
+    import threading
+    import time
+
+    loads = []
+
+    class Model:
+        def passage_embed(self, texts: list[str]) -> list[list[float]]:
+            return [[0.0] * EMBED_DIM for _ in texts]
+
+    def slow_loader() -> Model:
+        loads.append(1)
+        time.sleep(0.2)
+        return Model()
+
+    embedder = FastEmbedder(cache_dir=tmp_path, loader=slow_loader)
+    threads = [threading.Thread(target=embedder.embed, args=(["x"],)) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(loads) == 1
+
+
+def test_warm_up_loads_in_the_background(tmp_path: Path) -> None:
+    loaded = []
+
+    def loader() -> object:
+        loaded.append(1)
+        return object()
+
+    embedder = FastEmbedder(cache_dir=tmp_path, loader=loader)
+    embedder.warm_up().join(timeout=5)
+    assert loaded == [1]

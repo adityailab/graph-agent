@@ -33,10 +33,12 @@ def open_needs_text(graph: Graph, role: str) -> str:
 COLLISION_WINDOW_MS = 2 * 60 * 60_000
 
 
-def collision_text(graph: Graph, *, path: str, session_id: str, at: int) -> str:
+def collision_text(
+    graph: Graph, *, path: str, session_id: str, at: int, pid: int | None = None
+) -> str:
     """Facts about other sessions that changed this file recently ('' if none)."""
     others = recent_edits_by_others(
-        graph, path=path, session_id=session_id, since=at - COLLISION_WINDOW_MS
+        graph, path=path, session_id=session_id, since=at - COLLISION_WINDOW_MS, pid=pid
     )
     return "\n".join(
         f"{path} was also changed by the {o.role} session {max(0, (at - o.at) // 60_000)} "

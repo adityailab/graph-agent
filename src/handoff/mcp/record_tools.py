@@ -9,6 +9,7 @@ from mcp.server.mcpserver import MCPServer
 from pydantic import Field
 
 from handoff.config import normalise_role
+from handoff.embed import EmbedderUnavailable
 from handoff.graph import needs as graph_needs
 from handoff.graph.decisions import add_decision, set_decision_embedding
 from handoff.ids import new_id
@@ -25,9 +26,9 @@ def _embed_decision(ctx: ToolContext, decision_id: str, text: str) -> None:
         return
     try:
         vector = ctx.embedder.embed([redact(text)])[0]
-    except Exception:
+    except EmbedderUnavailable as exc:
         # The decision is already saved; search still finds it by its words.
-        log.exception("embedding failed for decision %s", decision_id)
+        log.warning("no embedding for decision %s: %s", decision_id, exc)
         return
     set_decision_embedding(ctx.graph, decision_id, vector)
 

@@ -7,6 +7,7 @@ from typing import Annotated
 from mcp.server.mcpserver import MCPServer
 from pydantic import Field
 
+from handoff.embed import EmbedderUnavailable
 from handoff.format_search import render_search
 from handoff.graph.search import decision_hits, fulltext_decisions, similar_decisions
 from handoff.mcp.context import ToolContext, guarded
@@ -30,7 +31,10 @@ def rank_decisions(ctx: ToolContext, query: str, *, k: int) -> list[str]:
     """Decision ids matching `query` by words and (when an embedder is set) meaning."""
     lists = [[d for d, _ in fulltext_decisions(ctx.graph, query, k=2 * k)]]
     if ctx.embedder is not None:
-        vector = ctx.embedder.embed_query(query)
+        try:
+            vector = ctx.embedder.embed_query(query)
+        except EmbedderUnavailable:
+            return fuse(lists, k=k)  # words only
         near = similar_decisions(ctx.graph, vector, k=2 * k)
         lists.append([d for d, distance in near if distance <= MAX_DISTANCE])
     return fuse(lists, k=k)
