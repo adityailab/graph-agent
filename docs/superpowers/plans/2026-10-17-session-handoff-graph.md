@@ -608,6 +608,8 @@ def test_schema_can_be_applied_twice(graph: Graph) -> None:
 Run: `uv run pytest tests/graph/test_schema.py -q`
 Expected: FAIL with `ModuleNotFoundError`.
 
+- [ ] **Step 3a: Declare `redis` as a direct dependency** (this module imports it): `uv add "redis>=5"`.
+
 - [ ] **Step 3: Write `src/handoff/graph/schema.py`**
 
 ```python
@@ -1516,7 +1518,7 @@ Branch: `phase/2-hooks`. Steps are written at the Phase 1 gate.
 ### Task 2.4: Entry point
 
 - Create `src/handoff/hooks/cli.py`, `tests/hooks/test_cli.py`; add `[project.scripts] handoff-hook = "handoff.hooks.cli:main"`.
-- `main()` reads the event name from `argv[1]` and JSON from stdin, replays the spool, runs the handler, prints its output; on a connection error appends the event to the spool; on any other exception logs it; always exits 0 (the waiter in Phase 4 is the exception).
+- `main()` reads the event name from `argv[1]` and JSON from stdin, replays the spool, runs the handler, prints its output; on a connection error appends the event to the spool. Note from the Phase 0 review: `connect()` itself talks to the server (FalkorDB's constructor runs `INFO`), and failures raise `redis.exceptions.ConnectionError` or `TimeoutError`, not the builtins, so the fallback wraps `connect()` and every query and catches `redis.exceptions.RedisError`; on any other exception logs it; always exits 0 (the waiter in Phase 4 is the exception).
 - Tests run `handoff-hook` as a subprocess: with the database up the request appears; with `HANDOFF_DB_PORT` pointing at a closed port the event lands in the spool and the exit code is 0; a later run with the database up replays it.
 
 ### Phase 2 gate

@@ -1,9 +1,10 @@
 services:
   falkordb:
-    image: falkordb/falkordb:latest
+    image: falkordb/falkordb:v4.22.1
     ports:
-      - "6379:6379"
-      - "3000:3000"
+      # Bound to this machine only: the graph holds prompts and has no password.
+      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:3000:3000"
     volumes:
       - falkordb-data:/data
     healthcheck:
