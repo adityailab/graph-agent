@@ -14,6 +14,7 @@ from handoff.graph.decisions import add_decision, set_decision_embedding
 from handoff.ids import new_id
 from handoff.mcp.context import NO_REQUEST, ToolContext, blank_field, guarded
 from handoff.mcp.current import current_request
+from handoff.mcp.topic_choice import choose_topic
 from handoff.redact import redact
 
 log = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ def record_decision(ctx: ToolContext, text: str, reason: str, topic: str) -> str
         decision_id=decision_id,
         text=redact(text.strip()),
         reason=redact(reason.strip()),
-        topic=topic,
+        topic=choose_topic(ctx, topic, request_id=request.id),
         at=ctx.now(),
     )
     _embed_decision(ctx, decision_id, f"{text.strip()} {reason.strip()}")
