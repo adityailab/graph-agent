@@ -1787,6 +1787,8 @@ Design:
   `FALKORDB_STRICT_READONLY=true`, so agents can write their own read-only Cypher
   against both graphs. Here: a config builder function and its test.
 
+**As built** (code is the source of truth): `models/` (base, claude_code, anthropic_api, ollama, choose); `knowledge/` (adapters, worker with `drain()`, startup → `Knowledge(rag, kg, worker)`, answers, cli); `graph/knowledge_queue.py`, `graph/knowledge.py`; `mcp/knowledge_tools.py` (`ask_graph`, `concepts`); `mcp_config.py`; console script `handoff-knowledge [--once]`. Task 7.3 needed no module: with no ontology given, GraphRAG-SDK extracts whatever entity types the text holds.
+
 ### Phase 7 gate
 - Live: a decision about `avatarUrl` in one session and a request mentioning it in
   another are linked through a concept; `ask_graph` answers a cross-session question with
