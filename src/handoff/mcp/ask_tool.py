@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from mcp.server.mcpserver import MCPServer
+from pydantic import Field
+
 from handoff.config import normalise_role
 from handoff.format import shorten
 from handoff.graph.messages import add_citations, add_message
@@ -72,3 +77,17 @@ def ask(ctx: ToolContext, role: str, question: str, client: ModelClient) -> str:
         f"Question {question_id} was also delivered to the {target} session, which can "
         "reply with send_message."
     )
+
+
+def register(server: MCPServer, ctx: ToolContext, client: ModelClient) -> None:
+    """Add the ask tool to the server."""
+
+    @server.tool(
+        name="ask",
+        description="Ask another role a question; get a stand-in answer from its history now.",
+    )
+    def _ask(
+        role: Annotated[str, Field(description="Role to ask, e.g. 'frontend'.")],
+        question: Annotated[str, Field(description="The question, in one or two sentences.")],
+    ) -> str:
+        return ask(ctx, role, question, client)

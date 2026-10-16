@@ -11,6 +11,7 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from handoff.config import resolve_role
+from handoff.embed import Embedder
 from handoff.graph.schema import ensure_schema
 from handoff.ids import now_ms
 
@@ -32,8 +33,10 @@ class ToolContext:
         now: Callable[[], int] = now_ms,
         session_id: str | None = None,
         pid: int | None = None,
+        embedder: Embedder | None = None,
     ) -> None:
         self.role, self.cwd, self.now = role, cwd, now
+        self.embedder = embedder  # None: decisions are stored and searched without vectors
         # From Claude Code, when it provides them. The pid survives /clear; the id does not.
         self.session_id, self.pid = session_id, pid
         self._graph, self._connect = graph, connect
@@ -47,9 +50,17 @@ class ToolContext:
         cwd: str,
         session_id: str | None = None,
         pid: int | None = None,
+        embedder: Embedder | None = None,
     ) -> ToolContext:
         """A context that connects, and applies the schema, on the first tool call."""
-        return cls(role=role, cwd=cwd, connect=connect, session_id=session_id, pid=pid)
+        return cls(
+            role=role,
+            cwd=cwd,
+            connect=connect,
+            session_id=session_id,
+            pid=pid,
+            embedder=embedder,
+        )
 
     @property
     def graph(self) -> Graph:
@@ -63,7 +74,11 @@ class ToolContext:
 
 
 def context_from_env(
-    env: Mapping[str, str], *, cwd: str, connect: Callable[[], Graph]
+    env: Mapping[str, str],
+    *,
+    cwd: str,
+    connect: Callable[[], Graph],
+    embedder: Embedder | None = None,
 ) -> ToolContext:
     """Build the server's context: resolved project folder and normalised role."""
     project = str(Path(env.get("CLAUDE_PROJECT_DIR") or cwd).resolve())
@@ -73,6 +88,7 @@ def context_from_env(
         cwd=project,
         session_id=env.get("CLAUDE_CODE_SESSION_ID") or None,
         pid=int(env["CLAUDE_PID"]) if env.get("CLAUDE_PID", "").isdigit() else None,
+        embedder=embedder,
     )
 
 

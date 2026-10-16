@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from mcp.server.mcpserver import MCPServer
+from pydantic import Field
+
 from handoff.config import normalise_role
 from handoff.graph.messages import add_message
 from handoff.ids import new_id
@@ -34,3 +39,17 @@ def send_message(ctx: ToolContext, to_role: str, text: str, reply_to: str | None
         at=ctx.now(),
     )
     return f"Sent message {message_id} to {role}."
+
+
+def register(server: MCPServer, ctx: ToolContext) -> None:
+    """Add the messaging tool to the server."""
+
+    @server.tool(name="send_message", description="Send a message to every session with a role.")
+    def _send_message(
+        to_role: Annotated[str, Field(description="Role to send to, e.g. 'deploy'.")],
+        text: Annotated[str, Field(description="The message.")],
+        reply_to: Annotated[
+            str | None, Field(description="Id of the message or question this answers.")
+        ] = None,
+    ) -> str:
+        return send_message(ctx, to_role, text, reply_to)
