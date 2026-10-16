@@ -70,7 +70,7 @@ Claude Code settings.
 
 | Hook event | What it does |
 |---|---|
-| `SessionStart` | Registers the session with its role and folder. Starts the message waiter (4.5). |
+| `SessionStart` | Registers the session with its role and folder. |
 | `UserPromptSubmit` | Records the prompt verbatim as a `Request`. Prints pending messages and open needs for this role as context. |
 | `PostToolUse` on `Edit\|Write\|MultiEdit\|NotebookEdit` | Records an `Edit` with a short diff, linked to the session's latest `Request` and to the `File`. |
 | `PostToolUse` on all tools | Delivers pending messages as `additionalContext`, so a working session sees them mid-task. |
@@ -139,8 +139,9 @@ unreachable, the stop is allowed.
   undelivered messages to its role, returns them as `additionalContext`, and
   marks them delivered.
 - **Next prompt:** the `UserPromptSubmit` hook does the same.
-- **Idle session:** the `Stop` and `SessionStart` hooks start a background
-  waiter with `asyncRewake: true`. The waiter polls the graph every 2 seconds.
+- **Idle session:** the `Stop` hook starts a background waiter with
+  `asyncRewake: true`. (Not `SessionStart`: a waiter there claimed messages
+  before the first prompt could deliver them; found in the Phase 4 live run.) The waiter polls the graph every 2 seconds.
   When a message arrives it marks it delivered, writes it to stderr and exits
   with code 2, which wakes the session. If nothing arrives before its timeout it
   exits 0. A lock file per session keeps at most one waiter running.

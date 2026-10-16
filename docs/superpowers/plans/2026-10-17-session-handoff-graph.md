@@ -1618,7 +1618,7 @@ Branch: `phase/4-messages`.
 
 ### Task 4.4: The waiter
 
-- `src/handoff/hooks/waiter.py`, run as `handoff-hook wait`, registered on `Stop` and `SessionStart` with `"asyncRewake": true` and `"timeout": 3600`.
+- `src/handoff/hooks/waiter.py`, run as `handoff-hook wait`, registered on `Stop` only (not `SessionStart`, see spec 4.5) with `"asyncRewake": true` and `"timeout": 3600`.
 - Takes a lock file `home/locks/<session_id>.lock` (non-blocking); if held, exits 0. Polls `claim_pending_messages` every 2 seconds until `HANDOFF_WAIT_SECONDS` (default 3500); on messages writes `render_messages` to stderr and exits 2; on timeout or database error exits 0.
 - Tests run the waiter as a subprocess with `HANDOFF_WAIT_SECONDS=5`: exits 2 with the message on stderr when one is sent; exits 0 on timeout; a second waiter for the same session exits 0 at once.
 
