@@ -3,7 +3,10 @@ name = "handoff"
 version = "0.1.0"
 description = "A shared FalkorDB context graph for parallel Claude Code sessions"
 requires-python = ">=3.12"
-dependencies = ["falkordb>=1.8,<2"]
+dependencies = [
+    "falkordb>=1.8,<2",
+    "redis>=5",
+]
 
 [dependency-groups]
 dev = ["pytest>=9.1", "mypy>=2.4", "ruff>=0.17"]
