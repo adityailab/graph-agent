@@ -11,9 +11,9 @@ import os
 import subprocess
 import tempfile
 
-from handoff.standin.answer import StandinUnavailable
+from handoff.models.base import ModelUnavailable
 
-DEFAULT_MODEL = "opus"
+DEFAULT_MODEL = "opus"  # Claude Code's alias for its current Opus model
 TIMEOUT_SECONDS = 90
 
 
@@ -36,7 +36,7 @@ class ClaudeCodeClient:
 
     def __init__(self, *, binary: str = "claude", model: str | None = None) -> None:
         self.binary = binary
-        self.model = model or os.environ.get("HANDOFF_STANDIN_MODEL") or DEFAULT_MODEL
+        self.model = model or DEFAULT_MODEL
 
     def _command(self, system: str) -> list[str]:
         return [
@@ -46,7 +46,7 @@ class ClaudeCodeClient:
         ]  # fmt: skip
 
     def complete(self, system: str, user: str) -> str:
-        """Return the model's reply text. Raises StandinUnavailable on any failure."""
+        """Return the model's reply text. Raises ModelUnavailable on any failure."""
         try:
             with tempfile.TemporaryDirectory() as scratch:
                 done = subprocess.run(  # noqa: S603 - fixed argv, no shell
@@ -60,13 +60,13 @@ class ClaudeCodeClient:
                     check=False,
                 )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            raise StandinUnavailable(f"claude could not run: {type(exc).__name__}") from exc
+            raise ModelUnavailable(f"claude could not run: {type(exc).__name__}") from exc
         if done.returncode != 0:
-            raise StandinUnavailable(f"claude exited with code {done.returncode}")
+            raise ModelUnavailable(f"claude exited with code {done.returncode}")
         try:
             result = json.loads(done.stdout)
         except json.JSONDecodeError as exc:
-            raise StandinUnavailable("claude returned unreadable output") from exc
+            raise ModelUnavailable("claude returned unreadable output") from exc
         if not isinstance(result, dict) or result.get("is_error") or "result" not in result:
-            raise StandinUnavailable("claude reported an error")
+            raise ModelUnavailable("claude reported an error")
         return str(result["result"])

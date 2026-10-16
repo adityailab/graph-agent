@@ -16,8 +16,9 @@ from handoff.mcp.context import ToolContext, guarded
 from handoff.mcp.current import current_session
 from handoff.mcp.message_tools import NOT_REGISTERED
 from handoff.mcp.search_tool import rank_decisions
+from handoff.models.base import ModelClient, ModelUnavailable
 from handoff.redact import redact
-from handoff.standin.answer import ModelClient, StandinUnavailable, answer
+from handoff.standin.answer import answer
 from handoff.standin.context import gather_context
 
 _HISTORY_WINDOW_MS = 7 * 24 * 60 * 60_000
@@ -61,7 +62,7 @@ def ask(ctx: ToolContext, role: str, question: str, client: ModelClient) -> str:
         )
     try:
         result = answer(client, history, text)
-    except StandinUnavailable as exc:
+    except ModelUnavailable as exc:
         return (
             f"Question {question_id} was delivered to {target}. "
             f"No stand-in answer is available: {exc}."

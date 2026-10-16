@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A shared FalkorDB context graph for parallel Claude Code sessions"
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=1.15,<2",
     "falkordb>=1.8,<2",
     "fastembed>=0.9,<1",
     "mcp>=2.3,<3",

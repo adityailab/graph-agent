@@ -21,8 +21,8 @@ from handoff.mcp import (
     search_tool,
 )
 from handoff.mcp.context import ToolContext, context_from_env
-from handoff.standin.answer import ModelClient
-from handoff.standin.claude_code import ClaudeCodeClient
+from handoff.models.base import ModelClient
+from handoff.models.choose import model_from_env
 
 INSTRUCTIONS = (
     "handoff connects this Claude Code session to the other sessions working in the same "
@@ -49,7 +49,7 @@ def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPSer
     record_tools.register(server, ctx)
     read_tools.register(server, ctx)
     message_tools.register(server, ctx)
-    ask_tool.register(server, ctx, standin or ClaudeCodeClient())
+    ask_tool.register(server, ctx, standin or model_from_env(os.environ))
     search_tool.register(server, ctx)
     connection_tool.register(server, ctx)
     return server
