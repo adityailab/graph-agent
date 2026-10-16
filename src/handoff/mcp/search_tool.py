@@ -11,7 +11,9 @@ from handoff.format_search import render_search
 from handoff.graph.search import decision_hits, fulltext_decisions, similar_decisions
 from handoff.mcp.context import ToolContext, guarded
 
-MAX_DISTANCE = 0.35  # cosine distance; related texts measured about 0.18, unrelated 0.56
+# Cosine distance from a question to a decision, measured with the real model:
+# relevant 0.22-0.42, unrelated 0.44-0.60.
+MAX_DISTANCE = 0.45
 _RRF_K = 60
 
 
@@ -28,7 +30,7 @@ def rank_decisions(ctx: ToolContext, query: str, *, k: int) -> list[str]:
     """Decision ids matching `query` by words and (when an embedder is set) meaning."""
     lists = [[d for d, _ in fulltext_decisions(ctx.graph, query, k=2 * k)]]
     if ctx.embedder is not None:
-        vector = ctx.embedder.embed([query])[0]
+        vector = ctx.embedder.embed_query(query)
         near = similar_decisions(ctx.graph, vector, k=2 * k)
         lists.append([d for d, distance in near if distance <= MAX_DISTANCE])
     return fuse(lists, k=k)

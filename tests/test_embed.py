@@ -34,3 +34,16 @@ def test_live_paraphrases_are_closer_than_unrelated_text(tmp_path: Path) -> None
     )
     assert len(auth) == EMBED_DIM
     assert _cosine(auth, login) > _cosine(auth, css) + 0.2
+
+
+@pytest.mark.skipif(os.environ.get("HANDOFF_LIVE_TESTS") != "1", reason="downloads a model")
+def test_live_question_finds_the_relevant_decision(tmp_path: Path) -> None:
+    embedder = FastEmbedder(cache_dir=tmp_path)
+    stored, unrelated = embedder.embed(
+        [
+            "Keep the JWT refresh token in an httpOnly cookie; scripts cannot read it.",
+            "Use css grid for the profile card layout.",
+        ]
+    )
+    question = embedder.embed_query("where is the auth token stored")
+    assert 1 - _cosine(question, stored) < 0.45 < 1 - _cosine(question, unrelated)

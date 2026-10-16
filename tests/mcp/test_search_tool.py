@@ -27,6 +27,9 @@ class KeywordEmbedder:
             out.append(vec)
         return out
 
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed([text])[0]
+
 
 def _with_embedder(ctx: ToolContext) -> ToolContext:
     return ToolContext(
@@ -71,3 +74,24 @@ def test_search_without_matches_says_so(backend: ToolContext) -> None:
 
 def test_blank_query_is_refused(backend: ToolContext) -> None:
     assert search(_with_embedder(backend), " ") == "Not searched: query is empty."
+
+
+class QueryAwareEmbedder(KeywordEmbedder):
+    """Documents about auth sit on axis 0; only the query-side embedding lands near them."""
+
+    def embed_query(self, text: str) -> list[float]:
+        vec = [0.0] * EMBED_DIM
+        vec[0] = 1.0
+        return vec
+
+
+def test_search_embeds_the_query_as_a_query(frontend: ToolContext) -> None:
+    ctx = ToolContext(
+        graph=frontend.graph,
+        role=frontend.role,
+        cwd=frontend.cwd,
+        now=frontend.now,
+        embedder=QueryAwareEmbedder(),
+    )
+    record_decision(ctx, "keep JWT in cookies", "safer than localStorage", "auth")
+    assert "keep JWT in cookies" in search(ctx, "zzz unrelated wording")

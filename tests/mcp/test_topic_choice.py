@@ -21,6 +21,9 @@ class PointEmbedder:
         far = [0.0, 0.0, 1.0] + [0.0] * (EMBED_DIM - 3)  # any other text: far from all
         return [list(POINTS[t]) + [0.0] * (EMBED_DIM - 2) if t in POINTS else far for t in texts]
 
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed([text])[0]
+
 
 def _ctx(base: ToolContext) -> ToolContext:
     return ToolContext(
