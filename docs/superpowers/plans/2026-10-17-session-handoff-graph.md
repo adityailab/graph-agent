@@ -1047,12 +1047,13 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   - `DecisionView(id: str, text: str, reason: str)`
   - `NeedView(id: str, text: str, for_role: str, status: str)`
   - `RequestView(id: str, role: str, seq: int, text: str, at: int, files: tuple[str, ...], decisions: tuple[DecisionView, ...], needs: tuple[NeedView, ...])`
-  - `WhyRow(role: str, request_text: str, decision_text: str | None, decision_reason: str | None, edit_summary: str, at: int)`
+  - `WhyRow(role: str, request_text: str, decisions: tuple[DecisionView, ...], edit_summary: str, at: int)` (changed at the Phase 1 gate: one row per edit)
+  - `decision_views(raw) -> tuple[DecisionView, ...]`, shared row parser
 - Produces, in `reads.py`:
-  - `latest_request_id(graph, session_id: str) -> str | None`
+  - `latest_request_id(graph, session_id: str) -> str | None` (latest by time, so a late replay never counts as latest)
   - `active_session(graph, *, role: str, cwd: str) -> SessionInfo | None` (most recently seen)
   - `active_sessions(graph, *, since: int) -> list[SessionInfo]` (seen at or after `since`, ordered by role)
-  - `why_file(graph, path: str, limit: int = 20) -> list[WhyRow]` (newest edit first)
+  - `why_file(graph, path: str, limit: int = 20) -> list[WhyRow]` (one row per edit, newest first)
   - `handoff_requests(graph, *, role: str | None, since: int) -> list[RequestView]` (oldest first; `role=None` means all roles)
 
 - [ ] **Step 1: Write the failing tests** `tests/graph/test_reads.py`
@@ -1560,6 +1561,7 @@ Branch: `phase/3-mcp`. Before writing steps: read the installed `mcp` 2.3 packag
 - Create `src/handoff/mcp/__init__.py`, `src/handoff/mcp/tools.py`, `tests/mcp/test_tools.py`.
 - Produces `ToolContext(graph, role: str, cwd: str, now: Callable[[], int])` and plain functions returning text for Claude: `record_decision(ctx, text, reason, topic)`, `record_need(ctx, for_role, text)`, `resolve_need(ctx, need_id)`, `sessions(ctx, within_minutes=120)`, `handoff(ctx, role: str | None, since_minutes=240, limit=10)`, `why(ctx, path)`.
 - Writes attach to `latest_request_id(active_session(role, cwd))`; with no active session or request they return a sentence saying so instead of raising.
+- Input checks: an empty or whitespace-only text, reason, topic or role is refused with a sentence saying which field is empty (Phase 1 review: `normalise_topic` turns blank into `""`).
 - Tests for each function against a real graph, including the no-session case.
 
 ### Task 3.2: Server

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from falkordb import Graph
 
-from handoff.graph.records import WhyRow
+from handoff.graph.records import WhyRow, decision_views
 
 
 def add_edit(
@@ -43,12 +43,13 @@ def add_edit(
 
 
 def why_file(graph: Graph, path: str, limit: int = 20) -> list[WhyRow]:
-    """Return the requests and decisions behind edits to `path`, newest edit first."""
+    """Return one row per edit to `path`, newest first, with its request and decisions."""
     rows = graph.ro_query(
         "MATCH (f:File {path: $path})<-[:TOUCHED]-(e:Edit)<-[:CAUSED]-(r:Request)"
         "<-[:RECEIVED]-(s:Session) "
         "OPTIONAL MATCH (r)-[:LED_TO]->(d:Decision) "
-        "RETURN s.role, r.text, d.text, d.reason, e.summary, e.at "
+        "WITH s, r, e, collect(DISTINCT [d.id, d.text, d.reason]) AS decisions "
+        "RETURN s.role, r.text, decisions, e.summary, e.at "
         "ORDER BY e.at DESC LIMIT $limit",
         {"path": path, "limit": limit},
     ).result_set
@@ -56,10 +57,9 @@ def why_file(graph: Graph, path: str, limit: int = 20) -> list[WhyRow]:
         WhyRow(
             role=str(row[0]),
             request_text=str(row[1]),
-            decision_text=None if row[2] is None else str(row[2]),
-            decision_reason=None if row[3] is None else str(row[3]),
-            edit_summary=str(row[4]),
-            at=int(row[5]),
+            decisions=decision_views(row[2]),
+            edit_summary=str(row[3]),
+            at=int(row[4]),
         )
         for row in rows
     ]

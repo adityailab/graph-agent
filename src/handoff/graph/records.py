@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,23 @@ class RequestView:
 class WhyRow:
     role: str
     request_text: str
-    decision_text: str | None
-    decision_reason: str | None
+    decisions: tuple[DecisionView, ...]
     edit_summary: str
     at: int
+
+
+def decision_views(raw: list[list[Any]]) -> tuple[DecisionView, ...]:
+    """Convert collected [id, text, reason] lists, sorted by id.
+
+    An OPTIONAL MATCH with no match collects one list of nulls; it is dropped.
+    """
+    return tuple(
+        sorted(
+            (
+                DecisionView(id=str(i), text=str(t), reason=str(why))
+                for i, t, why in raw
+                if i is not None
+            ),
+            key=lambda d: d.id,
+        )
+    )
