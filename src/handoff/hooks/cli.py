@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 from redis.exceptions import ConnectionError as RedisConnectionError
@@ -45,7 +46,7 @@ def _read_event(stdin: str, env: Mapping[str, str]) -> dict[str, Any]:
     data = json.loads(stdin)
     # The project folder, not the shell's current folder: the agent may `cd`, and the
     # MCP server finds this session again by role and project folder.
-    project_dir = env.get("CLAUDE_PROJECT_DIR") or str(data.get("cwd", ""))
+    project_dir = str(Path(env.get("CLAUDE_PROJECT_DIR") or str(data.get("cwd", ""))).resolve())
     prepared = prepare_hook_input(data, project_dir) | {"cwd": project_dir}
     return {"input": prepared, "role": resolve_role(project_dir, env), "at": now_ms()}
 

@@ -297,6 +297,7 @@ source = { editable = "." }
 dependencies = [
     { name = "falkordb" },
     { name = "mcp" },
+    { name = "pydantic" },
     { name = "redis" },
 ]
 
@@ -311,6 +312,7 @@ dev = [
 requires-dist = [
     { name = "falkordb", specifier = ">=1.8,<2" },
     { name = "mcp", specifier = ">=2.3,<3" },
+    { name = "pydantic", specifier = ">=2" },
     { name = "redis", specifier = ">=5" },
 ]
 

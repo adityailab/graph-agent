@@ -25,6 +25,11 @@ def select_requests(requests: Sequence[RequestView], limit: int) -> list[Request
     return [requests[i] for i in sorted(chosen)]
 
 
+def shorten(text: str, limit: int = 300) -> str:
+    """Cut text to `limit` characters, marking the cut."""
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
 def _plural(n: int, word: str) -> str:
     return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
@@ -37,7 +42,7 @@ def _render_request(r: RequestView) -> list[str]:
     if r.files:
         lines.append(f"  Changed: {', '.join(r.files)}")
     for n in r.needs:
-        lines.append(f"  Needs from {n.for_role}: {n.text} ({n.status})")
+        lines.append(f"  Needs from {n.for_role}: {n.text} ({n.status}, id {n.id})")
     return lines
 
 
@@ -67,7 +72,7 @@ def render_why(path: str, rows: Sequence[WhyRow]) -> str:
     lines = [f"Edits to {path}, newest first:"]
     for row in rows:
         lines.append("")
-        lines.append(f'{row.role} session, request: "{row.request_text}"')
+        lines.append(f'{row.role} session, request: "{shorten(row.request_text)}"')
         for d in row.decisions:
             lines.append(f"  Decided: {d.text}")
             lines.append(f"  Why: {d.reason}")

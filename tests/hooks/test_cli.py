@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from falkordb import Graph
@@ -156,3 +157,28 @@ def test_session_is_stored_under_the_project_folder_not_the_shell_folder(
     )
     rows = graph.query("MATCH (s:Session) RETURN s.cwd, s.role").result_set
     assert rows == [["/work/app", "app"]]
+
+
+def test_session_folder_is_stored_resolved(
+    config: Config, graph: Graph, hook_json: HookJson, tmp_path: Path
+) -> None:
+    real = tmp_path / "proj"
+    real.mkdir()
+    link = tmp_path / "proj-link"
+    link.symlink_to(real)
+    env = os.environ | {
+        "HANDOFF_GRAPH": config.graph_name,
+        "HANDOFF_HOME": str(config.home),
+        "CLAUDE_PROJECT_DIR": str(link),
+        "HANDOFF_ROLE": "frontend",
+    }
+    subprocess.run(
+        [sys.executable, "-m", "handoff.hooks.cli"],
+        input=json.dumps(hook_json("user_prompt")),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=True,
+    )
+    assert graph.query("MATCH (s:Session) RETURN s.cwd").result_set == [[str(real.resolve())]]

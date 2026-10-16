@@ -6,24 +6,25 @@ This file only wires tools to their logic in record_tools and read_tools.
 from __future__ import annotations
 
 import os
+from typing import Annotated
 
 from mcp.server.mcpserver import MCPServer
+from pydantic import Field
 
-from handoff.config import Config, resolve_role
+from handoff.config import Config
 from handoff.graph.connection import connect
-from handoff.graph.schema import ensure_schema
 from handoff.mcp import read_tools, record_tools
-from handoff.mcp.context import ToolContext
+from handoff.mcp.context import ToolContext, context_from_env
 
 INSTRUCTIONS = (
     "handoff connects this Claude Code session to the other sessions working in the same "
-    "project. Each person's request to a session is recorded automatically, with the files "
-    "it changed. Decisions are recorded only when you call record_decision: call it whenever "
-    "you choose something another session would need to know (a field name, an API shape, a "
-    "library, a trade-off), with the reason. Call record_need when your work needs something "
-    "from another role, and resolve_need when you finish something another role needed. When "
-    "asked to pick up another session's work, call handoff for that role first. Before "
-    "changing a file another session edited, call why for it."
+    "project. Each request a person sends to a session is recorded automatically, with the "
+    "files it changed. Decisions are recorded only through record_decision: other sessions "
+    "see a choice (a field name, an API shape, a library, a trade-off) and its reason only "
+    "when it is recorded there. record_need tells another role what this request needs from "
+    "it; resolve_need closes such a need, using the id shown in handoff. When a person asks "
+    "this session to pick up another session's work, handoff for that role holds what was "
+    "asked, decided, changed and still needed. why shows the intent behind a file's edits."
 )
 
 
@@ -32,15 +33,24 @@ def build_server(ctx: ToolContext) -> MCPServer:
     server = MCPServer("handoff", instructions=INSTRUCTIONS)
 
     @server.tool(description="Record a choice made for the current request, why, and its topic.")
-    def record_decision(text: str, reason: str, topic: str) -> str:
+    def record_decision(
+        text: Annotated[str, Field(description="What was chosen, in one sentence.")],
+        reason: Annotated[str, Field(description="Why it was chosen over the alternatives.")],
+        topic: Annotated[str, Field(description="Short subject, e.g. 'user profile API'.")],
+    ) -> str:
         return record_tools.record_decision(ctx, text, reason, topic)
 
     @server.tool(description="Record something the current request needs from another role.")
-    def record_need(for_role: str, text: str) -> str:
+    def record_need(
+        for_role: Annotated[str, Field(description="Role that must act, e.g. 'backend'.")],
+        text: Annotated[str, Field(description="What that role needs to do.")],
+    ) -> str:
         return record_tools.record_need(ctx, for_role, text)
 
     @server.tool(description="Mark another role's need as handled by the current request.")
-    def resolve_need(need_id: str) -> str:
+    def resolve_need(
+        need_id: Annotated[str, Field(description="The id shown after 'id' in handoff.")],
+    ) -> str:
         return record_tools.resolve_need(ctx, need_id)
 
     @server.tool(description="List active sessions and what each is working on.")
@@ -50,24 +60,31 @@ def build_server(ctx: ToolContext) -> MCPServer:
     @server.tool(
         description="Show what a role (or all roles) was asked, decided, changed and needs."
     )
-    def handoff(role: str | None = None, since_minutes: int = 240, limit: int = 10) -> str:
+    def handoff(
+        role: Annotated[str | None, Field(description="Role to show; omit for all.")] = None,
+        since_minutes: Annotated[int, Field(description="How far back to look.")] = 240,
+        limit: Annotated[int, Field(description="Most requests to show, 1 to 50.")] = 10,
+    ) -> str:
         return read_tools.handoff(ctx, role, since_minutes, limit)
 
     @server.tool(description="Show the requests and decisions behind changes to a file.")
-    def why(path: str) -> str:
+    def why(
+        path: Annotated[str, Field(description="File path, relative to the project or absolute.")],
+    ) -> str:
         return read_tools.why(ctx, path)
 
     return server
 
 
 def main() -> None:
-    """Console-script entry point: serve this session's tools over stdio."""
+    """Console-script entry point: serve this session's tools over stdio.
+
+    The database is connected on the first tool call, so the server starts (and its
+    tools answer with a clear sentence) even while FalkorDB is down.
+    """
     config = Config.from_env()
-    graph = connect(config)
-    ensure_schema(graph)
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-    role = resolve_role(project_dir, os.environ)
-    build_server(ToolContext(graph=graph, role=role, cwd=project_dir)).run("stdio")
+    ctx = context_from_env(os.environ, cwd=os.getcwd(), connect=lambda: connect(config))
+    build_server(ctx).run("stdio")
 
 
 if __name__ == "__main__":
