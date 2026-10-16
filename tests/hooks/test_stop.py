@@ -41,3 +41,32 @@ def test_stop_is_allowed_once_a_decision_is_recorded(graph: Graph, hook_json: Ho
 def test_stop_without_edits_is_allowed(graph: Graph, hook_json: HookJson) -> None:
     _apply(graph, hook_json("user_prompt"))
     assert _apply(graph, hook_json("stop")) is None
+
+
+def test_replayed_stop_never_blocks(graph: Graph, hook_json: HookJson) -> None:
+    _apply(graph, hook_json("user_prompt"))
+    _apply(graph, hook_json("post_edit"))
+    event = {
+        "input": prepare_hook_input(hook_json("stop"), "/work/app"),
+        "role": "frontend",
+        "at": 12,
+    }
+    assert apply_event(graph, event, live=False) is None
+
+
+def test_stop_without_prompt_id_checks_the_latest_request(
+    graph: Graph, hook_json: HookJson
+) -> None:
+    _apply(graph, hook_json("user_prompt"))
+    _apply(graph, hook_json("post_edit"))
+    stop = hook_json("stop")
+    del stop["prompt_id"]
+    assert _apply(graph, stop)["decision"] == "block"
+
+
+def test_stop_for_an_unrecorded_prompt_checks_the_latest_request(
+    graph: Graph, hook_json: HookJson
+) -> None:
+    _apply(graph, hook_json("user_prompt"))
+    _apply(graph, hook_json("post_edit"))
+    assert _apply(graph, hook_json("stop") | {"prompt_id": "p-unknown"})["decision"] == "block"

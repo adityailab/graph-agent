@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from falkordb import Graph
 
-from handoff.graph.messages import add_message, claim_pending_messages
+from handoff.graph.messages import add_message, claim_pending_messages, has_pending_messages
 from handoff.graph.schema import ensure_schema
 from handoff.graph.sessions import upsert_session
 
@@ -98,3 +98,20 @@ def test_resent_message_is_not_duplicated(three: Graph) -> None:
     assert (
         len(claim_pending_messages(three, session_id="fe1", role="frontend", since=0, at=20)) == 1
     )
+
+
+def test_message_with_two_reply_links_is_claimed_once(three: Graph) -> None:
+    _send(three, "q1", at=1)
+    _send(three, "q2", at=2)
+    _send(three, "a1", reply_to="q1", at=3)
+    _send(three, "a1", reply_to="q2", at=3)
+    got = claim_pending_messages(three, session_id="fe1", role="frontend", since=0, at=20)
+    assert [m.id for m in got].count("a1") == 1
+
+
+def test_pending_check_does_not_mark_anything_delivered(three: Graph) -> None:
+    _send(three, "m1")
+    assert has_pending_messages(three, session_id="fe1", role="frontend", since=0)
+    assert has_pending_messages(three, session_id="fe1", role="frontend", since=0)
+    claim_pending_messages(three, session_id="fe1", role="frontend", since=0, at=20)
+    assert not has_pending_messages(three, session_id="fe1", role="frontend", since=0)

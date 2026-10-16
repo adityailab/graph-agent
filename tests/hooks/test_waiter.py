@@ -6,6 +6,8 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from falkordb import Graph
@@ -101,3 +103,36 @@ def test_second_waiter_for_a_session_exits_at_once(config: Config, sessions: Gra
 
 def test_database_down_ends_quietly(config: Config) -> None:
     assert _waiter(config, wait=1, port=1).wait(timeout=20) == 0
+
+
+def test_newer_waiter_takes_over_from_an_older_one(config: Config, sessions: Graph) -> None:
+    old = _waiter(config, wait=30)
+    time.sleep(1.0)
+    new = _waiter(config, wait=30)
+    assert old.wait(timeout=10) == 0
+    _send(sessions, "for the newer waiter")
+    assert new.wait(timeout=10) == 2
+
+
+def test_new_prompt_stops_a_running_waiter(
+    config: Config, sessions: Graph, hook_json: Callable[[str], dict[str, Any]]
+) -> None:
+    proc = _waiter(config, wait=30)
+    time.sleep(1.0)
+    env = os.environ | {
+        "HANDOFF_GRAPH": config.graph_name,
+        "HANDOFF_HOME": str(config.home),
+        "HANDOFF_ROLE": "frontend",
+        "CLAUDE_PROJECT_DIR": "/work/app",
+    }
+    prompt = hook_json("user_prompt") | {"session_id": "fe", "cwd": "/work/app"}
+    subprocess.run(
+        [sys.executable, "-m", "handoff.hooks.cli"],
+        input=json.dumps(prompt),
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=True,
+    )
+    assert proc.wait(timeout=10) == 0

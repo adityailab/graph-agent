@@ -1622,6 +1622,13 @@ Branch: `phase/4-messages`.
 - Takes a lock file `home/locks/<session_id>.lock` (non-blocking); if held, exits 0. Polls `claim_pending_messages` every 2 seconds until `HANDOFF_WAIT_SECONDS` (default 3500); on messages writes `render_messages` to stderr and exits 2; on timeout or database error exits 0.
 - Tests run the waiter as a subprocess with `HANDOFF_WAIT_SECONDS=5`: exits 2 with the message on stderr when one is sent; exits 0 on timeout; a second waiter for the same session exits 0 at once.
 
+**Changed at the Phase 4 gate review** (code is the source of truth):
+- `hooks/generation.py` (`bump`, `current`): each waiter and each new prompt writes a token; a waiter whose token is stale quits. The waiter waits up to 3 polls for the lock.
+- Outages: Stop events and tool calls that edited nothing are not saved to the replay file.
+- `messages.has_pending_messages` (read-only) runs before any claim; the claim keeps one row per message.
+- Indexes on `Message.to_role` and `Need.for_role`; `render_messages` caps at `MAX_MESSAGES` (20), 500 characters each.
+- The finish check's reason is `events.FINISH_CHECK_REASON`; it checks the turn's prompt if recorded, else the latest request.
+
 ### Phase 4 gate
 
 - Show it working: three sessions; the frontend's finish check fires once; the backend sends a message to `deploy`; the idle deploy session wakes and shows it.

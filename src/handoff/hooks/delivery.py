@@ -5,7 +5,7 @@ from __future__ import annotations
 from falkordb import Graph
 
 from handoff.format import render_messages
-from handoff.graph.messages import claim_pending_messages
+from handoff.graph.messages import claim_pending_messages, has_pending_messages
 from handoff.graph.needs import count_open_needs
 
 MESSAGE_WINDOW_MS = 24 * 60 * 60_000
@@ -13,9 +13,10 @@ MESSAGE_WINDOW_MS = 24 * 60 * 60_000
 
 def pending_messages_text(graph: Graph, *, session_id: str, role: str, at: int) -> str:
     """Claim this session's undelivered messages and render them ('' if none)."""
-    messages = claim_pending_messages(
-        graph, session_id=session_id, role=role, since=at - MESSAGE_WINDOW_MS, at=at
-    )
+    since = at - MESSAGE_WINDOW_MS
+    if not has_pending_messages(graph, session_id=session_id, role=role, since=since):
+        return ""
+    messages = claim_pending_messages(graph, session_id=session_id, role=role, since=since, at=at)
     return render_messages(messages)
 
 

@@ -16,7 +16,7 @@ from typing import Any
 from handoff import spool
 from handoff.config import Config
 from handoff.graph.connection import connect
-from handoff.hooks import waiter
+from handoff.hooks import generation, waiter
 from handoff.hooks.dispatch import HookOutput, apply_event
 from handoff.hooks.identity import project_and_role
 from handoff.hooks.logs import OUTAGE, is_outage, setup_logging
@@ -33,7 +33,24 @@ def _read_event(stdin: str, env: Mapping[str, str]) -> dict[str, Any]:
     return {"input": prepared, "role": role, "at": now_ms()}
 
 
+def _worth_saving(event: dict[str, Any]) -> bool:
+    """Only events that record something are saved: a Stop or a tool call that edited
+    nothing would only register the session again when replayed."""
+    hook = event["input"]
+    if hook.get("hook_event_name") == "Stop":
+        return False
+    return not (hook.get("hook_event_name") == "PostToolUse" and not hook.get("edit_path"))
+
+
+def _save(config: Config, event: dict[str, Any]) -> None:
+    if _worth_saving(event):
+        spool.append(config.home, event)
+
+
 def _apply(config: Config, event: dict[str, Any]) -> HookOutput:
+    if event["input"].get("hook_event_name") == "UserPromptSubmit":
+        # A new turn: any running waiter for this session stands down.
+        generation.bump(config.home, str(event["input"]["session_id"]))
     try:
         graph = connect(config)
         replayed = spool.replay(
@@ -41,12 +58,12 @@ def _apply(config: Config, event: dict[str, Any]) -> HookOutput:
         )
         if replayed.pending:
             # Older events are still waiting; applying this one first would break order.
-            spool.append(config.home, event)
+            _save(config, event)
             return None
         return apply_event(graph, event, live=True)
     except OUTAGE:
-        log.warning("database unreachable; event saved for replay")
-        spool.append(config.home, event)
+        log.warning("database unreachable; event saved for replay if it records anything")
+        _save(config, event)
         return None
 
 

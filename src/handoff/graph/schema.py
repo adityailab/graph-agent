@@ -15,6 +15,8 @@ INDEXED: tuple[tuple[str, str], ...] = (
     ("Need", "id"),
     ("Topic", "name"),
     ("Message", "id"),
+    ("Message", "to_role"),
+    ("Need", "for_role"),
 )
 
 

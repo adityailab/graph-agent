@@ -7,7 +7,12 @@ from typing import Any
 from falkordb import Graph
 
 from handoff.graph.edits import add_edit
-from handoff.graph.requests import add_request, latest_request_id, request_needs_decision
+from handoff.graph.requests import (
+    add_request,
+    latest_request_id,
+    request_needs_decision,
+    request_text,
+)
 from handoff.graph.sessions import upsert_session
 from handoff.hooks.delivery import open_needs_text, pending_messages_text
 from handoff.hooks.hook_input import HookInput
@@ -90,7 +95,15 @@ def on_stop(graph: Graph, hook: HookInput, *, role: str, at: int) -> dict[str, A
     register_session(graph, hook, role=role, at=at)
     if hook.stop_hook_active:
         return None
-    request_id = hook.prompt_id or latest_request_id(graph, hook.session_id)
+    request_id = _turn_request_id(graph, hook)
     if request_id is None or not request_needs_decision(graph, request_id):
         return None
     return {"decision": "block", "reason": FINISH_CHECK_REASON}
+
+
+def _turn_request_id(graph: Graph, hook: HookInput) -> str | None:
+    """The request this turn worked on: its prompt if recorded, else the latest one,
+    the same fallback edits use."""
+    if hook.prompt_id and request_text(graph, hook.prompt_id) is not None:
+        return hook.prompt_id
+    return latest_request_id(graph, hook.session_id)

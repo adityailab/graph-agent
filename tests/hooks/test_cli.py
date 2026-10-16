@@ -182,3 +182,21 @@ def test_session_folder_is_stored_resolved(
         check=True,
     )
     assert graph.query("MATCH (s:Session) RETURN s.cwd").result_set == [[str(real.resolve())]]
+
+
+def test_stop_is_allowed_and_not_saved_when_the_database_is_down(
+    config: Config, hook_json: HookJson
+) -> None:
+    result = _run_hook(config, json.dumps(hook_json("stop")), port=1)
+    assert (result.returncode, result.stdout) == (0, "")
+    assert not (config.home / "spool.jsonl").exists()
+
+
+def test_tool_calls_without_edits_are_not_saved_during_an_outage(
+    config: Config, hook_json: HookJson
+) -> None:
+    read = hook_json("post_edit") | {"tool_name": "Read", "tool_input": {"file_path": "/x"}}
+    _run_hook(config, json.dumps(read), port=1)
+    assert not (config.home / "spool.jsonl").exists()
+    _run_hook(config, json.dumps(hook_json("post_edit")), port=1)
+    assert (config.home / "spool.jsonl").read_text().count("\n") == 1

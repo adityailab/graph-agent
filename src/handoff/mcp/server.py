@@ -26,7 +26,7 @@ INSTRUCTIONS = (
     "this session to pick up another session's work, handoff for that role holds what was "
     "asked, decided, changed and still needed. why shows the intent behind a file's edits. "
     "send_message reaches every session with a role: a working session sees it on its next "
-    "tool call and an idle one is woken."
+    "tool call, and an idle one is woken when its waiter is running."
 )
 
 
@@ -75,7 +75,7 @@ def build_server(ctx: ToolContext) -> MCPServer:
     ) -> str:
         return read_tools.why(ctx, path)
 
-    @server.tool(description="Send a message to every session with a role; idle ones wake.")
+    @server.tool(description="Send a message to every session with a role.")
     def send_message(
         to_role: Annotated[str, Field(description="Role to send to, e.g. 'deploy'.")],
         text: Annotated[str, Field(description="The message.")],

@@ -20,6 +20,7 @@ from falkordb import Graph
 
 from handoff.config import Config
 from handoff.graph.connection import connect
+from handoff.hooks import generation
 from handoff.hooks.delivery import pending_messages_text
 from handoff.hooks.identity import project_and_role
 from handoff.hooks.logs import is_outage, setup_logging
@@ -30,15 +31,22 @@ log = logging.getLogger("handoff.waiter")
 
 
 @contextmanager
-def _session_lock(home: Path, session_id: str) -> Iterator[bool]:
+def _session_lock(home: Path, session_id: str, *, patience: float) -> Iterator[bool]:
+    """Hold the session's waiter lock, waiting up to `patience` seconds for an older
+    waiter to notice it was replaced and let go."""
     locks = home / "locks"
     locks.mkdir(parents=True, exist_ok=True)
+    give_up = time.monotonic() + patience
     with (locks / f"{session_id}.lock").open("a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            yield False
-            return
+        while True:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= give_up:
+                    yield False
+                    return
+                time.sleep(0.1)
         try:
             yield True
         finally:
@@ -46,12 +54,15 @@ def _session_lock(home: Path, session_id: str) -> Iterator[bool]:
 
 
 def wait_for_messages(
-    config: Config, *, session_id: str, role: str, seconds: float, poll: float
+    config: Config, *, session_id: str, role: str, seconds: float, poll: float, token: str
 ) -> str:
-    """Poll until messages arrive (returns their text) or time runs out (returns '')."""
+    """Poll until messages arrive (returns their text), time runs out, or a newer
+    waiter or prompt takes over (both return '')."""
     deadline = time.monotonic() + seconds
     graph: Graph | None = None
     while True:
+        if generation.current(config.home, session_id) != token:
+            return ""
         try:
             graph = graph or connect(config)
             text = pending_messages_text(graph, session_id=session_id, role=role, at=now_ms())
@@ -73,15 +84,19 @@ def main(stdin: str, env: Mapping[str, str]) -> int:
         setup_logging(config)
         data = json.loads(stdin)
         _, role = project_and_role(data, env)
-        with _session_lock(config.home, str(data["session_id"])) as mine:
+        session_id = str(data["session_id"])
+        poll = float(env.get("HANDOFF_WAIT_POLL", "2"))
+        token = generation.bump(config.home, session_id)  # tells any older waiter to quit
+        with _session_lock(config.home, session_id, patience=3 * poll) as mine:
             if not mine:
                 return 0
             text = wait_for_messages(
                 config,
-                session_id=str(data["session_id"]),
+                session_id=session_id,
                 role=role,
                 seconds=float(env.get("HANDOFF_WAIT_SECONDS", "3500")),
-                poll=float(env.get("HANDOFF_WAIT_POLL", "2")),
+                poll=poll,
+                token=token,
             )
     except Exception:
         log.exception("waiter failed")

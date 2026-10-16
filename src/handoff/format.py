@@ -84,6 +84,7 @@ def render_why(path: str, rows: Sequence[WhyRow]) -> str:
 
 def _render_message(m: MessageView) -> str:
     when = time.strftime("%H:%M", time.localtime(m.at / 1000))
+    m = MessageView(m.id, m.kind, m.from_role, shorten(m.text, 500), m.reply_to, m.at)
     if m.kind == "question":
         return (
             f'Question {m.id} from the {m.from_role} session ({when}): "{m.text}" '
@@ -98,6 +99,13 @@ def _render_message(m: MessageView) -> str:
     return f'Message {m.id} from the {m.from_role} session ({when}{reply}): "{m.text}"'
 
 
+MAX_MESSAGES = 20
+
+
 def render_messages(messages: Sequence[MessageView]) -> str:
-    """Render delivered messages as statements of fact, one per line."""
-    return "\n".join(_render_message(m) for m in messages)
+    """Render delivered messages as statements of fact, one per line, capped."""
+    shown = [_render_message(m) for m in messages[:MAX_MESSAGES]]
+    hidden = len(messages) - len(shown)
+    if hidden > 0:
+        shown.append(f"{hidden} more messages arrived; they are not shown here.")
+    return "\n".join(shown)

@@ -17,15 +17,20 @@ _ADD_MESSAGE = (
     "RETURN m.id"
 )
 
-# One query: finding and marking delivered happen together, so a hook and the waiter
-# claiming at the same moment can never both deliver the same message.
-_CLAIM = (
+_PENDING_MATCH = (
     "MATCH (me:Session {id: $sid}) "
     "MATCH (sender:Session)-[:SENT]->(m:Message {to_role: $role}) "
     "WHERE sender.id <> $sid AND m.at >= $since AND NOT (m)-[:DELIVERED_TO]->(me) "
-    "OPTIONAL MATCH (m)-[:REPLY_TO]->(q:Message) "
+)
+
+# One query: finding and marking delivered happen together, so a hook and the waiter
+# claiming at the same moment can never both deliver the same message. The collect()
+# keeps one row (one edge, one line) per message even if it has several reply links.
+_CLAIM = (
+    _PENDING_MATCH + "OPTIONAL MATCH (m)-[:REPLY_TO]->(q:Message) "
+    "WITH me, sender, m, collect(q.id)[0] AS reply "
     "CREATE (m)-[:DELIVERED_TO {at: $at}]->(me) "
-    "RETURN m.id, m.kind, sender.role, m.text, q.id, m.at "
+    "RETURN m.id, m.kind, sender.role, m.text, reply, m.at "
     "ORDER BY m.at"
 )
 
@@ -76,3 +81,12 @@ def claim_pending_messages(
         )
         for r in rows
     ]
+
+
+def has_pending_messages(graph: Graph, *, session_id: str, role: str, since: int) -> bool:
+    """Read-only check, so tool calls with nothing to deliver write nothing."""
+    rows = graph.ro_query(
+        _PENDING_MATCH + "RETURN count(m) > 0",
+        {"sid": session_id, "role": role, "since": since},
+    ).result_set
+    return bool(rows and rows[0][0])

@@ -66,3 +66,18 @@ def test_messages_render_as_facts_with_reply_ids() -> None:
     assert "from the backend session" in text
     assert "Question q1 from the deploy session" in text
     assert "reply_to set to q1" in text
+
+
+def test_many_messages_are_capped() -> None:
+    from handoff.format import MAX_MESSAGES, render_messages
+    from handoff.graph.records import MessageView
+
+    many = [
+        MessageView(
+            id=f"m{i}", kind="message", from_role="b", text="x" * 2_000, reply_to=None, at=0
+        )
+        for i in range(MAX_MESSAGES + 5)
+    ]
+    text = render_messages(many)
+    assert "5 more messages" in text
+    assert len(text) < (MAX_MESSAGES + 1) * 700

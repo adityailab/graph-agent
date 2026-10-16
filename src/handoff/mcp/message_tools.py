@@ -13,7 +13,7 @@ NOT_REGISTERED = "Not sent: this session is not registered yet; it is after its 
 
 @guarded
 def send_message(ctx: ToolContext, to_role: str, text: str, reply_to: str | None = None) -> str:
-    """Send text to every session with `to_role`; idle ones are woken."""
+    """Send text to every session with `to_role`."""
     if not to_role.strip():
         return "Not sent: to_role is empty."
     if not text.strip():
