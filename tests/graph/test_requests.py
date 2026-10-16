@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from falkordb import Graph
 
-from handoff.graph.requests import add_request
+from handoff.graph.requests import add_request, latest_request_id
 
 
 def test_requests_are_numbered_and_chained(ready: Graph) -> None:
@@ -29,3 +29,8 @@ def test_request_text_round_trips_exactly(ready: Graph) -> None:
     add_request(ready, session_id="s1", request_id="p1", text=text, at=1)
     rows = ready.query("MATCH (r:Request {id: 'p1'}) RETURN r.text").result_set
     assert rows == [[text]]
+
+
+def test_latest_request_is_the_highest_numbered(two_sessions: Graph) -> None:
+    assert latest_request_id(two_sessions, "fe") == "p2"
+    assert latest_request_id(two_sessions, "nobody") is None

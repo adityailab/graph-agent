@@ -37,3 +37,13 @@ def add_request(graph: Graph, *, session_id: str, request_id: str, text: str, at
             {"pid": previous[0][0], "rid": request_id},
         )
     return seq
+
+
+def latest_request_id(graph: Graph, session_id: str) -> str | None:
+    """Return the id of the session's most recent request, if it has one."""
+    rows = graph.ro_query(
+        "MATCH (:Session {id: $sid})-[:RECEIVED]->(r:Request) "
+        "RETURN r.id ORDER BY r.seq DESC LIMIT 1",
+        {"sid": session_id},
+    ).result_set
+    return str(rows[0][0]) if rows else None

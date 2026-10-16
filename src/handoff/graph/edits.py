@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from falkordb import Graph
 
+from handoff.graph.records import WhyRow
+
 
 def add_edit(
     graph: Graph,
@@ -38,3 +40,26 @@ def add_edit(
         },
     ).result_set
     return bool(rows)
+
+
+def why_file(graph: Graph, path: str, limit: int = 20) -> list[WhyRow]:
+    """Return the requests and decisions behind edits to `path`, newest edit first."""
+    rows = graph.ro_query(
+        "MATCH (f:File {path: $path})<-[:TOUCHED]-(e:Edit)<-[:CAUSED]-(r:Request)"
+        "<-[:RECEIVED]-(s:Session) "
+        "OPTIONAL MATCH (r)-[:LED_TO]->(d:Decision) "
+        "RETURN s.role, r.text, d.text, d.reason, e.summary, e.at "
+        "ORDER BY e.at DESC LIMIT $limit",
+        {"path": path, "limit": limit},
+    ).result_set
+    return [
+        WhyRow(
+            role=str(row[0]),
+            request_text=str(row[1]),
+            decision_text=None if row[2] is None else str(row[2]),
+            decision_reason=None if row[3] is None else str(row[3]),
+            edit_summary=str(row[4]),
+            at=int(row[5]),
+        )
+        for row in rows
+    ]
