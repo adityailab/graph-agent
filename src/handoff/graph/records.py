@@ -100,3 +100,10 @@ class OtherEdit:
 class SharedFile:
     path: str
     roles: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PathStep:
+    label: str  # Request, Edit, File, Decision, Topic, Need, Message
+    text: str  # what the node says: request text, file path, decision text, ...
+    via: str  # relationship that led here ('' for the first step)

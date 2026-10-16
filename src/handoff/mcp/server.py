@@ -12,7 +12,14 @@ from mcp.server.mcpserver import MCPServer
 from handoff.config import Config
 from handoff.embed import FastEmbedder
 from handoff.graph.connection import connect
-from handoff.mcp import ask_tool, message_tools, read_tools, record_tools, search_tool
+from handoff.mcp import (
+    ask_tool,
+    connection_tool,
+    message_tools,
+    read_tools,
+    record_tools,
+    search_tool,
+)
 from handoff.mcp.context import ToolContext, context_from_env
 from handoff.standin.answer import ModelClient
 from handoff.standin.claude_code import ClaudeCodeClient
@@ -30,7 +37,9 @@ INSTRUCTIONS = (
     "tool call, and an idle one is woken when its waiter is running. ask puts a question "
     "to another role and returns at once a stand-in answer, written by a model from that "
     "role's recorded history and labelled as such; the real session also gets the question. "
-    "search finds recorded decisions by their words and their meaning, from any role."
+    "search finds recorded decisions by their words and their meaning, from any role. "
+    "connection shows the chain of shared files, decisions and needs linking this "
+    "session's work to another role's."
 )
 
 
@@ -42,6 +51,7 @@ def build_server(ctx: ToolContext, standin: ModelClient | None = None) -> MCPSer
     message_tools.register(server, ctx)
     ask_tool.register(server, ctx, standin or ClaudeCodeClient())
     search_tool.register(server, ctx)
+    connection_tool.register(server, ctx)
     return server
 
 
