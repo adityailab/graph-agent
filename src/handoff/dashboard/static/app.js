@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   var MC = window.MC, POLL_MS = 1500;
-  var VIEWS = ["orchestration", "handoff", "memory", "graph", "tracks", "log"];
+  var VIEWS = ["orchestration", "handoff", "memory", "graph", "tracks", "log", "ask"];
   var seenEvents = null, state = null, current = "orchestration";
   var ticker = document.getElementById("ticker"), status = document.getElementById("status");
 
@@ -61,8 +61,8 @@
   });
 
   document.addEventListener("keydown", function (ev) {
-    var names = VIEWS, i = Number(ev.key) - 1;
-    if (!ev.metaKey && !ev.ctrlKey && !ev.altKey && i >= 0 && i < names.length) setView(names[i]);
+    var names = VIEWS, i = Number(ev.key) - 1, typing = /^(INPUT|TEXTAREA)$/.test(ev.target.tagName);
+    if (!typing && !ev.metaKey && !ev.ctrlKey && !ev.altKey && i >= 0 && i < names.length) setView(names[i]);
   });
 
   setView(VIEWS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : current);

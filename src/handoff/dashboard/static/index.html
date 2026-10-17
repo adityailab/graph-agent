@@ -21,6 +21,7 @@
   <button type="button" data-view="graph"><kbd>4</kbd> graph</button>
   <button type="button" data-view="tracks"><kbd>5</kbd> tracks</button>
   <button type="button" data-view="log"><kbd>6</kbd> log</button>
+  <button type="button" data-view="ask"><kbd>7</kbd> ask</button>
 </nav>
 <div class="layout">
   <main>
@@ -72,6 +73,17 @@
       <h2>everything that lands in the graph, newest first</h2>
       <ol id="ticker"></ol>
     </section>
+    <section id="view-ask" class="view" hidden>
+      <h2>ask the graph</h2>
+      <p class="dim">Ask in plain words. Claude Code writes read-only Cypher against the graphs, answers from what it
+        finds, and shows the Cypher so you can check it. Each question uses your Claude plan.</p>
+      <div id="ask-chips" class="ask-chips"></div>
+      <div id="ask-log" class="ask-log"></div>
+      <form id="ask-form" class="ask-form">
+        <input id="ask-input" type="text" maxlength="500" autocomplete="off" placeholder="ask a question about the work…" aria-label="Question">
+        <button id="ask-send" type="submit">ask</button>
+      </form>
+    </section>
   </main>
 </div>
 <script src="/common.js"></script>
@@ -84,6 +96,7 @@
 <script src="/graphdetail.js"></script>
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>
+<script src="/ask.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

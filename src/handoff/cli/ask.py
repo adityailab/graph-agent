@@ -119,6 +119,17 @@ def cypher_run(calls: list[ToolCall]) -> list[str]:
     return list(dict.fromkeys(queries))
 
 
+def ask_graph(question: str, config: Config, *, model: str | None = None) -> tuple[str, list[str]]:
+    """The answer and the Cypher it ran. Raises FileNotFoundError (no `claude`),
+    subprocess.TimeoutExpired, or LookupError (Claude Code gave no answer)."""
+    done = _answer(question, model or os.environ.get("HANDOFF_ASK_MODEL", "sonnet"), config)
+    answer, calls = parse_stream(done.stdout.splitlines())
+    if not answer:
+        reason = (done.stderr or "").strip().splitlines()
+        raise LookupError(reason[-1] if reason else "Claude Code gave no answer.")
+    return answer, cypher_run(calls)
+
+
 def run(args: argparse.Namespace) -> int:
     """Ask, then print the answer and each Cypher query run."""
     config = workspace_config(Path.cwd().resolve(), os.environ)

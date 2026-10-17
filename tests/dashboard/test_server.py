@@ -55,11 +55,11 @@ def test_a_foreign_host_name_is_refused(base: str) -> None:
     assert _get(base + "/api/state", host="evil.example")[0] == 403
 
 
-def test_only_reading_is_allowed(base: str) -> None:
+def test_only_the_ask_box_accepts_a_post(base: str) -> None:
     request = urllib.request.Request(base + "/api/state", data=b"{}", method="POST")
     with pytest.raises(urllib.error.HTTPError) as caught:
         urllib.request.urlopen(request, timeout=5)
-    assert caught.value.code == 501
+    assert caught.value.code == 404
 
 
 def test_a_kind_of_memory_opens_into_its_items(base: str) -> None:
@@ -88,3 +88,58 @@ def test_a_kind_of_memory_can_be_fetched_as_a_graph(base: str) -> None:
 
 def test_an_unknown_kind_has_no_graph(base: str) -> None:
     assert _get(base + "/api/memory/dreams/graph")[0] == 404
+
+
+def _post(url: str, payload: object, *, content_type: str = "application/json") -> tuple[int, dict]:  # type: ignore[type-arg]
+    body = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
+    request = urllib.request.Request(
+        url, data=body, headers={"Content-Type": content_type}, method="POST"
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            return response.status, json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        text = exc.read()
+        return exc.code, json.loads(text) if text.startswith(b"{") else {}
+
+
+@pytest.fixture
+def asking(config: Config, two_sessions: Graph) -> Iterator[str]:
+    def fake(question: str, config: Config) -> tuple[str, list[str]]:
+        if question == "boom":
+            raise TimeoutError
+        return f"answer to {question}", ["MATCH (n) RETURN n"]
+
+    server = make_server(config, port=0, asker=fake)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_address[1]}"
+    server.shutdown()
+    server.server_close()
+
+
+def test_a_question_gets_an_answer_and_the_cypher_that_made_it(asking: str) -> None:
+    status, body = _post(asking + "/api/ask", {"question": "who decided what?"})
+    assert status == 200
+    assert body == {"answer": "answer to who decided what?", "queries": ["MATCH (n) RETURN n"]}
+
+
+def test_an_empty_or_huge_question_is_refused(asking: str) -> None:
+    assert _post(asking + "/api/ask", {"question": "  "})[0] == 400
+    assert _post(asking + "/api/ask", {"question": "x" * 2000})[0] == 400
+
+
+def test_a_question_must_be_json_so_a_web_page_cannot_post_one_blindly(asking: str) -> None:
+    status, _ = _post(
+        asking + "/api/ask", b'{"question": "hi"}', content_type="application/x-www-form-urlencoded"
+    )
+    assert status == 415
+
+
+def test_a_failed_ask_is_reported_not_raised(asking: str) -> None:
+    status, body = _post(asking + "/api/ask", {"question": "boom"})
+    assert status == 502
+    assert "error" in body
+
+
+def test_other_posts_are_not_found(asking: str) -> None:
+    assert _post(asking + "/api/nope", {})[0] == 404

@@ -9,7 +9,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from handoff.cli.ask import ask_graph
 from handoff.config import Config
+from handoff.dashboard.chat import MAX_BODY, Asker, handle_ask
 from handoff.dashboard.memory_api import PREFIX, memory_response
 from handoff.dashboard.state import snapshot
 from handoff.ids import now_ms
@@ -32,7 +34,11 @@ _SECURITY = {
 
 
 def make_server(
-    config: Config, *, port: int, clock: Callable[[], int] = now_ms
+    config: Config,
+    *,
+    port: int,
+    clock: Callable[[], int] = now_ms,
+    asker: Asker = ask_graph,
 ) -> ThreadingHTTPServer:
     """A server on localhost only (port 0 picks a free one). Call serve_forever() to run it."""
 
@@ -70,6 +76,17 @@ def make_server(
                     self._send(200, served[name].read_bytes(), _TYPES[served[name].suffix])
                 else:
                     self._send(404, b"not found", "text/plain")
+
+        def do_POST(self) -> None:
+            if not self._host_ok():
+                self._send(403, b"forbidden", "text/plain")
+            elif self.path != "/api/ask":
+                self._send(404, b"not found", "text/plain")
+            else:
+                size = min(int(self.headers.get("Content-Length") or 0), MAX_BODY)
+                kind = self.headers.get("Content-Type", "")
+                status, payload = handle_ask(self.rfile.read(size), kind, config, asker)
+                self._send(status, json.dumps(payload).encode(), "application/json")
 
         def log_message(self, format: str, *args: Any) -> None:
             log.debug(format, *args)
