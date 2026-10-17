@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+import json
+import threading
+import urllib.error
+import urllib.request
+from collections.abc import Iterator
+
+import pytest
+from falkordb import Graph
+
+from handoff.config import Config
+from handoff.dashboard.server import make_server
+
+
+@pytest.fixture
+def base(config: Config, two_sessions: Graph) -> Iterator[str]:
+    server = make_server(config, port=0, clock=lambda: 300)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_address[1]}"
+    server.shutdown()
+    server.server_close()
+
+
+def _get(url: str, host: str | None = None) -> tuple[int, str, dict[str, str]]:
+    request = urllib.request.Request(url, headers={"Host": host} if host else {})
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            return response.status, response.read().decode(), dict(response.headers)
+    except urllib.error.HTTPError as exc:
+        return exc.code, "", {}
+
+
+def test_the_page_and_its_assets_are_served(base: str) -> None:
+    for path in ("/", "/app.js", "/style.css"):
+        status, body, headers = _get(base + path)
+        assert status == 200
+        assert body
+        assert "default-src 'self'" in headers["Content-Security-Policy"]
+
+
+def test_the_state_is_json_of_the_graph(base: str) -> None:
+    status, body, _ = _get(base + "/api/state")
+    assert status == 200
+    assert {r["role"] for r in json.loads(body)["roles"]} == {"frontend", "backend"}
+
+
+def test_unknown_paths_are_not_found(base: str) -> None:
+    assert _get(base + "/../pyproject.toml")[0] == 404
+    assert _get(base + "/nope")[0] == 404
+
+
+def test_a_foreign_host_name_is_refused(base: str) -> None:
+    """Stops a web page on another site from reading the graph through DNS rebinding."""
+    assert _get(base + "/api/state", host="evil.example")[0] == 403
+
+
+def test_only_reading_is_allowed(base: str) -> None:
+    request = urllib.request.Request(base + "/api/state", data=b"{}", method="POST")
+    with pytest.raises(urllib.error.HTTPError) as caught:
+        urllib.request.urlopen(request, timeout=5)
+    assert caught.value.code == 501
