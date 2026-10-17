@@ -29,3 +29,27 @@ def test_a_query_less_call_is_not_listed_as_cypher() -> None:
         ToolCall("mcp__falkordb__query_graph_readonly", {"query": "MATCH (n) RETURN n"}),
     ]
     assert cypher_run(calls) == ["MATCH (n) RETURN n"]
+
+
+def test_a_call_repeated_in_the_stream_is_listed_once() -> None:
+    import json
+
+    call = {
+        "type": "tool_use",
+        "id": "toolu_1",
+        "name": "mcp__falkordb__query_graph_readonly",
+        "input": {"query": "MATCH (n) RETURN n"},
+    }
+    other = {
+        "type": "tool_use",
+        "id": "toolu_2",
+        "name": "mcp__falkordb__query_graph_readonly",
+        "input": {"query": "MATCH (m) RETURN m"},
+    }
+    lines = [
+        json.dumps({"type": "assistant", "message": {"content": [call, other]}}),
+        json.dumps({"type": "assistant", "message": {"content": [call, other]}}),
+        json.dumps({"type": "result", "result": "done"}),
+    ]
+    _, calls = parse_stream(lines)
+    assert [c.input["query"] for c in calls] == ["MATCH (n) RETURN n", "MATCH (m) RETURN m"]
