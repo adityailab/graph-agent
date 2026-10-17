@@ -56,7 +56,7 @@ def test_a_custom_status_line_does_not_hide_that_the_pane_is_ready() -> None:
     screen = (
         "Claude Code v2.1.294\n"
         + "\u2500" * 40
-        + '\n\u276f Try "edit <filepath> to..."\n'
+        + '\n\u276f\u00a0Try "edit <filepath> to..."\n'
         + "\u2500" * 40
         + "\n  Haiku 5.5 (thinking on) \u00b7 ctx: -- \u00b7 T/handoff-demo"
     )
