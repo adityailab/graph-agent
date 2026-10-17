@@ -56,7 +56,7 @@ def test_procedural_items_are_the_rules_in_force(two_sessions: Graph) -> None:
     assert "no floats" in item.text
 
 
-def test_temporal_items_pair_a_replaced_decision_with_its_replacement(two_sessions: Graph) -> None:
+def test_temporal_items_are_the_whole_timeline_oldest_first_with_times(two_sessions: Graph) -> None:
     add_decision(
         two_sessions,
         request_id="p3",
@@ -67,9 +67,14 @@ def test_temporal_items_pair_a_replaced_decision_with_its_replacement(two_sessio
         at=300,
     )
     supersede_decision(two_sessions, new_id="d2", old_id="d1", at=301)
-    [item] = memory_items(two_sessions, "temporal", since=0, limit=50)
-    assert "read avatarUrl" in item.text
-    assert "read avatar_url" in item.text
+    items = memory_items(two_sessions, "temporal", since=0, limit=50, oldest_first=True)
+    assert [i.at for i in items] == sorted(i.at for i in items)
+    assert {"request", "decision", "edit", "replaced"} <= {i.title for i in items}
+    replaced = next(i for i in items if i.title == "replaced")
+    assert "read avatarUrl" in replaced.text
+    assert "read avatar_url" in replaced.text
+    assert all(i.at > 0 for i in items)
+    assert replaced.at == 300  # when the replacing decision was made, not an unset link time
 
 
 def test_social_items_are_messages_and_reads(two_sessions: Graph) -> None:
@@ -106,3 +111,24 @@ def test_relevant_memories_are_decisions_matching_the_words_of_a_task(two_sessio
 
 def test_nothing_is_relevant_to_an_unrelated_task(two_sessions: Graph) -> None:
     assert relevant_memories(two_sessions, "paint the garage", k=5) == []
+
+
+def test_a_replaced_decision_is_not_offered_as_relevant(two_sessions: Graph) -> None:
+    add_decision(
+        two_sessions,
+        request_id="p3",
+        decision_id="d2",
+        text="read avatar_url",
+        reason="rename",
+        topic="profile",
+        at=300,
+    )
+    supersede_decision(two_sessions, new_id="d2", old_id="d1", at=301)
+    texts = [i.text for i in relevant_memories(two_sessions, "avatar read the url", k=5)]
+    assert any("avatar_url" in t for t in texts)
+    assert not any("avatarUrl" in t for t in texts)
+
+
+def test_relevant_memories_carry_their_time(two_sessions: Graph) -> None:
+    [item] = relevant_memories(two_sessions, "show the avatarUrl", k=5)
+    assert item.at == 112

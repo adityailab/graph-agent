@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from falkordb import Graph
 
+from handoff.graph.decisions import add_decision
 from handoff.graph.history import handoff_requests
 from handoff.graph.records import DecisionView, NeedView
 
@@ -31,3 +32,20 @@ def test_handoff_filters_by_time_and_covers_all_roles(two_sessions: Graph) -> No
         "p2",
         "p3",
     ]
+
+
+def test_decisions_of_one_request_come_in_the_order_they_were_made(two_sessions: Graph) -> None:
+    # ids sort the other way round from the times: the id must not decide the order
+    for decision_id, text, at in (("zz", "first thing decided", 500), ("aa", "second", 600)):
+        add_decision(
+            two_sessions,
+            request_id="p3",
+            decision_id=decision_id,
+            text=text,
+            reason="r",
+            topic="order",
+            at=at,
+        )
+    [view] = [v for v in handoff_requests(two_sessions, role="backend", since=0) if v.id == "p3"]
+    assert [d.text for d in view.decisions] == ["first thing decided", "second"]
+    assert [d.at for d in view.decisions] == [500, 600]

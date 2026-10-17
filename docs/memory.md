@@ -44,3 +44,11 @@ The dashboard's **ask** tab is a chat with the graphs. It remembers the last six
 replaced it?" works), shows what Claude Code is doing as it happens (reading the guide, each Cypher
 query, the answer being written) and keeps the Cypher it ran. Thinking text is not exposed by Claude
 Code, so the page shows steps and notes, not raw reasoning.
+
+## Audit notes (18 Oct)
+
+Found and fixed: decisions of one request were ordered by random id, not time; the temporal card
+showed only replaced decisions and no times (now the whole timeline, with times); a replaced
+decision could still be offered as "relevant". Still open (see the report): topic matching misses
+about 60% of same-subject pairs at `SAME = 0.15`; standing rules reach a session only on its first
+request; nothing is ever forgotten or summarised.

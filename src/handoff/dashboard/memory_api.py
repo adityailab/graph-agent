@@ -44,7 +44,9 @@ def memory_response(
     if drawn:
         return _drawing(memory_graph(graph, name.removesuffix("/graph"), limit=GRAPH_EDGES))
     if not relevant:
-        return _payload(memory_items(graph, name, since=since, limit=LIMIT))
+        return _payload(
+            memory_items(graph, name, since=since, limit=LIMIT, oldest_first=name == "temporal")
+        )
     role = name.removeprefix("relevant/")
     task = next((c.working_on for c in role_contexts(graph, since=since) if c.role == role), "")
     return _payload(relevant_memories(graph, task, k=RELEVANT))

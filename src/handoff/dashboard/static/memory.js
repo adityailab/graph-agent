@@ -20,22 +20,26 @@
     return card;
   }
 
+  // One session's card: what it is on (three lines, click for all), then what it learned and what
+  // is relevant, each folded until asked for.
   function context(c) {
     var box = el("div", { "class": "ctx" }), bar = el("div", { "class": "ctx-bar" }, c.role);
     bar.style.background = MC.color(c.role); box.appendChild(bar);
     var body = el("div", { "class": "ctx-body" });
-    body.appendChild(el("h3", {}, "working on")); body.appendChild(MC.rich(el("p", { "class": "full" }), c.working_on));
-    body.appendChild(el("h3", {}, "learned from other sessions (" + c.learned.length + ")"));
-    if (!c.learned.length) body.appendChild(el("p", { "class": "dim" }, "nothing yet: no decision has travelled to this role"));
+    body.appendChild(el("h3", {}, "working on")); body.appendChild(MC.clamp(MC.rich(el("p", { "class": "full" }), c.working_on)));
+    var fold = el("details", { "class": "fold" });
+    fold.appendChild(el("summary", {}, "learned from other sessions (" + c.learned.length + ")"));
+    if (!c.learned.length) fold.appendChild(el("p", { "class": "dim" }, "nothing yet: no decision has travelled to this role"));
     var list = el("ul");
     c.learned.slice(0, 8).forEach(function (pair) {
       var li = el("li"), who = el("span", { "class": "t-role" }, pair[0]); who.style.color = MC.color(pair[0]);
       li.appendChild(who); li.appendChild(document.createTextNode(": ")); MC.rich(li, pair[1]); list.appendChild(li);
     });
     if (c.learned.length > 8) list.appendChild(el("li", { "class": "dim" }, "… and " + (c.learned.length - 8) + " more"));
-    body.appendChild(list);
-    var facts = el("p", { "class": "dim facts" }, "inbox " + c.inbox + " delivered · open needs " + c.open_needs + " · rules in force " + c.rules);
-    body.appendChild(facts); MC.memoryDetail.relevantFor(c.role, body); box.appendChild(body);
+    fold.appendChild(list); body.appendChild(fold);
+    MC.memoryDetail.relevantFor(c.role, body);
+    body.appendChild(el("p", { "class": "dim facts" }, "inbox " + c.inbox + " delivered · open needs " + c.open_needs + " · rules in force " + c.rules));
+    box.appendChild(body);
     return box;
   }
 

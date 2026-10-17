@@ -14,7 +14,7 @@
 
   function show(n) {
     shown = n.id; MC.clear(box); box.hidden = false;
-    var head = el("h3", {}, n.kind + (n.role ? " · " + n.role : ""));
+    var head = el("h3", {}, n.kind + (n.role ? " · " + n.role : "") + (n.at ? " · " + MC.clock(n.at) : ""));
     box.appendChild(head);
     box.appendChild(MC.rich(el("p", { "class": "full" }), n.text));
     var list = el("ul");

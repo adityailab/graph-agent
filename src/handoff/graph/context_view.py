@@ -16,6 +16,7 @@ class ViewNode:
     kind: str
     text: str
     role: str
+    at: int = 0  # when it happened (ms since the epoch); 0 when it has no time
 
 
 @dataclass(frozen=True)
@@ -38,7 +39,7 @@ MATCH (a)-[r]->(b) WHERE labels(a)[0] IN $kinds AND labels(b)[0] IN $kinds
   AND (size($rels) = 0 OR type(r) IN $rels)
 RETURN id(a), labels(a)[0], coalesce(a.role, a.text, a.path, a.name),
        id(b), labels(b)[0], coalesce(b.role, b.text, b.path, b.name),
-       type(r), coalesce(r.at, b.at, a.at, 0) AS ts
+       type(r), coalesce(r.at, b.at, a.at, 0) AS ts, a.at, b.at
 ORDER BY ts DESC LIMIT $limit
 """
 # Which role's session each node belongs to; two small queries beat one clever one.
@@ -86,13 +87,13 @@ def work_graph(
     owners = _owners(graph)
     nodes: dict[str, ViewNode] = {}
     edges: list[ViewEdge] = []
-    for a, a_kind, a_text, b, b_kind, b_text, kind, _ts in graph.ro_query(
+    for a, a_kind, a_text, b, b_kind, b_text, kind, _ts, a_at, b_at in graph.ro_query(
         _EDGES, {"kinds": kinds or KINDS, "rels": rels or [], "limit": limit}
     ).result_set:
-        for node_id, node_kind, text in ((a, a_kind, a_text), (b, b_kind, b_text)):
+        for node_id, node_kind, text, at in ((a, a_kind, a_text, a_at), (b, b_kind, b_text, b_at)):
             key = f"{node_kind}:{node_id}"
             role = owners.get(int(node_id), "") if node_kind != "Session" else str(text)
-            nodes.setdefault(key, ViewNode(key, str(node_kind), _short(text), role))
+            nodes.setdefault(key, ViewNode(key, str(node_kind), _short(text), role, int(at or 0)))
         edges.append(ViewEdge(f"{a_kind}:{a}", f"{b_kind}:{b}", str(kind)))
     return GraphView(tuple(nodes.values()), tuple(edges))
 

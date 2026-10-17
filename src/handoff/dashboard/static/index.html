@@ -4,14 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>handoff mission control</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
 <link rel="stylesheet" href="/style.css">
+<script src="/theme.js"></script>
 </head>
 <body>
 <header class="top">
-  <span class="brand">handoff</span>
+  <span class="brand"><svg id="logo" class="logo" viewBox="0 0 64 28" aria-hidden="true"></svg>handoff</span>
   <span id="graph-name" class="dim"></span>
   <span id="status" class="status" role="status">connecting</span>
   <span id="clock" class="dim"></span>
+  <button id="theme" type="button" aria-label="Switch between light and dark">dark mode</button>
   <button id="replay" type="button">replay</button>
 </header>
 <nav class="tabs" aria-label="Views">
@@ -57,13 +60,13 @@
         <aside class="graph-side">
           <h2>graph</h2>
           <p id="graph-count" class="dim"></p>
-          <div id="legend" class="legend"></div>
+          <details class="fold" id="legend-fold"><summary>legend and counts</summary><div id="legend" class="legend"></div></details>
           <div id="detail" class="detail" hidden></div>
           <div id="mem-list" class="mem-list" hidden></div>
-          <p class="hint">Drag a node to place it, scroll to zoom, drag the background to pan, click a node to read
+          <details class="fold"><summary>how to use this graph</summary><p class="hint">Drag a node to place it, scroll to zoom, drag the background to pan, click a node to read
             all of it and its relationships, click empty space or press Esc to clear. The same graph opens in the
             <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a>
-            (graph <span id="graph-ref"></span>).</p>
+            (graph <span id="graph-ref"></span>).</p></details>
         </aside>
       </div>
     </section>

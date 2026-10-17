@@ -15,7 +15,10 @@ _PARTS: dict[str, tuple[list[str], list[str]]] = {
         ["RECEIVED", "CAUSED", "TOUCHED", "NEXT", "SENT"],
     ),
     "semantic": (["Session", "Request", "Decision", "Topic"], ["RECEIVED", "LED_TO", "ABOUT"]),
-    "temporal": (["Decision"], ["SUPERSEDES"]),
+    "temporal": (
+        ["Request", "Decision", "Message"],
+        ["NEXT", "LED_TO", "SUPERSEDES", "REPLY_TO"],
+    ),
     "social": (["Session", "Request", "Message"], ["SENT", "DELIVERED_TO", "CONSULTED"]),
 }
 WORKING_EDGES = 12  # working memory is what is recent, so only the newest links

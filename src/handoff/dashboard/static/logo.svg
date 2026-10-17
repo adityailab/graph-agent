@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 28" width="64" height="28">
+  <g fill="none" stroke="#6a737d" stroke-width="1.6" stroke-linecap="round"><path d="M19 15h6m-2-2 2 2-2 2"/><path d="M41 15h6m-2-2 2 2-2 2"/></g>
+  <ellipse cx="10" cy="16" rx="9" ry="8" fill="#0969da"/><ellipse cx="32" cy="16" rx="9" ry="8" fill="#8250df"/><ellipse cx="54" cy="16" rx="9" ry="8" fill="#b15c00"/>
+  <g fill="#fff"><circle cx="7" cy="15" r="2.4"/><circle cx="13" cy="15" r="2.4"/><circle cx="29" cy="15" r="2.4"/><circle cx="35" cy="15" r="2.4"/><circle cx="51" cy="15" r="2.4"/><circle cx="57" cy="15" r="2.4"/></g>
+  <g fill="#121826"><circle cx="7.6" cy="15.3" r="1.2"/><circle cx="13.6" cy="15.3" r="1.2"/><circle cx="29.6" cy="15.3" r="1.2"/><circle cx="35.6" cy="15.3" r="1.2"/><circle cx="51.6" cy="15.3" r="1.2"/><circle cx="57.6" cy="15.3" r="1.2"/></g>
+  <g stroke-width="1.6" stroke-linecap="round" stroke="#0969da"><path d="M10 8V4"/></g><circle cx="10" cy="3" r="1.8" fill="#0969da"/>
+  <g stroke-width="1.6" stroke-linecap="round" stroke="#8250df"><path d="M32 8V4"/></g><circle cx="32" cy="3" r="1.8" fill="#8250df"/>
+  <g stroke-width="1.6" stroke-linecap="round" stroke="#b15c00"><path d="M54 8V4"/></g><circle cx="54" cy="3" r="1.8" fill="#b15c00"/>
+</svg>
