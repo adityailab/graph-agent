@@ -13,7 +13,7 @@ from falkordb import Graph
 from handoff.config import Config
 from handoff.format import shorten
 from handoff.graph.connection import connect, graph_exists, server_reachable
-from handoff.graph.messages import role_messages
+from handoff.graph.messages import latest_digest, role_messages
 from handoff.graph.needs import count_open_needs
 from handoff.graph.requests import latest_request_id, request_text
 from handoff.graph.sessions import active_sessions
@@ -46,11 +46,16 @@ def _sessions(config: Config) -> list[str]:
 
 
 def _print_messages_for_you(graph: Graph) -> None:
-    """What sessions sent to the person (role 'person'), newest few."""
+    """What sessions sent to the person (role 'person'): newest few messages, then the
+    coordinator's latest digest in full."""
     mine = role_messages(graph, role="person", since=now_ms() - DAY_MS, limit=3)
     if mine:
         print("messages for you:")
         print("\n".join(f"  {m.from_role}: {shorten(m.text, 100)}" for m in mine))
+    digest = latest_digest(graph, role="person")
+    if digest:
+        print("latest digest:")
+        print("\n".join(f"  {line}" for line in digest.splitlines()))
 
 
 def run(args: argparse.Namespace) -> int:

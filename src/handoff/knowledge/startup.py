@@ -19,7 +19,9 @@ from handoff.ids import now_ms
 from handoff.knowledge.adapters import EmbedderAdapter, ModelLLM
 from handoff.knowledge.client import KnowledgeClient
 from handoff.knowledge.extractor import WorkExtractor, handoff_ontology
+from handoff.knowledge.growth import Grower
 from handoff.knowledge.lead import lock_name
+from handoff.knowledge.ontology_store import load_learned
 from handoff.knowledge.worker import KnowledgeWorker
 from handoff.models.base import ModelClient
 
@@ -38,7 +40,7 @@ def build_knowledge_client(
         llm=llm,
         embedder=EmbedderAdapter(embedder),
         embedding_dimension=EMBED_DIM,
-        ontology=handoff_ontology(),
+        ontology=handoff_ontology(load_learned(config.home, config.graph_name)),
     )
     # An LLM extractor avoids GLiNER's separate model download.
     # Two at a time: each model call may start a `claude -p` process.
@@ -84,6 +86,7 @@ def start_knowledge(
         home=config.home,
         lock_name=lock_name(config),
         max_per_hour=int(env.get("HANDOFF_KNOWLEDGE_MAX_PER_HOUR", "60")),
+        grow=Grower(ingest, config.home, config.graph_name).note,
         refresh=lambda: refresh_insights(
             graph, ingest.kg, at=now_ms(), since=now_ms() - 7 * 24 * 60 * 60_000
         ),

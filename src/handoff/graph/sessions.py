@@ -51,7 +51,8 @@ def active_sessions(graph: Graph, *, since: int, include_person: bool = False) -
     """Return sessions seen at or after `since`, ordered by role. The person using the CLI
     (role 'person') is not a Claude session, so it is left out unless asked for."""
     rows = graph.ro_query(
-        f"MATCH (s:Session) WHERE s.last_seen_at >= $since AND ($person OR s.role <> 'person') "
+        f"MATCH (s:Session) WHERE s.last_seen_at >= $since AND s.role <> 'coordinator' "
+        f"AND ($person OR s.role <> 'person') "
         f"RETURN {_SESSION_FIELDS} ORDER BY s.role",
         {"since": since, "person": include_person},
     ).result_set

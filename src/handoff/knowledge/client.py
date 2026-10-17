@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
 from typing import Any
 
 from falkordb import Graph
-from graphrag_sdk import GraphExtraction, GraphRAG, GraphRAGError
+from graphrag_sdk import Entity, GraphExtraction, GraphRAG, GraphRAGError
 
 from handoff.graph.knowledge import merge_same_name_entities
 from handoff.knowledge.adapters import ModelLLM
@@ -13,6 +15,7 @@ from handoff.knowledge.runner import AsyncRunner
 from handoff.models.base import ModelUnavailable
 
 TIMEOUT_SECONDS = 300
+_BOUNDARIES = "software projects: code, infrastructure and delivery work"
 
 
 class KnowledgeUnavailable(ModelUnavailable):
@@ -41,6 +44,23 @@ class KnowledgeClient:
         if self._llm.failures > failures:
             self._call(self.rag.delete_document(document_id, if_missing="ignore"))
             raise KnowledgeUnavailable("the model failed while extracting; will retry later")
+
+    def suggest_types(self, texts: list[str]) -> list[tuple[str, str]]:
+        """Entity types the given texts mention that the ontology lacks, as proposed by
+        GraphRAG-SDK (it reads files, so the texts are written to a temporary folder)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for n, text in enumerate(texts):
+                path = Path(tmp) / f"item{n}.txt"
+                path.write_text(text)
+                paths.append(str(path))
+            proposal = self._call(self.rag.suggest_schema_extensions(paths, boundaries=_BOUNDARIES))
+        return [(e.label, e.description or "") for e in proposal.new_entities]
+
+    def add_types(self, types: list[tuple[str, str]]) -> None:
+        """Add entity types for future extraction; existing entities are untouched."""
+        for label, description in types:
+            self._call(self.rag.add_entity(Entity(label=label, description=description)))
 
     def finalize_sync(self) -> None:
         """Run GraphRAG's post-ingest steps (including its exact same-name, same-type merge),

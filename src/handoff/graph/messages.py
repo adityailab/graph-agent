@@ -130,3 +130,13 @@ def add_citations(graph: Graph, *, message_id: str, cited_ids: list[str]) -> Non
             f"MATCH (n:{label} {{id: cid}}) MERGE (m)-[:CITES]->(n)",
             {"mid": message_id, "ids": cited_ids},
         )
+
+
+def latest_digest(graph: Graph, *, role: str) -> str | None:
+    """The newest digest sent to `role` (the coordinator's summaries), or None."""
+    rows = graph.ro_query(
+        "MATCH (m:Message {kind: 'digest', to_role: $role}) RETURN m.text "
+        "ORDER BY m.at DESC LIMIT 1",
+        {"role": role},
+    ).result_set
+    return str(rows[0][0]) if rows else None
