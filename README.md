@@ -170,3 +170,6 @@ make check      # format, lint, mypy --strict, tests
 ```
 
 User guide: [`docs/guide.md`](docs/guide.md). Design, plan and decision log: `docs/superpowers/`.
+
+The graph view uses [force-graph](https://github.com/vasturiano/force-graph) (MIT, vendored in
+`src/handoff/dashboard/static/`), the same library the FalkorDB browser draws with.

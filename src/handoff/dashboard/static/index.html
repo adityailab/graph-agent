@@ -36,15 +36,17 @@
       <div class="graph-bar">
         <button type="button" data-mode="work" aria-pressed="true">work graph</button>
         <button type="button" data-mode="concepts" aria-pressed="false">concept graph</button>
+        <button type="button" id="graph-fit">fit</button>
+        <button type="button" id="graph-unpin">unpin all</button>
         <span id="graph-count" class="dim"></span>
       </div>
       <div class="canvas-wrap">
-        <canvas id="graph" aria-label="The shared graph, drawn live"></canvas>
+        <div id="graph" role="img" aria-label="The shared graph, drawn live"></div>
         <div id="tip" class="tip" hidden></div>
       </div>
       <div id="legend" class="legend"></div>
       <div id="detail" class="detail" hidden></div>
-      <p class="hint">Click a node to read all of it and its relationships. The same graph opens in the
+      <p class="hint">Drag a node to place it, scroll to zoom, drag the background to pan. Click a node to read all of it and its relationships. The same graph opens in the
         <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a> (graph <span id="graph-ref"></span>).</p>
     </section>
     <section id="view-tracks" class="view" hidden>
@@ -60,6 +62,7 @@
 <script src="/critter.js"></script>
 <script src="/orchestration.js"></script>
 <script src="/handoff.js"></script>
+<script src="/force-graph.min.js"></script>
 <script src="/graphdetail.js"></script>
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>

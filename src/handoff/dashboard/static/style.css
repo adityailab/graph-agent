@@ -102,7 +102,7 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .graph-bar .dim { margin-left: auto; }
 .graph-bar button[aria-pressed="true"] { background: var(--blue); color: var(--bg); border-color: var(--blue); }
 .canvas-wrap { position: relative; height: 620px; border: 1px solid var(--line); }
-#graph { width: 100%; height: 100%; display: block; }
+#graph { width: 100%; height: 100%; }
 .tip { position: absolute; max-width: 320px; background: var(--bg); border: 1px solid var(--ink); padding: 4px 8px; pointer-events: none; overflow-wrap: anywhere; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; color: var(--dim); }
 .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; background: var(--c); border-radius: 50%; }
@@ -143,3 +143,4 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .detail li { overflow-wrap: anywhere; }
 .detail .rel { color: var(--amber); font-weight: 700; } .detail .kind { color: var(--dim); }
 a { color: var(--blue); }
+.legend span.line::before { width: 16px; height: 3px; border-radius: 0; vertical-align: middle; }
