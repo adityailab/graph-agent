@@ -1,36 +1,10 @@
-/* page-only CSS for 02-handoff (shared styles are in shared.css) */
-.stats { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-6); margin-bottom: var(--s-4); }
-.stat b { font-size: var(--fs-2xl); line-height: 1; margin-right: var(--s-2); }
-.stat:nth-child(1) b { color: var(--amber); } .stat:nth-child(2) b { color: var(--green); }
-.stat span { color: var(--dim); font-size: var(--fs-sm); }
-.flow-layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: var(--s-5); align-items: start; }
-@media (max-width: 1000px) { .flow-layout { grid-template-columns: minmax(0, 1fr); } }
-.svg-scroll { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s-2); }
-#hf-graph { display: block; width: 100%; max-width: 640px; height: auto; margin: 0 auto; min-width: 520px; }
-.hf-line { fill: none; stroke: var(--dim); }
-.hf-edge.on .hf-line { stroke: var(--ink); }
-.hf-hit { fill: none; stroke: transparent; stroke-width: 14; }
-.hf-bar { fill: var(--bg); stroke: var(--line); }
-.hf-edge:focus-visible .pill-box, .hf-node:focus-visible .card-box { stroke: var(--blue); stroke-width: 2; }
-.hf-edge:focus-visible, .hf-node:focus-visible { outline: none; }
-.hf-edge.on .pill-box { stroke: var(--ink); stroke-width: 1.5; }
-.hf-edge { cursor: pointer; }
-.arrowhead { fill: var(--dim); }
-.pill-box { fill: var(--bg); stroke: var(--line); }
-.hf-route { fill: var(--dim); font-size: 10px; font-weight: 700; }
-.hf-dec { fill: var(--green); font-size: 10px; font-weight: 700; }
-.hf-rd { fill: var(--amber); font-size: 10px; font-weight: 700; }
-.hf-node { cursor: pointer; }
-.card-box { fill: var(--soft); stroke: var(--line); stroke-width: 1.2; }
-.hf-node.on .card-box { stroke: var(--ink); stroke-width: 2; }
-.hf-name { fill: var(--ink); font-size: 12.5px; font-weight: 700; }
-.card-line { fill: var(--ink); font-size: 10.5px; } .card-line.dim { fill: var(--dim); }
-.hf-key { margin-top: var(--s-3); font-size: var(--fs-xs); color: var(--dim); display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); }
-.flow-detail { display: grid; gap: var(--s-3); align-content: start; position: sticky; top: var(--s-2); }
-.flow-detail .sel { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-3); }
-.flow-detail .sel .dim { font-size: var(--fs-xs); }
-.hcard { border: 1px solid var(--line); background: var(--soft); border-radius: var(--radius); padding: var(--s-3); }
-.hcard[open] { background: var(--bg); border-color: var(--ink); }
+/* handoff: the drawing is orchestration's (see page-orchestration.css); only the detail below is its own */
+#view-handoff .orch-status b { color: var(--green); font-size: var(--fs-lg); margin-right: var(--s-1); }
+.hf-detail { display: grid; gap: var(--s-3); max-width: 820px; margin: var(--s-5) auto 0; position: static; }
+.hf-detail .sel { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-3); }
+.hf-detail .sel .dim { font-size: var(--fs-xs); }
+.hcard { padding: var(--s-3); }
+.hcard[open] { border-color: var(--ink); }
 .hcard > summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); }
 .hcard .arrow { color: var(--dim); }
 .hcard .nb { white-space: nowrap; font-size: var(--fs-xs); color: var(--green); font-weight: 700; margin-left: auto; }
@@ -41,7 +15,3 @@
 .hcard li { border-left: 3px solid var(--green); padding-left: var(--s-3); overflow-wrap: anywhere; }
 .why-fold { margin: var(--s-1) 0 0; } .why-fold summary { font-size: var(--fs-xs); }
 .why { margin: var(--s-1) 0 0; color: var(--dim); font-size: var(--fs-sm); }
-
-/* alive, like orchestration: dashes move along the arrows, a square rides one when a read happens */
-.hf-line { stroke-dasharray: 7 5; animation: flow 1.4s linear infinite; }
-.hf-node .node-ring { stroke-width: 1.5; }

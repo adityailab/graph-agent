@@ -4,7 +4,7 @@
   "use strict";
   var MC = window.MC, el = MC.el;
   var CARD_W = 176, CARD_H = 74, LINE_H = 13, MIN_PILL = 104, WIDTH = 760;
-  var GLYPH = { message: "━━", nudge: "━━", digest: "━━", read: "╌╌", need: "···", question: "?", standin_answer: "↩" };
+  var GLYPH = { decision: "◆", message: "━━", nudge: "━━", digest: "━━", read: "╌╌", need: "···", question: "?", standin_answer: "↩" };
   var KINDS = ["message", "nudge", "digest", "question", "standin_answer", "read", "need"];
 
   function label(kind) { return kind.replace("_", " "); }
@@ -64,7 +64,9 @@
   }
 
   // One arrow per direction. Returns {key: path} so a travelling square can ride the same line.
-  function drawEdges(layer, flows, pos) {
+  // `opts.on` ("from>to") highlights one arrow instead of the newest, `opts.pick(from, to)` makes arrows clickable.
+  function drawEdges(layer, flows, pos, opts) {
+    opts = opts || {};
     MC.clear(layer);
     var by = Object.create(null), newest = flows.reduce(function (m, f) { return Math.max(m, f.last_at); }, 0), paths = Object.create(null);
     flows.forEach(function (f) {
@@ -73,13 +75,18 @@
       p.kinds.push(f); p.total += f.count; p.at = Math.max(p.at, f.last_at);
     });
     Object.keys(by).forEach(function (key) {
-      var p = by[key], latest = p.at === newest && newest > 0, both = !!by[p.target + ">" + p.source];
+      var p = by[key], latest = opts.on ? opts.on === key : p.at === newest && newest > 0, both = !!by[p.target + ">" + p.source];
       p.kinds.sort(dir);
-      var z = size(p, latest), a = pos[p.source], b = pos[p.target], c = both ? curve(a, b, apart(a, b), 0) : curve(a, b, 0, 30);
+      var z = size(p, latest && !opts.on), a = pos[p.source], b = pos[p.target], c = both ? curve(a, b, apart(a, b), 0) : curve(a, b, 0, 30);
       if (both) { var out = (Math.abs(c.nx) * z.w + Math.abs(c.ny) * z.h) / 2 + 3; c.mx += c.nx * out; c.my += c.ny * out; }
       var g = el("g", { "class": "orch-edge" + (latest ? " latest" : ""), role: "img", "aria-label": p.source + " to " + p.target + ": " + p.kinds.map(function (f) { return label(f.kind) + " " + f.count; }).join(", ") });
-      g.appendChild(el("path", { d: c.d, "class": "edge flow", "stroke-width": String(Math.min(2.4, 1 + p.total * 0.12)), "marker-end": "url(#oa)" }));
+      g.appendChild(el("path", { d: c.d, "class": "edge flow", "stroke-width": String(Math.min(2.4, 1 + p.total * 0.12)), "marker-end": "url(#" + (opts.marker || "oa") + ")" }));
       pill(g, p, c, z); layer.appendChild(g); paths[key] = c.d;
+      if (opts.pick) {
+        g.setAttribute("role", "button"); g.setAttribute("tabindex", "0"); g.style.cursor = "pointer";
+        g.addEventListener("click", function () { opts.pick(p.source, p.target); });
+        g.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); opts.pick(p.source, p.target); } });
+      }
     });
     return paths;
   }

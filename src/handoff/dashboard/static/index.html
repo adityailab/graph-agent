@@ -47,18 +47,17 @@
       <details class="fold orch-lines"><summary id="lines-summary">all lines between sessions</summary><div id="flows"></div></details>
     </section>
     <section id="view-handoff" class="view" hidden>
-      <div class="page-head"><h2>hand-offs</h2><span class="dim">who learned what from whose work · click an arrow or a session</span></div>
-      <div id="hf-stats" class="stats"></div>
-      <div class="flow-layout">
-        <div>
-          <div class="svg-scroll"><svg id="hf-graph" viewBox="0 0 600 280" role="group" aria-label="Which session learned decisions from which">
-            <defs><marker id="hfa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
-          </svg></div>
-          <div class="hf-key"><span>arrow = decisions flowing from the session that made them to the one that read them</span>
-            <span><b class="k-decided">◆</b> decisions · <b class="k-read">╌╌</b> reads</span><span>green bar = share of a session's knowledge learned from others</span></div>
-        </div>
-        <aside id="hf-detail" class="flow-detail" aria-label="Hand-off detail"></aside>
+      <div class="page-head"><h2>hand-offs</h2><span class="dim">who learned what from whose work · click an arrow or a session to open it</span></div>
+      <div id="hf-stats" class="orch-status"></div>
+      <div class="svg-scroll"><svg id="hf-graph" viewBox="0 0 760 370" role="group" aria-label="Which session learned decisions from which">
+        <defs><marker id="hfa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker></defs>
+      </svg></div>
+      <div class="orch-key" aria-label="Line key">
+        <span class="k-decided"><b>◆ decision</b> made by the session the arrow leaves</span>
+        <span class="k-read"><b>╌╌ read</b> by the session it points to</span>
+        <span>moving dashes = live · a travelling square = a read just happened</span>
       </div>
+      <aside id="hf-detail" class="flow-detail hf-detail" aria-label="Hand-off detail"></aside>
     </section>
     <section id="view-memory" class="view" hidden>
       <div id="memory"></div>

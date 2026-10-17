@@ -88,3 +88,7 @@
 .pill-route, .pill-line, .pill-tag { font-size: 10px; }
 .orch-edge .edge { stroke-width: inherit; }
 .orch-node .card-box { stroke-width: 1; } .orch-node.on .card-box { stroke-width: 1.6; }
+.pill-line.k-decision { fill: var(--green); }
+#hf-graph { display: block; width: 100%; height: auto; min-width: 560px; }
+.orch-edge[role="button"]:focus-visible .pill-box { stroke: var(--blue); stroke-width: 2; }
+.orch-edge:focus-visible { outline: none; }
