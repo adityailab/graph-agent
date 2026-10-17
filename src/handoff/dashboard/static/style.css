@@ -265,3 +265,18 @@ details.card[open] > summary .peek { display: none; }
 .flow-steps { display: flex; gap: 8px; flex-wrap: wrap; }
 .flow-steps .connect { border-color: var(--blue); color: var(--blue); font-size: 11px; }
 .flow-steps .connect:disabled { opacity: .35; cursor: default; }
+
+/* the handoff workflow */
+#hf-graph { width: 100%; height: auto; display: block; }
+.hf-line { fill: none; stroke: var(--amber); stroke-width: 2; opacity: .75; }
+.hf-edge .hf-hit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; }
+.hf-edge:hover .hf-line, .hf-edge.on .hf-line { stroke-width: 3.2; opacity: 1; }
+.hf-label { fill: var(--dim); font-size: 10.5px; }
+.hf-edge.on .hf-label { fill: var(--ink); font-weight: 700; }
+.arrowhead { fill: var(--amber); }
+.hf-node { cursor: pointer; }
+.hf-node.on .card-box { stroke: var(--ink); stroke-width: 2; }
+.hf-name { fill: var(--ink); font-size: 13px; }
+.flow-detail .card { margin-bottom: 8px; }
+.flow-detail .card summary .peek { display: block; margin: 2px 0 0 0; color: var(--dim); }
+.flow-detail .card[open] summary .peek { display: none; }

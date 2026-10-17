@@ -36,7 +36,17 @@
         <span class="k-need">needs ·····</span> A square travelling along a line is an event happening now.</p>
     </section>
     <section id="view-handoff" class="view" hidden>
-      <div id="handoff"></div>
+      <div class="ask-bar">
+        <h2>hand-offs</h2>
+        <span class="dim">each arrow is one session reading another's work and learning its decisions · click an arrow or a session</span>
+      </div>
+      <div id="hf-stats" class="stats"></div>
+      <div class="flow-layout">
+        <svg id="hf-graph" viewBox="0 0 760 400" role="img" aria-label="Who read whose work, as a workflow">
+          <defs><marker id="hf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
+        </svg>
+        <aside id="hf-detail" class="flow-detail"></aside>
+      </div>
     </section>
     <section id="view-memory" class="view" hidden>
       <div id="memory"></div>
@@ -106,6 +116,7 @@
 <script src="/common.js"></script>
 <script src="/critter.js"></script>
 <script src="/orchestration.js"></script>
+<script src="/handoffcards.js"></script>
 <script src="/handoff.js"></script>
 <script src="/memorydetail.js"></script>
 <script src="/memory.js"></script>
