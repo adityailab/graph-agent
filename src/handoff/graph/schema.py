@@ -26,6 +26,7 @@ INDEXED: tuple[tuple[str, str], ...] = (
     ("Message", "id"),
     ("Message", "to_role"),
     ("Need", "for_role"),
+    ("Insight", "kind"),
 )
 
 # Each needs the matching range index above first.

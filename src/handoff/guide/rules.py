@@ -12,6 +12,11 @@ RULES: tuple[str, ...] = (
     "No =~ regular expressions: use string.matchRegEx(text, pattern).",
     "No datetime(): times (at, last_seen_at, started_at) are integer milliseconds since the epoch.",
     "Labels cannot be alternated as (n:A|B): use WHERE n:A OR n:B.",
+    "algo.* procedures fail with 'unknown relationship-type' or 'unknown label' when the "
+    "graph has none yet: check the counts above before calling one.",
+    "algo.betweenness estimates by sampling: results vary between runs unless you pass "
+    "samplingSize and samplingSeed, and can still miss paths; check important answers with a "
+    "plain MATCH.",
     "Full-text search: CALL db.idx.fulltext.queryNodes('Decision', 'word') YIELD node, score. "
     "%word% tolerates one typo, word* matches a prefix, | means or.",
     "Read the human fields (text, reason, name, path); ids are opaque and only useful for joining.",

@@ -54,12 +54,12 @@ RECIPES: tuple[Recipe, ...] = (
         "RETURN node.name, score ORDER BY score DESC LIMIT 5",
     ),
     Recipe(
-        "work that bridges roles (betweenness)",
+        "requests that relay reading (betweenness; a sampled estimate, so pass a seed)",
         "work",
-        "CALL algo.betweenness({nodeLabels: ['Request', 'Edit', 'File'], relationshipTypes: "
-        "['CAUSED', 'TOUCHED']}) "
+        "CALL algo.betweenness({nodeLabels: ['Request'], relationshipTypes: ['CONSULTED'], "
+        "samplingSize: 10000, samplingSeed: 42}) "
         "YIELD node, score WITH node, score WHERE score > 0 "
-        "RETURN labels(node)[0] AS kind, node.name, score ORDER BY score DESC LIMIT 5",
+        "RETURN node.name, score ORDER BY score DESC LIMIT 5",
     ),
     Recipe(
         "clusters of edits sharing files (connected components)",

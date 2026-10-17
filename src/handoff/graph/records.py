@@ -121,3 +121,11 @@ class ItemRef:
 class EntityRef:
     name: str
     type: str
+
+
+@dataclass(frozen=True)
+class InsightView:
+    kind: str  # "collision", "load_bearing", "bridge" or "theme"
+    score: float
+    text: str
+    about: tuple[str, ...]  # names of the nodes it is about
