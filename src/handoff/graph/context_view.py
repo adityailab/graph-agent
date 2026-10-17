@@ -59,7 +59,7 @@ LIMIT $limit
 """
 
 
-def _short(text: object, width: int = 90) -> str:
+def _short(text: object, width: int = 400) -> str:
     if text is None:
         return ""
     one_line = " ".join(str(text).split())

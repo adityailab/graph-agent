@@ -43,6 +43,9 @@
         <div id="tip" class="tip" hidden></div>
       </div>
       <div id="legend" class="legend"></div>
+      <div id="detail" class="detail" hidden></div>
+      <p class="hint">Click a node to read all of it and its relationships. The same graph opens in the
+        <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a> (graph <span id="graph-ref"></span>).</p>
     </section>
     <section id="view-tracks" class="view" hidden>
       <div id="tracks"></div>
@@ -54,8 +57,10 @@
   </aside>
 </div>
 <script src="/common.js"></script>
+<script src="/critter.js"></script>
 <script src="/orchestration.js"></script>
 <script src="/handoff.js"></script>
+<script src="/graphdetail.js"></script>
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>
 <script src="/app.js"></script>
