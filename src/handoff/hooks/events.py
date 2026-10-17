@@ -29,16 +29,26 @@ def on_session_start(graph: Graph, hook: HookInput, *, role: str, at: int) -> No
     register_session(graph, hook, role=role, at=at)
 
 
+_WAKE_UP_PREFIX = "<task-notification>"
+
+
+def is_wake_up(prompt: str) -> bool:
+    """True for the turn Claude Code starts when our waiter wakes a session: it carries a
+    delivered message, not new work from the person, so it is not a new request."""
+    return prompt.lstrip().startswith(_WAKE_UP_PREFIX)
+
+
 def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int, live: bool = True) -> str:
     """Record the prompt as a request. Returns text to add to Claude's context."""
     register_session(graph, hook, role=role, at=at)
-    add_request(
-        graph,
-        session_id=hook.session_id,
-        request_id=hook.prompt_id or new_id(),
-        text=hook.prompt,
-        at=at,
-    )
+    if not is_wake_up(hook.prompt):
+        add_request(
+            graph,
+            session_id=hook.session_id,
+            request_id=hook.prompt_id or new_id(),
+            text=hook.prompt,
+            at=at,
+        )
     if not live:
         return ""
     parts = [
