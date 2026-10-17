@@ -17,7 +17,10 @@
     var learned = Object.create(null);
     state.handoffs.forEach(function (h) { learned[h.reader] = (learned[h.reader] || 0) + h.decisions.length; });
     var box = el("div", { "class": "memory" });
-    box.appendChild(el("h3", {}, "memory: own work (solid) vs learned from others (hatched)"));
+    box.appendChild(el("h3", {}, "what each session knows"));
+    var key = el("p", { "class": "key-row" }), own = el("span", {}, "its own work: requests, decisions and edits"), got = el("span", {}, "decisions it learned by reading other sessions' work");
+    own.style.setProperty("--c", "linear-gradient(90deg, var(--blue), var(--purple), var(--amber))"); got.style.setProperty("--c", MC.css("--green"));
+    key.appendChild(own); key.appendChild(got); box.appendChild(key);
     var top = 1;
     state.roles.forEach(function (r) { top = Math.max(top, r.requests + r.decisions + r.edits + (learned[r.role] || 0)); });
     state.roles.forEach(function (r) {
@@ -29,7 +32,7 @@
       a.style.width = (own / top * 100) + "%";
       b.style.width = (got / top * 100) + "%";
       bar.appendChild(a); bar.appendChild(b); row.appendChild(bar);
-      row.appendChild(el("span", {}, own + " own · " + got + " learned"));
+      row.appendChild(el("span", { "class": "dim" }, own + " own + " + got + " learned"));
       box.appendChild(row);
     });
     return box;

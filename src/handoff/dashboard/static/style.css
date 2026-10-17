@@ -44,7 +44,8 @@ kbd { font: inherit; color: var(--dim); margin-right: 4px; }
 #orch { width: 100%; height: auto; display: block; }
 h2, h3 { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
 h2::before, h3::before { content: "# "; color: var(--dim); }
-.feed { border-left: 1px solid var(--line); padding-left: 16px; max-height: 80vh; overflow: auto; }
+/* stays in view while the page scrolls, so the right side is never empty */
+.feed { border-left: 1px solid var(--line); padding-left: 16px; position: sticky; top: 8px; height: calc(100vh - 24px); overflow: auto; }
 #ticker { list-style: none; margin: 0; padding: 0; }
 #ticker li { padding: 6px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 #ticker .meta { display: flex; gap: 10px; font-size: 12px; }
@@ -87,7 +88,9 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .mem-row { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
 .bar { display: flex; height: 12px; border: 1px solid var(--line); background: var(--soft); }
 .bar i { display: block; height: 100%; transition: width .6s ease; }
-.bar i.got { background: repeating-linear-gradient(135deg, var(--ink) 0 2px, transparent 2px 5px); }
+.bar i.got { background: var(--green); }
+.key-row { display: flex; flex-wrap: wrap; gap: 4px 22px; color: var(--dim); margin: 0 0 8px; }
+.key-row span::before { content: ""; display: inline-block; width: 12px; height: 8px; margin-right: 6px; background: var(--c); }
 .cards { display: grid; gap: 12px; }
 .card { border-top: 1px solid var(--line); padding-top: 8px; }
 .card.fresh { animation: blink 1.2s steps(2) 2; }
@@ -117,7 +120,7 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .evidence b { text-align: right; font-weight: 700; color: var(--green); }
 .evidence span { color: var(--dim); }
 @media (prefers-reduced-motion: reduce) {
-  .node-ring.pulse, .float, #ticker li.fresh, .card.fresh, .cursor, .critter, .critter *, .zzz { animation: none !important; }
+  .node-ring.pulse, .float, #ticker li.fresh, .card.fresh, .cursor, .bot, .bot * { animation: none !important; }
   .bar i { transition: none; }
 }
 
@@ -127,16 +130,13 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .k-asked { color: var(--ink); } .k-decided { color: var(--green); } .k-needs, .k-need { color: var(--red); }
 .k-edited { color: var(--blue); } .k-read { color: var(--amber); }
 .k-message, .k-nudge, .k-digest { color: var(--teal); } .k-question, .k-standin_answer { color: var(--purple); }
-/* the pixel critter */
-.critter .eye { fill: var(--bg); transform-box: fill-box; transform-origin: center; animation: eyes 4.5s steps(1) infinite; }
-.critter.idle .eye { transform: scaleY(.25); animation: none; }
-.critter.work { animation: hop .5s steps(2) infinite; }
-.critter .legs-b { visibility: hidden; }
-.critter.work .legs-a { animation: legs-a .5s steps(1) infinite; } .critter.work .legs-b { animation: legs-b .5s steps(1) infinite; }
-.zzz { fill: var(--dim); font-size: 10px; font-weight: 700; animation: rise 2.4s ease-out infinite; }
-@keyframes eyes { 0%, 92%, 100% { transform: scaleY(1); } 94%, 98% { transform: scaleY(.15); } }
-@keyframes hop { 50% { transform: translateY(-3px); } }
-@keyframes legs-a { 50% { visibility: hidden; } } @keyframes legs-b { 50% { visibility: visible; } }
+/* the pixel bot */
+.bot .scan { opacity: .35; }
+.bot.work .scan { animation: scan 1.2s steps(1) infinite; }
+.bot.work .ball { animation: ball .8s steps(1) infinite; }
+.bot.idle { opacity: .75; }
+@keyframes scan { 0%, 100% { transform: translateX(0); opacity: 1; } 33% { transform: translateX(6px); opacity: 1; } 66% { transform: translateX(12px); opacity: 1; } }
+@keyframes ball { 50% { opacity: .2; } }
 .detail { border: 1px solid var(--line); border-left: 3px solid var(--blue); padding: 8px 12px; margin-top: 10px; }
 .detail .full { margin: 2px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .detail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
