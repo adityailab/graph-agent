@@ -1,0 +1,80 @@
+/* page-only CSS for 01-orchestration (shared styles are in shared.css) */
+/* orchestration */
+#view-orchestration { max-width: none; }
+.orch-status { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); font-size: var(--fs-sm); color: var(--dim); }
+.orch-status b { color: var(--ink); }
+.orch-status .need { color: var(--red); font-weight: 700; }
+#orch { display: block; width: 100%; height: auto; min-width: 760px; }
+.svg-scroll { border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); padding: var(--s-2); }
+
+/* edges: one path per direction, neutral ink, width = how much travelled; the pill names what */
+.edge { fill: none; stroke: var(--dim); stroke-linecap: round; }
+.edge.flow { stroke-dasharray: 7 5; animation: flow 1.4s linear infinite; }
+.ah-flow { fill: var(--dim); }
+.orch-edge.latest .edge { stroke: var(--ink); }
+.pill-box { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
+.orch-edge.latest .pill-box { stroke: var(--ink); stroke-width: 1.5; }
+.pill-route { fill: var(--dim); font-size: var(--fs-xs); font-weight: 700; }
+.pill-line { font-size: var(--fs-xs); font-weight: 700; fill: var(--dim); }
+.pill-line.k-message { fill: var(--teal); } .pill-line.k-read { fill: var(--amber); } .pill-line.k-need { fill: var(--red); }
+.pill-line.k-question, .pill-line.k-standin_answer { fill: var(--purple); }
+.pill-tag { fill: var(--ink); font-size: var(--fs-xs); }
+
+/* session cards */
+.orch-node { cursor: pointer; }
+.card-box { fill: var(--soft); stroke: var(--line); stroke-width: 1.2; }
+.orch-node.on .card-box { stroke: var(--ink); stroke-width: 2; }
+.card-title { fill: var(--bg); font-size: var(--fs-md); font-weight: 700; }
+.card-state { fill: var(--bg); font-size: var(--fs-xs); font-weight: 700; text-anchor: end; }
+.card-line { fill: var(--ink); font-size: var(--fs-xs); }
+.card-prompt { fill: var(--green); font-size: var(--fs-xs); font-weight: 700; }
+.card-line.dim { fill: var(--dim); font-size: var(--fs-xs); }
+.card-need { fill: var(--red); font-size: var(--fs-xs); font-weight: 700; }
+.card-rule { stroke: var(--line); }
+.node-ring { fill: none; stroke: var(--ink); stroke-width: 1; opacity: 0; }
+
+/* key under the drawing */
+.orch-key { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-5); margin: var(--s-3) 0 var(--s-5); font-size: var(--fs-sm); color: var(--dim); }
+.orch-key b { font-weight: 700; }
+.orch-key .k-message b, .orch-key .k-message { color: var(--teal); }
+.orch-key .k-read { color: var(--amber); } .orch-key .k-need { color: var(--red); }
+.orch-key .k-question { color: var(--purple); }
+
+/* detail below: one session at a time */
+.orch-detail { display: grid; gap: var(--s-4); }
+.sess-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); border-bottom: 1px solid var(--line); padding-bottom: var(--s-3); }
+.sess-head .chip { font-size: var(--fs-sm); padding: 0 var(--s-3); }
+.sess-head .counts { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--s-1) var(--s-4); font-size: var(--fs-sm); color: var(--dim); }
+.sess-head .counts b { color: var(--ink); font-size: var(--fs-lg); margin-right: var(--s-1); }
+.sess-head .nav { margin-left: auto; display: flex; gap: var(--s-2); }
+.lastmsg { border-left: 3px solid var(--c); padding: var(--s-2) var(--s-4); background: var(--soft); }
+.lastmsg .link-head { margin-bottom: var(--s-2); }
+.feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--s-3); }
+.link-card { display: grid; gap: var(--s-1); align-content: start; }
+.link-card .link-head { margin: 0; }
+.link-card .kind { font-weight: 700; font-size: var(--fs-sm); }
+.link-card .more { font-size: var(--fs-xs); color: var(--blue); }
+.orch-lines { margin-top: var(--s-5); }
+.orch-lines summary { font-size: var(--fs-sm); }
+.lines-table { width: 100%; border-collapse: collapse; margin-top: var(--s-2); font-size: var(--fs-sm); }
+.lines-table th { text-align: left; color: var(--dim); font-weight: 400; font-size: var(--fs-xs); text-transform: lowercase; padding: var(--s-1) var(--s-3) var(--s-1) 0; border-bottom: 1px solid var(--line); }
+.lines-table td { padding: var(--s-1) var(--s-3) var(--s-1) 0; border-bottom: 1px dotted var(--line); vertical-align: top; }
+.lines-table td b { margin-right: var(--s-3); white-space: nowrap; }
+.rank { color: var(--dim); }
+@media (max-width: 760px) { .sess-head .nav { margin-left: 0; } }
+
+.sess-head .nav button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.sess-head .nav button { font-size: var(--fs-sm); }
+
+/* live: a ring pulses where an event lands, its kind floats up, a square rides the line */
+.node-ring { transform-box: fill-box; transform-origin: center; }
+.node-ring.pulse { animation: pulse .9s ease-out; }
+@keyframes pulse { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.12); } }
+.float { fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; font-size: var(--fs-xs); font-weight: 700; text-anchor: middle; animation: rise 1.6s ease-out forwards; }
+@keyframes rise { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-22px); } }
+.empty { fill: var(--dim); font-size: var(--fs-md); text-anchor: middle; }
+.orch-status + .svg-scroll { margin-top: var(--s-3); }
+.orch-node:focus-visible { outline: none; }
+.orch-node:focus-visible .card-box { stroke: var(--blue); stroke-width: 3; }
+.link-card .more { border: 0; padding: 0; background: none; text-align: left; justify-self: start; }
+.link-card .more:hover { background: none; text-decoration: underline; }

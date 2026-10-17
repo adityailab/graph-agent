@@ -6,6 +6,7 @@
 <title>handoff mission control</title>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/page-orchestration.css">
 <script src="/theme.js"></script>
 </head>
 <body>
@@ -29,21 +30,19 @@
 <div class="layout">
   <main>
     <section id="view-orchestration" class="view">
-      <div class="svg-scroll"><svg id="orch" viewBox="0 0 800 350" role="img" aria-label="Sessions and the messages, needs and reads between them">
-        <defs>
-          <marker id="oa-flow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker>
-          <marker id="oa-message" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
-          <marker id="oa-read" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-read"/></marker>
-          <marker id="oa-need" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-need"/></marker>
-          <marker id="oa-question" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
-          <marker id="oa-standin_answer" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
-        </defs>
+      <div class="page-head"><h2>orchestration</h2><span class="dim">who hands what to whom · click a session to open it</span></div>
+      <div id="orch-status" class="orch-status"></div>
+      <div class="svg-scroll"><svg id="orch" viewBox="0 0 960 440" role="group" aria-label="Sessions and what moves between them">
+        <defs><marker id="oa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker></defs>
       </svg></div>
+      <div class="orch-key" aria-label="Line key">
+        <span class="k-message"><b>━━ message</b> sent to another session</span>
+        <span class="k-read"><b>╌╌ read</b> opened another session's work</span>
+        <span class="k-need"><b>··· need</b> asked of another session</span>
+        <span>line width = how many · moving dashes = live · a travelling square = just happened</span>
+      </div>
       <div id="orch-detail" class="orch-detail"></div>
-      <details class="fold orch-lines"><summary>all lines between sessions</summary><div id="flows" class="flows"></div></details>
-      <p class="hint">Each box is a Claude Code session; its Mac's screen is lit while it is active. Lines carry what moves between them:
-        <span class="k-message">messages ──</span> <span class="k-read">reads of each other's work ── ──</span>
-        <span class="k-need">needs ·····</span> A square travelling along a line is an event happening now.</p>
+      <details class="fold orch-lines"><summary id="lines-summary">all lines between sessions</summary><div id="flows"></div></details>
     </section>
     <section id="view-handoff" class="view" hidden>
       <div class="ask-bar">
@@ -128,6 +127,9 @@
 </form>
 <script src="/common.js"></script>
 <script src="/critter.js"></script>
+<script src="/orchmap.js"></script>
+<script src="/orchcards.js"></script>
+<script src="/orchdetail.js"></script>
 <script src="/orchestration.js"></script>
 <script src="/handoffcards.js"></script>
 <script src="/handoff.js"></script>
