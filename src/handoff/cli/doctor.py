@@ -5,10 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from handoff.cli.style import stdout_palette
 from handoff.config import Config
 from handoff.graph.connection import server_reachable
 from handoff.workspace import workspace_config
@@ -47,25 +50,74 @@ def _recent_hook_errors(home: Path) -> list[str]:
     return recent[-MAX_ERRORS:]
 
 
+@dataclass(frozen=True)
+class Check:
+    """One thing doctor looks at: what it is, whether it is fine, and what to do if not."""
+
+    label: str
+    ok: bool
+    problem: str = ""
+    optional: bool = False  # worth saying, but does not make doctor fail
+
+
+def checks(folder: Path, config: Config) -> list[Check]:
+    """Every check for this folder, healthy or not."""
+    hooks = _json(folder / ".claude" / "settings.local.json").get("hooks")
+    servers = _json(folder / ".mcp.json").get("mcpServers")
+    has_hooks = "handoff-hook" in json.dumps(hooks)
+    has_server = isinstance(servers, dict) and "handoff" in servers
+    return [
+        Check(
+            "hooks installed",
+            has_hooks,
+            f"hooks are not installed in {folder}: run handoff init there.",
+        ),
+        Check(
+            ".mcp.json lists the handoff server",
+            has_server,
+            ".mcp.json has no handoff server: run handoff init.",
+        ),
+        Check(
+            f"FalkorDB answers at {config.host}:{config.port}",
+            server_reachable(config),
+            f"FalkorDB does not answer at {config.host}:{config.port}: run handoff init.",
+        ),
+        Check(
+            "claude command found",
+            shutil.which("claude") is not None,
+            "claude is not on PATH: install Claude Code.",
+            optional=True,
+        ),
+        Check(
+            "tmux found (handoff demo uses it)",
+            shutil.which("tmux") is not None,
+            "tmux is not installed: handoff demo falls back to the text version.",
+            optional=True,
+        ),
+    ]
+
+
 def findings(folder: Path, config: Config) -> list[str]:
     """Problems with this folder's setup, each with what to do; empty when healthy."""
-    found = []
-    hooks = _json(folder / ".claude" / "settings.local.json").get("hooks")
-    if "handoff-hook" not in json.dumps(hooks):
-        found.append(f"hooks are not installed in {folder}: run handoff init there.")
-    servers = _json(folder / ".mcp.json").get("mcpServers")
-    if not isinstance(servers, dict) or "handoff" not in servers:
-        found.append(".mcp.json has no handoff server: run handoff init.")
-    if not server_reachable(config):
-        found.append(f"FalkorDB does not answer at {config.host}:{config.port}: run handoff init.")
+    found = [c.problem for c in checks(folder, config) if not c.ok and not c.optional]
     return found + _recent_hook_errors(config.home)
 
 
 def run(args: argparse.Namespace) -> int:
-    """Print what is wrong (exit 1), or that all is well (exit 0)."""
-    found = findings(Path.cwd(), workspace_config(Path.cwd(), os.environ))
-    for item in found:
-        print(f"- {item}")
+    """Print each check (exit 1 if one that matters fails)."""
+    p, folder = stdout_palette(), Path.cwd()
+    config = workspace_config(folder, os.environ)
+    for c in checks(folder, config):
+        if c.ok:
+            print(f"{p.green('ok')}  {c.label}")
+        elif c.optional:
+            print(f"{p.amber('--')}  {c.problem}")
+        else:
+            print(f"{p.red('!!')}  {c.problem}")
+    errors = _recent_hook_errors(config.home)
+    for error in errors:
+        print(f"{p.red('!!')}  {error}")
+    found = findings(folder, config)
     if not found:
-        print("All good: hooks, servers and database are in place.")
+        print(p.green("All good: hooks, servers and database are in place."))
     return 1 if found else 0
