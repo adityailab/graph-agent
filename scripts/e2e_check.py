@@ -38,6 +38,9 @@ def reset(config: Config) -> None:
 
 def check(config: Config, workspace: str) -> int:
     """Print the deploy session's handoff and node counts; 0 if every expected part is there."""
+    if config.graph_name not in FalkorDB(host=config.host, port=config.port).list_graphs():
+        print(f"No graph named {config.graph_name}; run scripts/e2e_scenario.sh first.")
+        return 1
     graph = connect(config)
     text = handoff(ToolContext(role="deploy", cwd=workspace, graph=graph))
     print(text)
