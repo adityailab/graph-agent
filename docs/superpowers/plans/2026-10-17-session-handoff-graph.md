@@ -2255,3 +2255,20 @@ Branch: `phase/10-ship`.
   end-of-day digest).
 - Growing the knowledge graph's entity types from data with GraphRAG-SDK's
   `suggest_schema_extensions` (needs our items written to files first).
+
+
+---
+
+## Phase 15 (stretch): Mission control, the graph made visible
+
+A local web page that shows the orchestration, the hand-off of context, the graph itself and
+the competition tracks, live. Plain HTML, CSS and JavaScript served by a small standard-library
+server; no build step, no external assets.
+
+- `graph/overview.py`: per-role counts, who talks to whom, reads with the decisions learned.
+- `graph/context_view.py`: the work graph and the concept graph as nodes and edges.
+- `dashboard/state.py` + `tracks.py`: one JSON snapshot; the track mapping with live numbers.
+- `dashboard/server.py`: localhost only, exact-name static files, Host check, CSP.
+- `dashboard/static/`: orchestration, handoff, graph view, tracks, one script per view.
+- `cli/dashboard_cmd.py` (`handoff dashboard`); `demo/mission.py` starts it with the live demo.
+- Gate: `make check`; the page rendered in headless Chrome against the real demo graph.
