@@ -110,12 +110,13 @@ def _answer(question: str, model: str, config: Config) -> subprocess.CompletedPr
 
 
 def cypher_run(calls: list[ToolCall]) -> list[str]:
-    """The Cypher the model ran: the query of each read-only call that had one."""
-    return [
+    """The distinct Cypher the model ran, in order (models sometimes repeat a query)."""
+    queries = [
         str(c.input["query"])
         for c in calls
         if c.name.endswith("query_graph_readonly") and c.input.get("query")
     ]
+    return list(dict.fromkeys(queries))
 
 
 def run(args: argparse.Namespace) -> int:
