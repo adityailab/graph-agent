@@ -18,6 +18,7 @@ from handoff.mcp import (
     connection_tool,
     guide_tool,
     knowledge_tools,
+    memory_tools,
     message_tools,
     read_tools,
     record_tools,
@@ -43,7 +44,10 @@ INSTRUCTIONS = (
     "search finds recorded decisions by their words and their meaning, from any role. "
     "connection shows the chain of shared files, decisions and needs linking this "
     "session's work to another role's. For a question none of these answer, graph_guide "
-    "explains this project's graphs so you can query them yourself with read-only Cypher."
+    "explains this project's graphs so you can query them yourself with read-only Cypher. "
+    "Decisions change: timeline shows how a topic's decisions evolved, and supersede_decision "
+    "marks one as replacing another. record_convention keeps a standing rule every session "
+    "of a role is told about; conventions lists the rules in force."
 )
 
 
@@ -56,6 +60,7 @@ def build_server(
     """Create the server with every tool bound to `ctx`."""
     server = MCPServer("handoff", instructions=INSTRUCTIONS)
     record_tools.register(server, ctx)
+    memory_tools.register(server, ctx)
     read_tools.register(server, ctx)
     message_tools.register(server, ctx)
     ask_tool.register(server, ctx, standin or model_from_env(os.environ))

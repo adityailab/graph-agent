@@ -97,3 +97,27 @@ def test_a_wake_up_is_not_recorded_as_a_new_request(graph: Graph, hook_json: Hoo
     assert rows.result_set == [["p-test"]]
     # Edits made while handling the wake-up belong to the request being worked on.
     assert latest_request_id(graph, "s-test") == "p-test"
+
+
+def test_the_first_prompt_of_a_session_carries_the_standing_rules_and_later_ones_do_not(
+    graph: Graph, hook_json: HookJson
+) -> None:
+    from handoff.graph.conventions import add_convention
+
+    ensure_schema(graph)
+    add_convention(
+        graph,
+        convention_id="c1",
+        text="money is integer paise",
+        reason="floats round wrongly",
+        scope="all",
+        author="person",
+        at=1,
+    )
+    first = on_user_prompt(graph, _hook(hook_json("user_prompt")), role="frontend", at=10)
+    assert "Standing rules for the frontend role" in first
+    assert "money is integer paise" in first
+    later = on_user_prompt(
+        graph, _hook(hook_json("user_prompt") | {"prompt_id": "p-2"}), role="frontend", at=20
+    )
+    assert "Standing rules" not in later

@@ -29,6 +29,7 @@ INDEXED: tuple[tuple[str, str], ...] = (
     ("Need", "for_role"),
     ("Insight", "kind"),
     ("Action", "key"),
+    ("Convention", "id"),
 )
 
 # Each needs the matching range index above first.
@@ -42,6 +43,7 @@ UNIQUE: tuple[tuple[str, str], ...] = (
     ("Topic", "name"),
     ("Message", "id"),
     ("Action", "key"),
+    ("Convention", "id"),
 )
 
 FULLTEXT: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -49,6 +51,7 @@ FULLTEXT: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Decision", ("text", "reason")),
     ("Need", ("text",)),
     ("Message", ("text",)),
+    ("Convention", ("text", "reason")),
 )
 
 VECTOR: tuple[tuple[str, str], ...] = (

@@ -19,6 +19,11 @@ EXPECTED_TOOLS = {
     "connection",
     "ask_graph",
     "concepts",
+    "supersede_decision",
+    "timeline",
+    "record_convention",
+    "conventions",
+    "retire_convention",
 }
 
 

@@ -10,8 +10,10 @@ from pydantic import Field
 
 from handoff.config import normalise_role
 from handoff.embed import EmbedderUnavailable
+from handoff.format import render_earlier_decisions
 from handoff.graph import needs as graph_needs
 from handoff.graph.decisions import add_decision, set_decision_embedding
+from handoff.graph.timeline import current_on_topic
 from handoff.ids import new_id
 from handoff.mcp.context import NO_REQUEST, ToolContext, blank_field, guarded
 from handoff.mcp.current import current_request
@@ -41,18 +43,20 @@ def record_decision(ctx: ToolContext, text: str, reason: str, topic: str) -> str
     request = current_request(ctx)
     if request is None:
         return NO_REQUEST
-    decision_id = new_id()
+    decision_id, topic_name = new_id(), choose_topic(ctx, topic, request_id=request.id)
     add_decision(
         ctx.graph,
         request_id=request.id,
         decision_id=decision_id,
         text=redact(text.strip()),
         reason=redact(reason.strip()),
-        topic=choose_topic(ctx, topic, request_id=request.id),
+        topic=topic_name,
         at=ctx.now(),
     )
     _embed_decision(ctx, decision_id, f"{text.strip()} {reason.strip()}")
-    return f'Recorded decision {decision_id} on request "{request.text}".{request.note}'
+    earlier = current_on_topic(ctx.graph, topic_name, excluding=decision_id)
+    note = f"\n{render_earlier_decisions(earlier)}" if earlier else ""
+    return f'Recorded decision {decision_id} on request "{request.text}".{request.note}{note}'
 
 
 @guarded

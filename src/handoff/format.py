@@ -6,7 +6,9 @@ import time
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 
+from handoff.graph.conventions import Convention
 from handoff.graph.records import InsightView, MessageView, RequestView, WhyRow
+from handoff.graph.timeline import TimelineEntry
 
 Paint = Callable[[str, str], str]  # (kind of text, text) -> text, e.g. with colour codes
 
@@ -44,7 +46,8 @@ def _plural(n: int, word: str) -> str:
 def _render_request(r: RequestView, paint: Paint) -> list[str]:
     lines = ["", f'Request {r.seq} (person): "{r.text}"']
     for d in r.decisions:
-        lines.append(f"  {paint('decided', 'Decided:')} {d.text}")
+        label = "Decided (replaced later):" if d.superseded else "Decided:"
+        lines.append(f"  {paint('decided', label)} {d.text}")
         lines.append(f"  {paint('why', 'Why:')} {d.reason}")
     if r.files:
         lines.append(f"  {paint('changed', 'Changed:')} {', '.join(r.files)}")
@@ -126,3 +129,36 @@ def render_insights(insights: Sequence[InsightView]) -> str:
     if not insights:
         return ""
     return "What matters now:\n" + "\n".join(f"- {i.text}" for i in insights)
+
+
+def _when(at: int) -> str:
+    return time.strftime("%d %b %H:%M", time.localtime(at / 1000))
+
+
+def render_timeline(topic: str, entries: Sequence[TimelineEntry]) -> str:
+    """How decisions about a topic changed, oldest first, with what replaced what."""
+    lines = [f"Decisions about {topic}, oldest first:"]
+    for e in entries:
+        note = f" [replaced by {e.replaced_by}]" if e.replaced_by else " [in force]"
+        lines.append(f"- {_when(e.at)} {e.role} (decision {e.decision_id}){note}: {e.text}")
+        lines.append(f"  Why: {e.reason}")
+    return "\n".join(lines)
+
+
+def render_conventions(conventions: Sequence[Convention]) -> str:
+    """The standing rules, each with its reason and who it is for."""
+    lines = []
+    for c in conventions:
+        who = "everyone" if c.scope == "all" else f"the {c.scope} role"
+        lines.append(f"- {c.text} (for {who}, id {c.id}). Why: {c.reason}")
+    return "\n".join(lines)
+
+
+def render_earlier_decisions(entries: Sequence[TimelineEntry]) -> str:
+    """A note listing decisions on the same topic that still stand."""
+    lines = ["Earlier decisions on this topic still stand:"]
+    lines += [f"- {e.decision_id} ({e.role}): {shorten(e.text, 160)}" for e in entries]
+    lines.append(
+        "If this one replaces an earlier one, call supersede_decision(decision_id, replaces)."
+    )
+    return "\n".join(lines)

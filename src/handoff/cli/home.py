@@ -39,6 +39,8 @@ GROUPS = (
             ("send", "message a session"),
             ("ask", "ask the graph a question"),
             ("insights", "what matters now"),
+            ("timeline", "how decisions on a topic changed"),
+            ("conventions", "standing rules every session hears"),
             ("knowledge", "build the concept graph"),
             ("coordinator", "reminders and digests"),
         ),

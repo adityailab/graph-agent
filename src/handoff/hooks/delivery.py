@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from falkordb import Graph
 
-from handoff.format import render_messages, shorten
+from handoff.format import render_conventions, render_messages, shorten
+from handoff.graph.conventions import conventions_for
 from handoff.graph.messages import claim_pending_messages, has_pending_messages
 from handoff.graph.needs import count_open_needs, open_needs
 from handoff.graph.overlaps import recent_edits_by_others
@@ -52,3 +53,11 @@ def collision_text(
         "behind its edits."
         for o in others
     )
+
+
+def conventions_text(graph: Graph, role: str) -> str:
+    """The standing rules for this role, as plain statements ('' if there are none)."""
+    rules = conventions_for(graph, role)
+    if not rules:
+        return ""
+    return f"Standing rules for the {role} role:\n{render_conventions(rules)}"

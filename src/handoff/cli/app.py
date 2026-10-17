@@ -7,6 +7,7 @@ from importlib.metadata import PackageNotFoundError, version
 from handoff.cli import (
     ask,
     completion,
+    conventions_cmd,
     coordinator_cmd,
     dashboard_cmd,
     demo,
@@ -20,6 +21,7 @@ from handoff.cli import (
     open_cmd,
     send,
     status,
+    timeline_cmd,
     watch,
 )
 from handoff.cli.parser import HandoffParser
@@ -38,6 +40,8 @@ COMMANDS = (
     coordinator_cmd,
     demo,
     knowledge_cmd,
+    conventions_cmd,
+    timeline_cmd,
     doctor,
     completion,
 )
