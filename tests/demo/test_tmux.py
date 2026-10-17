@@ -51,6 +51,20 @@ def test_a_pane_is_ready_once_claude_shows_its_input_and_no_trust_prompt() -> No
     assert pane_ready("> \n  accept edits on (shift+tab to cycle)")
 
 
+def test_a_custom_status_line_does_not_hide_that_the_pane_is_ready() -> None:
+    """A user's own status line can replace the 'accept edits on' line."""
+    screen = (
+        "Claude Code v2.1.294\n"
+        + "\u2500" * 40
+        + '\n\u276f Try "edit <filepath> to..."\n'
+        + "\u2500" * 40
+        + "\n  Haiku 5.5 (thinking on) \u00b7 ctx: -- \u00b7 T/handoff-demo"
+    )
+    assert pane_ready(screen)
+    assert not pane_ready("Claude Code v2.1.294\n starting")
+    assert not pane_ready("\u2500" * 40 + "\n\u276f 1. Yes, I trust this folder\n")
+
+
 def test_a_working_spinner_is_recognised() -> None:
     from handoff.demo.tmux import working
 
