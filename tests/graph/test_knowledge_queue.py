@@ -67,3 +67,12 @@ def test_claim_carries_the_label_and_original_length(ready: Graph) -> None:
     item = claim_next(ready, now=100, stale_ms=50)
     assert item is not None
     assert (item.label, item.size) == ("Request", 3)
+
+
+def test_an_ingested_item_keeps_no_retry_time(ready: Graph) -> None:
+    add_request(ready, session_id="s1", request_id="p1", text="x", at=10)
+    item = claim_next(ready, now=100, stale_ms=50)
+    assert item is not None
+    mark_ingested(ready, item, at=101)
+    rows = ready.query("MATCH (r:Request {id: 'p1'}) RETURN r.kg_retry_at, r.kg_at").result_set
+    assert rows == [[None, 101]]

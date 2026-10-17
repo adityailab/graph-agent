@@ -59,4 +59,7 @@ def claim_next(graph: Graph, *, now: int, stale_ms: int) -> KnowledgeItem | None
 def mark_ingested(graph: Graph, item: KnowledgeItem, *, at: int) -> None:
     """Record that an item is in the knowledge graph (or deliberately left out of it)."""
     label = "Decision" if item.label == "Decision" else "Request"
-    graph.query(f"MATCH (n:{label} {{id: $id}}) SET n.kg_at = $at", {"id": item.id, "at": at})
+    graph.query(
+        f"MATCH (n:{label} {{id: $id}}) SET n.kg_at = $at REMOVE n.kg_retry_at",
+        {"id": item.id, "at": at},
+    )
