@@ -35,6 +35,25 @@ def _answer_object(raw: str) -> dict[str, object] | None:
     return None
 
 
+_MIN_PREFIX = 8
+_KINDS = ("request", "decision", "need", "message")
+
+
+def _resolve_citation(cited: str, allowed: set[str]) -> str | None:
+    """The history id a citation means. Models often echo the line's "[decision <id>]"
+    label or shorten the id; a prefix counts only if it is long and matches one id."""
+    token = cited.strip().strip("[]").strip()
+    words = token.split()
+    if len(words) == 2 and words[0].lower() in _KINDS:
+        token = words[1]
+    if token in allowed:
+        return token
+    if len(token) < _MIN_PREFIX:
+        return None
+    matches = [i for i in allowed if i.startswith(token)]
+    return matches[0] if len(matches) == 1 else None
+
+
 def parse_answer(raw: str, *, allowed: set[str]) -> StandinAnswer | None:
     """Read the model's JSON, dropping citations not in the history. None if unusable."""
     data = _answer_object(raw)
@@ -42,11 +61,9 @@ def parse_answer(raw: str, *, allowed: set[str]) -> StandinAnswer | None:
         return None
     text = str(data["answer"])
     cited = data.get("cited_ids")
-    ids = (
-        tuple(i for i in cited if isinstance(i, str) and i in allowed)
-        if isinstance(cited, list)
-        else ()
-    )
+    listed = cited if isinstance(cited, list) else []
+    resolved = (_resolve_citation(i, allowed) for i in listed if isinstance(i, str))
+    ids = tuple(dict.fromkeys(i for i in resolved if i))
     return StandinAnswer(text.strip(), ids, found=bool(data.get("found")))
 
 
