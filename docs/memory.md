@@ -31,3 +31,9 @@ graph holds and what each live session has in hand.
   retired, and a decision can be superseded, but nothing expires by itself.
 - **Summaries of old history.** The coordinator's digest summarises recent activity for a
   person, but older episodes are not condensed into a shorter memory.
+
+## Opening a memory
+
+On the dashboard's memory page, click a kind to open what is inside it (newest first). Each
+session's card also lists "relevant memories": decisions whose words match what that session is
+working on now. Both come from `/api/memory/<kind>` and `/api/memory/relevant/<role>`.

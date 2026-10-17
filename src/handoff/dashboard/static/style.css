@@ -169,3 +169,9 @@ a { color: var(--blue); }
 .facts { margin: 10px 0 0; }
 .ctx-flows { display: grid; gap: 2px 24px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); color: var(--dim); }
 .ctx-flows b { font-weight: 700; }
+.mem-card { cursor: pointer; }
+.mem-card:hover, .mem-card:focus-visible { background: var(--soft); outline: none; }
+.mem-card.open { background: var(--soft); border-color: var(--ink); }
+.mem-open { margin-bottom: 22px; }
+.mem-items { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
+.mem-items li { overflow-wrap: anywhere; border-left: 2px solid var(--line); padding-left: 8px; }
