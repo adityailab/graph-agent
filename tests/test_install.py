@@ -59,7 +59,9 @@ def test_falkordb_server_can_be_left_out(tmp_path: Path, config: Config) -> None
 def test_install_explains_how_to_start_each_role(tmp_path: Path, config: Config) -> None:
     text = install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config)
     assert "HANDOFF_ROLE=frontend claude" in text
-    assert "docker compose up -d" in text
+    assert "handoff init" in text  # how to get the database running
+    assert "handoff knowledge" in text
+    assert "docker compose" not in text
 
 
 def test_command_refuses_a_missing_folder(tmp_path: Path) -> None:

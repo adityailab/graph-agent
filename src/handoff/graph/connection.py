@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from falkordb import FalkorDB, Graph
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from handoff.config import Config
 
@@ -25,3 +27,14 @@ def connect(config: Config) -> Graph:
 def ping(graph: Graph) -> None:
     """Raise a redis error if the database cannot be reached."""
     graph.ro_query("RETURN 1")
+
+
+def server_reachable(config: Config) -> bool:
+    """True if a FalkorDB (Redis) server answers at the configured address."""
+    try:  # the client connects as soon as it is created
+        db = FalkorDB(
+            host=config.host, port=config.port, socket_connect_timeout=1, socket_timeout=2
+        )
+        return bool(db.connection.ping())
+    except (RedisConnectionError, RedisTimeoutError, OSError):
+        return False

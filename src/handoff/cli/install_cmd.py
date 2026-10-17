@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from handoff.config import Config
-from handoff.install import install
+from handoff.install import InstallError, install
 
 
 def add_parser(commands: Any) -> None:
@@ -28,13 +28,16 @@ def run(args: argparse.Namespace) -> int:
     if not workspace.is_dir():
         print(f"{workspace} is not a folder.", file=sys.stderr)
         return 1
-    print(
-        install(
+    try:
+        text = install(
             workspace,
             bin_dir=Path(sys.executable).parent,
             config=Config.from_env(),
             falkordb_mcp=not args.no_falkordb_mcp,
             graph=args.graph,
         )
-    )
+    except InstallError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(text)
     return 0
