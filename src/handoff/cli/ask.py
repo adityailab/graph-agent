@@ -10,10 +10,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from handoff.cli.stream_json import ToolCall, parse_stream
+from handoff.cli.stream_json import ToolCall, delta_of, parse_stream, step_labels
 from handoff.config import Config
 from handoff.install import non_default_database
 from handoff.mcp_config import falkordb_server_entry, handoff_server_entry
@@ -34,7 +36,7 @@ _PROMPT = (
     "Answer the person's question about this project's work from its graphs. Call "
     "graph_guide first, then run read-only Cypher with query_graph_readonly (the guide names "
     "the graphs); the handoff, search and why tools help too. Answer in at most five plain "
-    "sentences and say what the data showed. Question: {question}"
+    "sentences and say what the data showed.{conversation} Question: {question}"
 )
 
 
@@ -65,13 +67,28 @@ def write_mcp_config(folder: Path, config: Config, *, bin_dir: Path, falkordb: b
     return path
 
 
-def ask_command(question: str, *, mcp_config: Path, model: str) -> list[str]:
+def _conversation(history: Sequence[tuple[str, str]]) -> str:
+    """Earlier turns as plain text, so a follow-up like "and who replaced it?" has its subject."""
+    if not history:
+        return ""
+    turns = "\n".join(f"Person: {q}\nYou: {a}" for q, a in history)
+    return f"\n\nConversation so far (the question below follows on from it):\n{turns}\n\n"
+
+
+def ask_command(
+    question: str,
+    *,
+    mcp_config: Path,
+    model: str,
+    history: Sequence[tuple[str, str]] = (),
+    partial_messages: bool = False,
+) -> list[str]:
     """The headless Claude Code command: our servers only, no project settings or hooks
     (so the question is not recorded as a session's request), read-only tools only."""
     return [
         "claude",
         "-p",
-        _PROMPT.format(question=question),
+        _PROMPT.format(question=question, conversation=_conversation(history)),
         "--output-format",
         "stream-json",
         "--verbose",
@@ -85,6 +102,7 @@ def ask_command(question: str, *, mcp_config: Path, model: str) -> list[str]:
         "--no-session-persistence",
         "--model",
         model,
+        *(["--include-partial-messages"] if partial_messages else []),
     ]
 
 
@@ -100,13 +118,65 @@ def _run_claude(argv: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _answer(question: str, model: str, config: Config) -> subprocess.CompletedProcess[str]:
+def _stream_claude(
+    argv: list[str], progress: Callable[[str, str], None]
+) -> subprocess.CompletedProcess[str]:
+    """Like `_run_claude`, but reads the output as it arrives and reports each step."""
+    lines: list[str] = []
+    timer: threading.Timer | None = None
+    proc = subprocess.Popen(  # noqa: S603 - fixed argv, no shell
+        argv,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        env=child_environment(),
+    )
+    timer = threading.Timer(ASK_TIMEOUT, proc.kill)
+    timer.start()
+    try:
+        assert proc.stdout is not None  # noqa: S101 - PIPE was requested above
+        for line in proc.stdout:
+            lines.append(line)
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(event, dict):
+                words = delta_of(event)
+                if words:
+                    progress(*words)
+                for step in step_labels(event):
+                    progress("step", step)
+        stderr = proc.stderr.read() if proc.stderr else ""
+        proc.wait()
+    finally:
+        timer.cancel()
+    if proc.returncode and proc.returncode < 0 and not lines:  # killed by the timer
+        raise subprocess.TimeoutExpired(argv, ASK_TIMEOUT)
+    return subprocess.CompletedProcess(argv, proc.returncode, "".join(lines), stderr)
+
+
+def _answer(
+    question: str,
+    model: str,
+    config: Config,
+    history: Sequence[tuple[str, str]] = (),
+    progress: Callable[[str, str], None] | None = None,
+) -> subprocess.CompletedProcess[str]:
     with tempfile.TemporaryDirectory() as tmp:
         falkordb = shutil.which("npx") is not None
         path = write_mcp_config(
             Path(tmp), config, bin_dir=Path(sys.executable).parent, falkordb=falkordb
         )
-        return _run_claude(ask_command(question, mcp_config=path, model=model))
+        argv = ask_command(
+            question,
+            mcp_config=path,
+            model=model,
+            history=history,
+            partial_messages=progress is not None,
+        )
+        return _stream_claude(argv, progress) if progress else _run_claude(argv)
 
 
 def cypher_run(calls: list[ToolCall]) -> list[str]:
@@ -119,10 +189,19 @@ def cypher_run(calls: list[ToolCall]) -> list[str]:
     return list(dict.fromkeys(queries))
 
 
-def ask_graph(question: str, config: Config, *, model: str | None = None) -> tuple[str, list[str]]:
+def ask_graph(
+    question: str,
+    config: Config,
+    history: Sequence[tuple[str, str]] = (),
+    progress: Callable[[str, str], None] | None = None,
+    *,
+    model: str | None = None,
+) -> tuple[str, list[str]]:
     """The answer and the Cypher it ran. Raises FileNotFoundError (no `claude`),
     subprocess.TimeoutExpired, or LookupError (Claude Code gave no answer)."""
-    done = _answer(question, model or os.environ.get("HANDOFF_ASK_MODEL", "sonnet"), config)
+    done = _answer(
+        question, model or os.environ.get("HANDOFF_ASK_MODEL", "sonnet"), config, history, progress
+    )
     answer, calls = parse_stream(done.stdout.splitlines())
     if not answer:
         reason = (done.stderr or "").strip().splitlines()

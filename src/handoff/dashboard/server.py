@@ -11,7 +11,7 @@ from typing import Any
 
 from handoff.cli.ask import ask_graph
 from handoff.config import Config
-from handoff.dashboard.chat import MAX_BODY, Asker, handle_ask
+from handoff.dashboard.chat import MAX_BODY, Asker, AskRequest, is_busy, parse_ask, run_ask
 from handoff.dashboard.memory_api import PREFIX, memory_response
 from handoff.dashboard.state import snapshot
 from handoff.ids import now_ms
@@ -77,6 +77,22 @@ def make_server(
                 else:
                     self._send(404, b"not found", "text/plain")
 
+        def _stream_ask(self, request: AskRequest) -> None:
+            """Newline-delimited JSON: {"step"}, {"text"} and {"thought"} lines as they happen, then
+            the answer or an error."""
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            for name, value in _SECURITY.items():
+                self.send_header(name, value)
+            self.end_headers()  # no Content-Length: the body ends when the connection closes
+
+            def send(line: dict[str, Any]) -> None:
+                self.wfile.write(json.dumps(line).encode() + b"\n")
+                self.wfile.flush()
+
+            _, payload = run_ask(request, config, asker, lambda kind, text: send({kind: text}))
+            send(payload)
+
         def do_POST(self) -> None:
             if not self._host_ok():
                 self._send(403, b"forbidden", "text/plain")
@@ -84,9 +100,14 @@ def make_server(
                 self._send(404, b"not found", "text/plain")
             else:
                 size = min(int(self.headers.get("Content-Length") or 0), MAX_BODY)
-                kind = self.headers.get("Content-Type", "")
-                status, payload = handle_ask(self.rfile.read(size), kind, config, asker)
-                self._send(status, json.dumps(payload).encode(), "application/json")
+                parsed = parse_ask(self.rfile.read(size), self.headers.get("Content-Type", ""))
+                if isinstance(parsed, tuple):
+                    self._send(parsed[0], json.dumps(parsed[1]).encode(), "application/json")
+                elif parsed.stream and not is_busy():
+                    self._stream_ask(parsed)
+                else:
+                    status, payload = run_ask(parsed, config, asker)
+                    self._send(status, json.dumps(payload).encode(), "application/json")
 
         def log_message(self, format: str, *args: Any) -> None:
             log.debug(format, *args)

@@ -75,3 +75,92 @@ def test_a_slow_answer_stops_at_the_limit(
     _answer_with(monkeypatch, subprocess.TimeoutExpired("claude", 180))
     assert main(["ask", "q"]) == 1
     assert "No answer within 180 s" in capsys.readouterr().err
+
+
+def test_earlier_turns_go_into_the_prompt_so_a_follow_up_makes_sense(tmp_path: Path) -> None:
+    argv = ask_command(
+        "and who replaced it?",
+        mcp_config=tmp_path / "m.json",
+        model="sonnet",
+        history=[("which decision was replaced?", "The CI decision.")],
+    )
+    prompt = argv[2]
+    assert "which decision was replaced?" in prompt
+    assert "The CI decision." in prompt
+    assert prompt.rstrip().endswith("and who replaced it?")
+
+
+def test_a_first_question_has_no_conversation_section(tmp_path: Path) -> None:
+    prompt = ask_command("hi", mcp_config=tmp_path / "m.json", model="sonnet")[2]
+    assert "Conversation so far" not in prompt
+
+
+def _steps() -> list[str]:
+    from handoff.cli.stream_json import step_labels
+
+    labels: list[str] = []
+    for line in CAPTURE.read_text().splitlines():
+        labels.extend(step_labels(json.loads(line)))
+    return labels
+
+
+def test_a_real_run_reads_as_steps_a_person_can_follow() -> None:
+    steps = _steps()
+    assert steps[0] == "starting Claude Code"
+    assert "thinking" in steps
+    assert "reading the graph guide" in steps
+    assert any(s.startswith("running Cypher: MATCH") for s in steps)
+    assert steps[-1] == "writing the answer"
+
+
+def test_internal_tool_lookups_are_not_shown_as_steps() -> None:
+    assert not any("ToolSearch" in s for s in _steps())
+
+
+def test_a_streamed_run_reports_steps_as_the_output_arrives(tmp_path: Path) -> None:
+    import sys
+
+    from handoff.cli.ask import _stream_claude
+
+    script = tmp_path / "fake_claude.py"
+    script.write_text(f"import sys\nsys.stdout.write(open({str(CAPTURE)!r}).read())\n")
+    steps: list[str] = []
+    done = _stream_claude(
+        [sys.executable, str(script)],
+        lambda kind, text: steps.append(text) if kind == "step" else None,
+    )
+    assert done.returncode == 0
+    assert steps[0] == "starting Claude Code"
+    assert steps[-1] == "writing the answer"
+    assert '"type": "result"' in done.stdout or '"type":"result"' in done.stdout
+
+
+def test_partial_events_give_the_words_as_they_are_written() -> None:
+    from handoff.cli.stream_json import delta_of
+
+    text = {
+        "type": "stream_event",
+        "event": {
+            "type": "content_block_delta",
+            "delta": {"type": "text_delta", "text": "Two rules"},
+        },
+    }
+    thought = {
+        "type": "stream_event",
+        "event": {
+            "type": "content_block_delta",
+            "delta": {"type": "thinking_delta", "thinking": "check the guide"},
+        },
+    }
+    assert delta_of(text) == ("text", "Two rules")
+    assert delta_of(thought) == ("thought", "check the guide")
+    assert delta_of({"type": "assistant"}) is None
+    assert delta_of({"type": "stream_event", "event": {"type": "message_start"}}) is None
+
+
+def test_a_streamed_run_asks_claude_for_partial_messages(tmp_path: Path) -> None:
+    argv = ask_command("hi", mcp_config=tmp_path / "m.json", model="sonnet", partial_messages=True)
+    assert "--include-partial-messages" in argv
+    assert "--include-partial-messages" not in ask_command(
+        "hi", mcp_config=tmp_path / "m.json", model="sonnet"
+    )
