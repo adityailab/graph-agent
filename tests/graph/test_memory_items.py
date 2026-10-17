@@ -33,11 +33,20 @@ def test_episodic_items_list_requests_and_edits_newest_first(two_sessions: Graph
 
 
 def test_semantic_items_are_decisions_with_their_topic_and_reason(two_sessions: Graph) -> None:
-    [item] = memory_items(two_sessions, "semantic", since=0, limit=50)
-    assert item.title == "decision · profile"
+    items = memory_items(two_sessions, "semantic", since=0, limit=50)
+    item = next(i for i in items if i.title == "decision · profile")
     assert "read avatarUrl" in item.text
     assert "server owns urls" in item.text
     assert item.role == "frontend"
+
+
+def test_semantic_items_also_list_each_topic_with_how_many_decisions_it_holds(
+    two_sessions: Graph,
+) -> None:
+    items = memory_items(two_sessions, "semantic", since=0, limit=50)
+    topic = next(i for i in items if i.title == "topic")
+    assert "profile" in topic.text
+    assert "1 decision" in topic.text
 
 
 def test_procedural_items_are_the_rules_in_force(two_sessions: Graph) -> None:

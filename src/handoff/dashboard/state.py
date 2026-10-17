@@ -28,11 +28,17 @@ def _view(view: GraphView) -> dict[str, Any]:
     return {"nodes": [asdict(n) for n in view.nodes], "edges": [asdict(e) for e in view.edges]}
 
 
+_NO_COUNTS = dict.fromkeys(
+    ("decisions", "reads", "messages", "open_needs", "collisions", "edges", "concepts", "insights"),
+    0,
+)
+
+
 def _empty(error: str | None) -> dict[str, Any]:
     nothing: dict[str, Any] = {"nodes": [], "edges": []}
     return {
         "error": error, "graph": "", "now": 0, "roles": [], "events": [], "flows": [],
-        "handoffs": [], "work": nothing, "concepts": nothing, "tracks": [],
+        "handoffs": [], "work": nothing, "concepts": nothing, "tracks": track_summary(_NO_COUNTS),
         "memory": {"types": [], "contexts": []},
     }  # fmt: skip
 

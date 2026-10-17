@@ -31,8 +31,8 @@ def test_episodic_memory_counts_what_happened(two_sessions: Graph) -> None:
 
 def test_semantic_memory_counts_topics_decisions_and_concepts(two_sessions: Graph) -> None:
     kinds = {t.key: t for t in memory_types(two_sessions, concepts=5, since=0)}
-    assert kinds["semantic"].count == 1 + 1 + 5
-    assert "5 concepts" in kinds["semantic"].detail
+    assert kinds["semantic"].count == 1 + 1  # decisions + topics: what its list shows
+    assert "5 concepts" in kinds["semantic"].detail  # the concept graph is counted apart
 
 
 def test_procedural_memory_counts_rules_in_force(two_sessions: Graph) -> None:

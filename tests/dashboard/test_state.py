@@ -69,3 +69,9 @@ def test_the_snapshot_carries_the_memory_overview(config: Config, two_sessions: 
 def test_an_empty_snapshot_still_has_the_memory_keys(config: Config) -> None:
     memory = snapshot(config, now=300, window_ms=1_000)["memory"]
     assert memory == {"types": [], "contexts": []}
+
+
+def test_an_empty_snapshot_still_shows_both_tracks_with_zero_evidence(config: Config) -> None:
+    state = snapshot(config, now=1_000, window_ms=1_000)
+    assert [t["id"] for t in state["tracks"]] == ["track-02", "track-01"]
+    assert all(e["value"] == 0 for t in state["tracks"] for e in t["evidence"])

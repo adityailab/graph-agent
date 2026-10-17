@@ -46,7 +46,8 @@
     }
     return {
       step: function (text) {
-        settle(); tick();
+        if (text !== "writing the answer") settle();  // those words are the answer itself, not a note
+        tick();
         current = el("li", { "class": "now" });
         current.appendChild(el("span", { "class": "tick" }, "▸ ")); current.appendChild(document.createTextNode(text));
         steps.appendChild(current); toBottom();

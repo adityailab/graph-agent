@@ -29,7 +29,7 @@
 <div class="layout">
   <main>
     <section id="view-orchestration" class="view">
-      <svg id="orch" viewBox="0 0 800 350" role="img" aria-label="Sessions and the messages, needs and reads between them">
+      <div class="svg-scroll"><svg id="orch" viewBox="0 0 800 350" role="img" aria-label="Sessions and the messages, needs and reads between them">
         <defs>
           <marker id="oa-message" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
           <marker id="oa-read" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-read"/></marker>
@@ -37,7 +37,7 @@
           <marker id="oa-question" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
           <marker id="oa-standin_answer" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
         </defs>
-      </svg>
+      </svg></div>
       <div id="orch-detail" class="orch-detail"></div>
       <details class="fold orch-lines"><summary>all lines between sessions</summary><div id="flows" class="flows"></div></details>
       <p class="hint">Each box is a Claude Code session; its Mac's screen is lit while it is active. Lines carry what moves between them:
@@ -51,9 +51,9 @@
       </div>
       <div id="hf-stats" class="stats"></div>
       <div class="flow-layout">
-        <svg id="hf-graph" viewBox="0 0 760 400" role="img" aria-label="Who read whose work, as a workflow">
+        <div class="svg-scroll"><svg id="hf-graph" viewBox="0 0 760 400" role="img" aria-label="Who read whose work, as a workflow">
           <defs><marker id="hf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
-        </svg>
+        </svg></div>
         <aside id="hf-detail" class="flow-detail"></aside>
       </div>
     </section>
