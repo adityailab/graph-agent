@@ -9,19 +9,24 @@ import shutil
 import sys
 import tempfile
 import time
+import webbrowser
 from pathlib import Path
 from typing import Any
 
 from handoff.cli.runner import run_command
-from handoff.config import Config, knowledge_graph_name
-from handoff.demo.check import check_graph, reset_graphs
+from handoff.config import Config
+from handoff.demo.check import reset_graphs
 from handoff.demo.drive import drive
+from handoff.demo.finish import build_knowledge, report
 from handoff.demo.headless import run_session
 from handoff.demo.live import launch
+from handoff.demo.mission import start_mission_control
 from handoff.demo.scratch import NotAScratchFolder, prepare_scratch
 from handoff.demo.script import HEADLESS, SHOPLITE
 from handoff.demo.tmux import SESSION
 from handoff.install import install
+
+DASHBOARD_PORT = 8765
 
 DEFAULT_GRAPH = "handoff_demo"  # namespaced: the demo deletes this graph on every run
 
@@ -48,30 +53,6 @@ def add_parser(commands: Any) -> None:
     p.set_defaults(run=run)
 
 
-def _knowledge(config: Config) -> None:
-    try:
-        from handoff.knowledge.cli import main as knowledge_main
-    except ImportError:
-        print("(knowledge graph skipped: install the 'knowledge' extra)")
-        return
-    os.environ["HANDOFF_GRAPH"] = config.graph_name
-    print("\n== building the knowledge graph (one model call per item)", flush=True)
-    knowledge_main(["--once", "--quiet"])
-
-
-def _report(config: Config) -> int:
-    text, missing = check_graph(config)
-    print(f"\n== what the deploy session can see\n{text}")
-    if missing:
-        print(f"\nFAIL: missing {', '.join(missing)}.")
-        return 1
-    print(
-        f"\nPASS. Browse it at http://localhost:3000: graphs {config.graph_name} and "
-        f"{knowledge_graph_name(config)}."
-    )
-    return 0
-
-
 def _live(args: argparse.Namespace, config: Config, workspace: Path) -> int:
     reset_graphs(config)
     print(
@@ -85,7 +66,12 @@ def _live(args: argparse.Namespace, config: Config, workspace: Path) -> int:
         ),
         flush=True,
     )
-    if sys.stdout.isatty() and not os.environ.get("TMUX"):
+    # After launch: it wrote the folder's settings, which tell the dashboard which graph to show.
+    page = start_mission_control(workspace, config.home / "demo", port=DASHBOARD_PORT)
+    print(f"Mission control: {page}#orchestration", flush=True)
+    if _interactive():
+        webbrowser.open(f"{page}#orchestration")
+    if _interactive() and not os.environ.get("TMUX"):
         # This terminal joins the grid; tmux is found on PATH like any command the person runs.
         os.execvp("tmux", ["tmux", "attach", "-t", args.session])  # noqa: S606, S607
     return 0
@@ -128,8 +114,8 @@ def _headless(args: argparse.Namespace, config: Config, workspace: Path) -> int:
         reply = run_session(role, prompt, workspace, config, model=args.model or "haiku")
         print(reply, flush=True)
     if not args.no_knowledge:
-        _knowledge(config)
-    return _report(config)
+        build_knowledge(config)
+    return report(config)
 
 
 def run(args: argparse.Namespace) -> int:

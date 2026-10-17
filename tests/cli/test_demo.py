@@ -119,7 +119,30 @@ def test_the_grid_runs_on_haiku_unless_told_otherwise(
     monkeypatch.setattr("handoff.cli.demo.shutil.which", lambda n: "/b")
     monkeypatch.setattr("handoff.cli.demo._interactive", lambda: False)  # no attach
     monkeypatch.setattr("handoff.cli.demo.launch", fake_launch)
+    monkeypatch.setattr("handoff.cli.demo.start_mission_control", lambda *a, **k: "http://x/")
     monkeypatch.setattr("handoff.cli.demo.reset_graphs", lambda config: None)
     assert main(["demo", "--live", "--workspace", str(tmp_path / "d")]) == 0
     assert main(["demo", "--live", "--model", "sonnet", "--workspace", str(tmp_path / "e")]) == 0
     assert seen == ["haiku", "sonnet"]
+
+
+def test_the_grid_comes_with_mission_control_in_the_browser(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    opened: list[str] = []
+    started: list[Path] = []
+
+    def fake_mission(folder: Path, state: Path, *, port: int) -> str:
+        started.append(folder)
+        return f"http://127.0.0.1:{port}/"
+
+    monkeypatch.setattr("handoff.cli.demo.shutil.which", lambda n: "/b")
+    monkeypatch.setattr("handoff.cli.demo._interactive", lambda: True)
+    monkeypatch.setattr("handoff.cli.demo.launch", lambda *a, **k: "launched")
+    monkeypatch.setattr("handoff.cli.demo.reset_graphs", lambda config: None)
+    monkeypatch.setattr("handoff.cli.demo.start_mission_control", fake_mission)
+    monkeypatch.setattr("handoff.cli.demo.webbrowser.open", opened.append)
+    monkeypatch.setattr("handoff.cli.demo.os.execvp", lambda *a: None)  # do not attach
+    assert main(["demo", "--live", "--workspace", str(tmp_path / "d")]) == 0
+    assert started == [(tmp_path / "d").resolve()]
+    assert opened == ["http://127.0.0.1:8765/#orchestration"]

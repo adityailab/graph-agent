@@ -122,6 +122,21 @@ A live view, refreshed every 2 seconds: active sessions, the newest events (aske
 with its reason, needs, edits, messages, and READ when one session read another's work), and
 "What matters now". Press Ctrl-C to stop. Keep it in its own terminal or tmux pane.
 
+```bash
+handoff dashboard            # opens http://127.0.0.1:8765/ in your browser
+handoff dashboard --port 9000 --no-open
+```
+
+Mission control, the visual version of `watch`, with four views: **Orchestration** (sessions as
+nodes, messages, reads and needs moving between them), **Context handoff** (what each session
+learned from another's work, with the decision and its reason, and how much of each
+session's memory is its own or learned), **Context graph** (the shared graph drawn live,
+coloured by role; a toggle shows the concept graph) and **Tracks** (how handoff answers
+each competition track, with live numbers). A live feed runs down the right side, and
+**Replay last events** replays the newest ones as animation, which is handy when recording.
+The server listens on `127.0.0.1` only and shows the graph of the folder you run it in.
+`handoff demo` starts it for you.
+
 ### Talk to the sessions
 
 ```bash

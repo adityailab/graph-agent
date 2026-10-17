@@ -43,8 +43,8 @@ extend-exclude = ["docs"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "N", "S", "PT"]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests run subprocesses and contain fake secrets on purpose.
-"tests/**" = ["S101", "S105", "S106", "S603"]
+# Tests run subprocesses, open our own localhost URLs, and contain fake secrets on purpose.
+"tests/**" = ["S101", "S105", "S106", "S310", "S603"]
 
 [tool.mypy]
 strict = true

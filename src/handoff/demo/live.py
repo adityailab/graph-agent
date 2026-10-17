@@ -3,17 +3,15 @@ for handoff's own tools, and the tmux grid; then the driver runs in the backgrou
 
 from __future__ import annotations
 
-import contextlib
 import getpass
 import json
 import os
-import signal
-import subprocess
 import sys
 from pathlib import Path
 
 from handoff.cli.runner import Runner
 from handoff.config import Config
+from handoff.demo.background import start_detached, stop_from_pid_file
 from handoff.demo.tmux import layout_commands
 from handoff.install import install
 
@@ -47,30 +45,16 @@ def start_grid(session: str, folder: Path, runner: Runner, *, model: str) -> Non
 
 def stop_previous_driver(state: Path) -> None:
     """Stop the driver of an earlier run, which would keep typing into the new grid."""
-    pid_file = state / "driver.pid"
-    try:
-        pid = int(pid_file.read_text())
-    except (OSError, ValueError):
-        return
-    pid_file.unlink(missing_ok=True)
-    with contextlib.suppress(ProcessLookupError):  # already finished
-        os.kill(pid, signal.SIGTERM)
+    stop_from_pid_file(state / "driver.pid")
 
 
 def start_driver(session: str, state: Path) -> None:
-    """Run `handoff demo --drive` detached, so this terminal can attach to the grid. Its pid
-    and log live in handoff's own state folder, outside the scratch project that is reset."""
-    state.mkdir(parents=True, exist_ok=True)
-    stop_previous_driver(state)
-    with (state / "driver.log").open("w") as out:
-        proc = subprocess.Popen(  # noqa: S603 - our own command, no shell
-            [str(Path(sys.executable).parent / "handoff"), "demo", "--drive", "--session", session],
-            stdout=out,
-            stderr=subprocess.STDOUT,
-            stdin=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-    (state / "driver.pid").write_text(str(proc.pid))
+    """Run `handoff demo --drive` detached, so this terminal can attach to the grid."""
+    start_detached(
+        [str(Path(sys.executable).parent / "handoff"), "demo", "--drive", "--session", session],
+        log=state / "driver.log",
+        pid_file=state / "driver.pid",
+    )
 
 
 def launch(

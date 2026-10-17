@@ -60,6 +60,20 @@ ending in a PASS or what is missing. Both use your plan, on Haiku.
 Open **http://localhost:3000** (FalkorDB Browser), pick the demo graph and run
 `MATCH p=()-[]->() RETURN p`.
 
+## Mission control
+
+`handoff demo` (and `handoff dashboard` on any project) opens one browser window beside
+the terminals. It reads the same graph the sessions write, every 1.5 seconds, and shows:
+
+| | |
+|---|---|
+| **Orchestration**: each session is a node; messages, reads and needs move between them as animated lines and dots | ![orchestration](docs/images/mission-orchestration.png) |
+| **Context handoff**: what each session learned from another's work, with the decision and its reason | ![context handoff](docs/images/mission-handoff.png) |
+| **Context graph**: the shared graph, drawn live, coloured by role (and the concept graph) | ![context graph](docs/images/mission-graph.png) |
+| **Tracks**: how handoff answers each competition track, with live numbers | ![tracks](docs/images/mission-tracks.png) |
+
+Nothing leaves your machine: the page is served from `127.0.0.1` only.
+
 ## The commands
 
 Full walkthrough: [docs/guide.md](docs/guide.md). How two sessions started at different times work together, with diagrams: [docs/how-it-works.md](docs/how-it-works.md).
@@ -73,6 +87,7 @@ Full walkthrough: [docs/guide.md](docs/guide.md). How two sessions started at di
 | `handoff ask "question"` | Claude answers from the graphs, writing read-only Cypher; prints the query |
 | `handoff insights` | Collisions, load-bearing work, bridges, themes |
 | `handoff watch` | Live feed of the graph |
+| `handoff dashboard` | Mission control in your browser: sessions and their traffic, hand-offs, the graph, the tracks |
 | `handoff coordinator` | Always-on agent: reminds a role about a need open 30 min, tells two roles who changed the same file, sends you an hourly digest (`--once`, `--dry-run`) |
 | `handoff knowledge` | Build the knowledge graph (concepts the work is about) |
 | `handoff demo [--headless]` | The proof |
