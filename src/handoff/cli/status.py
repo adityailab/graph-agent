@@ -10,6 +10,7 @@ from typing import Any
 
 from falkordb import Graph
 
+from handoff.cli.style import Palette, stdout_palette
 from handoff.config import Config
 from handoff.format import shorten
 from handoff.graph.connection import connect, graph_exists, server_reachable
@@ -30,7 +31,7 @@ def add_parser(commands: Any) -> None:
     p.set_defaults(run=run)
 
 
-def _sessions(config: Config) -> list[str]:
+def _sessions(config: Config, p: Palette) -> list[str]:
     graph = connect(config)
     lines, roles = [], []
     for s in active_sessions(graph, since=now_ms() - DAY_MS):
@@ -38,10 +39,13 @@ def _sessions(config: Config) -> list[str]:
         text = request_text(graph, request_id) if request_id else None
         seen = datetime.fromtimestamp(s.last_seen_at / 1000).strftime("%H:%M")
         work = f'working on "{shorten(text, 70)}"' if text else "no request yet"
-        lines.append(f"  {s.role:<10} seen {seen}  {work}")
+        lines.append(f"  {p.purple(f'{s.role:<10}')} {p.dim(f'seen {seen}')}  {work}")
         roles.append(s.role)
     counts = {r: count_open_needs(graph, r) for r in dict.fromkeys(roles)}
-    needs = [f"{r}: {n} open need{'' if n == 1 else 's'}" for r, n in counts.items()]
+    needs = [
+        f"{p.purple(r)}: " + (p.red if n else p.green)(f"{n} open need{'' if n == 1 else 's'}")
+        for r, n in counts.items()
+    ]
     return [*lines, "open needs: " + (" · ".join(needs) or "none")]
 
 
@@ -64,13 +68,17 @@ def run(args: argparse.Namespace) -> int:
     if not server_reachable(config):
         print(f"FalkorDB does not answer at {config.host}:{config.port}; run handoff init.")
         return 1
-    print(f"graph {config.graph_name} on FalkorDB {config.host}:{config.port}")
-    print("browse it: http://localhost:3000")
+    p = stdout_palette()
+    print(
+        f"{p.green('●')} graph {p.bold(config.graph_name)} on FalkorDB {config.host}:{config.port}"
+    )
+    browse, mission = p.blue("http://localhost:3000"), p.blue("handoff dashboard")
+    print(f"browse it: {browse}   mission control: {mission}")
     print(f"knowledge worker: {'running' if is_leading(config) else 'not running'}")
     if not graph_exists(config):
         print("No work recorded yet: start a Claude Code session in this folder.")
         return 0
     print("sessions seen in the last 24 hours:")
-    print("\n".join(_sessions(config)))
+    print("\n".join(_sessions(config, p)))
     _print_messages_for_you(connect(config))
     return 0

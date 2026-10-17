@@ -148,3 +148,15 @@ def test_the_latest_digest_is_shown_in_full_and_does_not_hide_real_messages(
     assert "Digest 2" in out
     assert "- backend: 2 requests" in out
     assert "Digest 0" not in out
+
+
+def test_doctor_shows_each_check_with_a_mark(
+    config: Config,
+    in_workspace: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    install(in_workspace, bin_dir=Path("/bin"), config=config, falkordb_mcp=False)
+    main(["doctor"])
+    out = capsys.readouterr().out
+    assert "ok  hooks installed" in out
+    assert "ok  FalkorDB answers" in out
