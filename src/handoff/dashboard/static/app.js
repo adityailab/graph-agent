@@ -4,7 +4,7 @@
   var MC = window.MC, POLL_MS = 1500;
   var VIEWS = ["orchestration", "handoff", "memory", "graph", "log", "ask", "tracks"];
   var seenEvents = null, state = null, current = "orchestration";
-  var ticker = document.getElementById("ticker"), status = document.getElementById("status");
+  var status = document.getElementById("status");
 
   function setView(name) {
     current = name;
@@ -16,18 +16,6 @@
 
   MC.setView = setView;
 
-  function addToTicker(ev, fresh) {
-    var li = MC.el("li", { "class": fresh ? "fresh" : "" });
-    var meta = MC.el("div", { "class": "meta" });
-    meta.appendChild(MC.el("span", { "class": "t" }, MC.clock(ev.at)));
-    meta.appendChild(MC.el("span", { "class": "kind k-" + ev.kind.toLowerCase() }, ev.kind.toLowerCase()));
-    var who = MC.el("span", { "class": "who" }, ev.role); who.style.color = MC.color(ev.role);
-    meta.appendChild(who); li.appendChild(meta);
-    li.appendChild(MC.clamp(MC.rich(MC.el("span", { "class": "text" }), ev.text)));
-    ticker.insertBefore(li, ticker.firstChild);
-    while (ticker.children.length > 60) ticker.removeChild(ticker.lastChild);
-  }
-
   function apply(s) {
     MC.words(s.roles.map(function (r) { return r.role; }));
     // The baseline is the first snapshot with events, so a graph that appears later is not replayed.
@@ -36,8 +24,6 @@
     var seen = seenEvents || {};
     var fresh = s.events.filter(function (e) { return !seen[e.key]; });
     fresh.forEach(function (e) { seen[e.key] = true; });
-    if (first) s.events.slice(-25).forEach(function (e) { addToTicker(e, false); });
-    else fresh.forEach(function (e) { addToTicker(e, true); });
     var animate = first ? [] : fresh.slice(-8);
     Object.keys(MC.views).forEach(function (name) { MC.views[name].update(s, animate); });
     document.getElementById("graph-name").textContent = s.graph;
@@ -57,7 +43,7 @@
   document.getElementById("replay").addEventListener("click", function () {
     if (!state) return;
     setView("orchestration");
-    state.events.slice(-12).forEach(function (e, i) { setTimeout(function () { MC.views.orchestration.play(e); addToTicker(e, true); }, i * 700); });
+    state.events.slice(-12).forEach(function (e, i) { setTimeout(function () { MC.views.orchestration.play(e); }, i * 700); });
   });
 
   document.addEventListener("keydown", function (ev) {

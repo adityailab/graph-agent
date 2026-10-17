@@ -74,8 +74,14 @@
       <div id="tracks"></div>
     </section>
     <section id="view-log" class="view" hidden>
-      <h2>everything that lands in the graph, newest first</h2>
-      <ol id="ticker"></ol>
+      <div class="ask-bar">
+        <h2>activity</h2>
+        <span class="dim">one column per session, newest on top · each dot is something that landed in the graph · click one to read it</span>
+      </div>
+      <div class="flow-layout">
+        <div class="flow-scroll"><div id="flow" class="flow"></div></div>
+        <aside id="flow-detail" class="flow-detail"></aside>
+      </div>
     </section>
     <section id="view-ask" class="view" hidden>
       <div class="ask-bar">
@@ -108,6 +114,7 @@
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>
 <script src="/askmarkdown.js"></script>
+<script src="/logflow.js"></script>
 <script src="/ask.js"></script>
 <script src="/app.js"></script>
 </body>
