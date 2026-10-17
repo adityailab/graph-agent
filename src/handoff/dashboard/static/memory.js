@@ -49,17 +49,18 @@
   }
 
   function update(state) {
-    var sig = JSON.stringify([state.memory, state.flows]);
+    var memory = state.memory || { types: [], contexts: [] };  // an older server sends no memory
+    var sig = JSON.stringify([memory, state.flows]);
     if (sig === signature) return;
     signature = sig; MC.clear(root);
-    if (!state.memory.types.length) { root.appendChild(el("p", { "class": "dim" }, "no memory yet: start a session in this folder")); return; }
+    if (!memory.types.length) { root.appendChild(el("p", { "class": "dim" }, "no memory yet: start a session in this folder (if sessions exist, restart `handoff dashboard`: this server may be older than the memory page)")); return; }
     root.appendChild(el("h3", {}, "six kinds of memory the graph holds"));
     var grid = el("div", { "class": "mem-grid" });
-    state.memory.types.forEach(function (t) { grid.appendChild(kindCard(t)); });
+    memory.types.forEach(function (t) { grid.appendChild(kindCard(t)); });
     root.appendChild(grid);
     root.appendChild(el("h3", {}, "what each session holds right now"));
     var ctxs = el("div", { "class": "ctx-grid" });
-    state.memory.contexts.forEach(function (c) { ctxs.appendChild(context(c)); });
+    memory.contexts.forEach(function (c) { ctxs.appendChild(context(c)); });
     root.appendChild(ctxs);
     root.appendChild(el("h3", {}, "how context moves between sessions"));
     root.appendChild(flows(state));
