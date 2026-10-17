@@ -176,3 +176,15 @@ a { color: var(--blue); }
 .mem-list { margin-top: 12px; }
 .mem-full { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .mem-full li { overflow-wrap: anywhere; border-left: 2px solid var(--line); padding-left: 8px; }
+.ask-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.ask-log { display: grid; gap: 12px; margin-bottom: 14px; }
+.ask-turn { border-left: 3px solid var(--line); padding: 4px 12px; }
+.ask-q { border-left-color: var(--blue); }
+.ask-a { border-left-color: var(--green); }
+.ask-who { color: var(--dim); font-weight: 700; }
+.ask-turn p { margin: 2px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ask-error { color: var(--red); }
+.ask-cypher { margin-top: 6px; color: var(--dim); }
+.ask-cypher pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0; color: var(--ink); background: var(--soft); padding: 6px 8px; }
+.ask-form { display: flex; gap: 8px; position: sticky; bottom: 8px; background: var(--bg); padding: 6px 0; }
+.ask-form input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
