@@ -11,6 +11,7 @@ import fcntl
 import json
 import logging
 import os
+import re
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -56,6 +57,13 @@ def _rewrite(path: Path, lines: list[bytes]) -> None:
     with os.fdopen(fd, "wb") as f:
         f.write(b"".join(line + b"\n" for line in lines))
     os.replace(tmp, path)
+
+
+def spool_dir(home: Path, graph_name: str) -> Path:
+    """The replay folder for one graph. Saved events carry no graph name, so each graph
+    keeps its own: a hook in another workspace must never replay them into its graph."""
+    safe = re.sub(r"[^A-Za-z0-9_.-]", "_", graph_name) or "_"
+    return home / "spool" / safe
 
 
 def append(home: Path, event: Mapping[str, Any]) -> None:

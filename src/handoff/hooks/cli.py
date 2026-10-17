@@ -48,7 +48,7 @@ def _worth_saving(event: dict[str, Any]) -> bool:
 
 def _save(config: Config, event: dict[str, Any]) -> None:
     if _worth_saving(event):
-        spool.append(config.home, event)
+        spool.append(spool.spool_dir(config.home, config.graph_name), event)
 
 
 def _apply(config: Config, event: dict[str, Any]) -> HookOutput:
@@ -58,7 +58,9 @@ def _apply(config: Config, event: dict[str, Any]) -> HookOutput:
     try:
         graph = connect(config)
         replayed = spool.replay(
-            config.home, lambda saved: apply_event(graph, saved, live=False), is_outage=is_outage
+            spool.spool_dir(config.home, config.graph_name),
+            lambda saved: apply_event(graph, saved, live=False),
+            is_outage=is_outage,
         )
         if replayed.pending:
             # Older events are still waiting; applying this one first would break order.
