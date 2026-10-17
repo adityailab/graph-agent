@@ -16,10 +16,10 @@ def test_demo_needs_claude_code(
 
 
 def test_live_demo_needs_tmux(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.setattr("handoff.cli.demo.shutil.which", lambda n: None if n == "tmux" else "/b")
-    assert main(["demo", "--live"]) == 1
+    assert main(["demo", "--live", "--workspace", str(tmp_path)]) == 1
     err = capsys.readouterr().err
     assert "brew install tmux" in err
     assert "handoff demo" in err  # the headless demo needs no tmux
@@ -39,3 +39,15 @@ def test_the_demo_graph_name_is_namespaced() -> None:
     from handoff.cli import demo
 
     assert demo.DEFAULT_GRAPH == "handoff_demo"
+
+
+def test_a_missing_prerequisite_leaves_the_workspace_untouched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from handoff.demo.scratch import MARKER
+
+    (tmp_path / MARKER).write_text("made by the demo")
+    (tmp_path / "keep.txt").write_text("a previous run's file")
+    monkeypatch.setattr("handoff.cli.demo.shutil.which", lambda n: None if n == "tmux" else "/b")
+    assert main(["demo", "--live", "--workspace", str(tmp_path)]) == 1
+    assert (tmp_path / "keep.txt").exists()  # nothing was reset before the check failed

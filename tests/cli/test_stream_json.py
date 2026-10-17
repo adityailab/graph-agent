@@ -53,3 +53,15 @@ def test_a_call_repeated_in_the_stream_is_listed_once() -> None:
     ]
     _, calls = parse_stream(lines)
     assert [c.input["query"] for c in calls] == ["MATCH (n) RETURN n", "MATCH (m) RETURN m"]
+
+
+def test_the_same_query_run_twice_is_shown_once() -> None:
+    from handoff.cli.ask import cypher_run
+
+    same = {"query": "MATCH (n) RETURN n"}
+    calls = [
+        ToolCall("mcp__falkordb__query_graph_readonly", same),
+        ToolCall("mcp__falkordb__query_graph_readonly", {"query": "MATCH (m) RETURN m"}),
+        ToolCall("mcp__falkordb__query_graph_readonly", same),
+    ]
+    assert cypher_run(calls) == ["MATCH (n) RETURN n", "MATCH (m) RETURN m"]

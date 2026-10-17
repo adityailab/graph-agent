@@ -111,6 +111,13 @@ def run(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 1
+    if args.live and shutil.which("tmux") is None:  # check before any folder is touched
+        print(
+            "The live demo needs tmux: brew install tmux (macOS) or your package manager. "
+            "Or run handoff demo, the same collaboration headless, without tmux.",
+            file=sys.stderr,
+        )
+        return 1
     base = Config.from_env()
     config = Config(base.host, base.port, args.graph, base.home)
     workspace = (args.workspace or Path(tempfile.gettempdir()) / "handoff-demo").resolve()
