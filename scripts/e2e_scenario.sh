@@ -51,10 +51,14 @@ must return totalPaise as an integer. Reply done."
 
 run_role backend "Use the handoff tool to see what the frontend needs from you. Create \
 api/orders.py with a function order_summary(order) that returns a dict whose totalPaise is \
-an integer. Record a decision about it, then resolve the frontend's need. Reply done."
+an integer. Record a decision about it, resolve the frontend's need, then send the frontend \
+a message that totalPaise is now returned by order_summary. Reply done."
 
-run_role deploy "Before deploying: use the handoff tool, then tell me in three lines what \
-the other sessions changed, why, and whether anything is still open."
+run_role frontend "Carry on: is there any news from the other sessions? Reply in one line."
+
+run_role deploy "Before deploying: use the handoff tool, and use the ask tool to ask the \
+frontend role why amounts are kept in paise. Then tell me in three lines what the other \
+sessions changed, why, and whether anything is still open."
 
 if [[ "$KNOWLEDGE" == 1 ]]; then
   step "knowledge graph ${HANDOFF_GRAPH}_kg (one model call per item, about 20 s each)"

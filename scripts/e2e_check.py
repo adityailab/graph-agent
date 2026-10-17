@@ -25,12 +25,26 @@ EXPECTED = {
     "the backend request": "api/orders.py",
 }
 
+# Communication the graph must show, as (what, Cypher count query).
+EXPECTED_EDGES = {
+    "a message delivered to a session": (
+        "MATCH (:Message)-[:DELIVERED_TO]->(:Session) RETURN count(*)"
+    ),
+    "a stand-in answer citing its sources": (
+        "MATCH (:Message {kind: 'standin_answer'})-[:CITES]->() RETURN count(*)"
+    ),
+    "a request that consulted another session's work": (
+        "MATCH (:Request)-[:CONSULTED]->(:Request) RETURN count(*)"
+    ),
+}
+
 
 def reset(config: Config) -> None:
     """Delete this scenario's graphs, so each run starts empty."""
     db = FalkorDB(host=config.host, port=config.port)
     existing = set(db.list_graphs())
-    for name in (config.graph_name, knowledge_graph_name(config)):
+    kg = knowledge_graph_name(config)
+    for name in (config.graph_name, kg, f"{kg}__ontology"):
         if name in existing:
             db.select_graph(name).delete()
     ensure_schema(connect(config))
@@ -47,8 +61,11 @@ def check(config: Config, workspace: str) -> int:
     counts = graph.query("MATCH (n) RETURN labels(n)[0], count(n) ORDER BY labels(n)[0]")
     print("\nNodes:", ", ".join(f"{label} {n}" for label, n in counts.result_set))
     missing = [name for name, needle in EXPECTED.items() if needle not in text]
+    missing += [
+        name for name, query in EXPECTED_EDGES.items() if graph.query(query).result_set[0][0] == 0
+    ]
     if missing:
-        print(f"\nFAIL: the deploy handoff is missing {', '.join(missing)}.")
+        print(f"\nFAIL: missing {', '.join(missing)}.")
         return 1
     print(
         f"\nPASS. Browse it at http://localhost:3000 (graphs {config.graph_name} and "
