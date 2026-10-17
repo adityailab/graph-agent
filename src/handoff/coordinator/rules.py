@@ -8,10 +8,14 @@ from dataclasses import dataclass
 from falkordb import Graph
 
 from handoff.format import render_insights
-from handoff.graph.coordination import claim_action, recent_collisions, stale_needs
+from handoff.graph.coordination import (
+    action_taken,
+    claim_and_send,
+    recent_collisions,
+    stale_needs,
+)
 from handoff.graph.history import handoff_requests
 from handoff.graph.insights import current_insights
-from handoff.graph.messages import add_message
 from handoff.graph.needs import count_open_needs
 from handoff.graph.sessions import upsert_session
 from handoff.ids import new_id
@@ -33,21 +37,21 @@ class Action:
     rule: str  # stale_need, collision or digest
     to_roles: tuple[str, ...]
     text: str
+    kind: str = "nudge"  # a message kind of its own: not a fact about the role (digest: "digest")
 
 
-def _send(graph: Graph, action: Action, *, at: int) -> None:
+def _deliver(graph: Graph, key: str, action: Action, *, at: int) -> bool:
     upsert_session(graph, session_id=COORDINATOR, role=COORDINATOR, cwd="", at=at)
-    for role in action.to_roles:
-        add_message(
-            graph,
-            message_id=new_id(),
-            from_session_id=COORDINATOR,
-            to_role=role,
-            kind="message",
-            text=action.text,
-            reply_to=None,
-            at=at,
-        )
+    return claim_and_send(
+        graph,
+        key=key,
+        rule=action.rule,
+        kind=action.kind,
+        text=action.text,
+        at=at,
+        sender=COORDINATOR,
+        deliveries=[(new_id(), role) for role in action.to_roles],
+    )
 
 
 def _stale(graph: Graph, now: int, t: Thresholds) -> list[tuple[str, Action]]:
@@ -67,7 +71,7 @@ def _collisions(graph: Graph, now: int, t: Thresholds) -> list[tuple[str, Action
     for c in recent_collisions(graph, since=now - t.collision_minutes * MINUTE_MS):
         text = (
             f"Heads-up from the coordinator: {c.first_role} and {c.second_role} have both "
-            f"changed {c.path} recently. Check the handoff before editing it again."
+            f"changed {c.path} recently. handoff shows what each did and why."
         )
         key = f"collision:{c.path}:{c.first_role}:{c.second_role}"
         found.append((key, Action("collision", (c.first_role, c.second_role), text)))
@@ -95,7 +99,7 @@ def _digest(graph: Graph, now: int, t: Thresholds) -> list[tuple[str, Action]]:
     ]
     matters = render_insights(current_insights(graph, limit=3))
     text = "\n".join(parts + ([matters] if matters else []))
-    return [(f"digest:{now // window}", Action("digest", (PERSON,), text))]
+    return [(f"digest:{now // window}", Action("digest", (PERSON,), text, kind="digest"))]
 
 
 def run_rules(
@@ -106,8 +110,8 @@ def run_rules(
     for rule in (_stale, _collisions, _digest):
         for key, action in rule(graph, now, thresholds):
             if dry_run:
-                taken.append(action)
-            elif claim_action(graph, key=key, rule=action.rule, text=action.text, at=now):
-                _send(graph, action, at=now)
+                if not action_taken(graph, key=key):
+                    taken.append(action)
+            elif _deliver(graph, key, action, at=now):
                 taken.append(action)
     return taken

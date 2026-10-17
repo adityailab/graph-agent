@@ -96,3 +96,57 @@ def test_the_digest_goes_to_the_person_once_an_hour(two_sessions: Graph) -> None
     ).result_set[0][0]
     assert "frontend" in text
     assert "open need" in text
+
+
+def test_a_dry_run_skips_what_was_already_sent(two_sessions: Graph) -> None:
+    late = 113 + 31 * MIN
+    assert len(run_rules(two_sessions, now=late, thresholds=Thresholds())) == 1
+    assert run_rules(two_sessions, now=late, thresholds=Thresholds(), dry_run=True) == []
+
+
+def test_collision_text_states_facts_not_commands(two_sessions: Graph) -> None:
+    add_edit(
+        two_sessions,
+        request_id="p3",
+        edit_id="e9",
+        tool="Edit",
+        path="Card.tsx",
+        summary="x",
+        at=215,
+    )
+    (action,) = run_rules(two_sessions, now=220, thresholds=Thresholds())
+    assert "Check the handoff" not in action.text
+    assert "handoff shows" in action.text
+
+
+def test_nudges_and_digests_are_not_facts_about_a_role(two_sessions: Graph) -> None:
+    from handoff.graph.messages import role_messages
+
+    add_request(two_sessions, session_id="be", request_id="p4", text="more api", at=300)
+    t = Thresholds(digest_minutes=60)
+    run_rules(two_sessions, now=113 + 31 * MIN, thresholds=t)
+    kinds = two_sessions.query(
+        "MATCH (:Session {role: 'coordinator'})-[:SENT]->(m:Message) RETURN DISTINCT m.kind"
+    ).result_set
+    assert sorted(k for (k,) in kinds) == ["digest", "nudge"]
+    assert role_messages(two_sessions, role="backend", since=0, limit=10) == []
+
+
+def test_a_claimed_action_always_comes_with_its_messages(two_sessions: Graph) -> None:
+    add_edit(
+        two_sessions,
+        request_id="p3",
+        edit_id="e9",
+        tool="Edit",
+        path="Card.tsx",
+        summary="x",
+        at=215,
+    )
+    run_rules(two_sessions, now=220, thresholds=Thresholds())
+    run_rules(two_sessions, now=221, thresholds=Thresholds())
+    rows = two_sessions.query(
+        "MATCH (:Action {rule: 'collision'}) WITH count(*) AS actions "
+        "MATCH (:Session {role: 'coordinator'})-[:SENT]->(m:Message) "
+        "RETURN actions, count(m)"
+    ).result_set
+    assert rows == [[1, 2]]  # one collision, one message for each of the two roles

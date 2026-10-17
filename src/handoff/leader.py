@@ -14,6 +14,7 @@ class LeaderLock:
 
     @property
     def held(self) -> bool:
+        """True while this object holds the lock."""
         return self._handle is not None
 
     def acquire(self) -> bool:

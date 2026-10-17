@@ -23,7 +23,12 @@ class AsyncRunner:
 
     def run(self, coro: Coroutine[Any, Any, T], timeout: float | None = None) -> T:
         """Run `coro` on this runner's loop and wait for its result."""
-        return asyncio.run_coroutine_threadsafe(coro, self._loop).result(timeout)
+        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        try:
+            return future.result(timeout)
+        except TimeoutError:
+            future.cancel()  # otherwise it keeps running and shares state with the next call
+            raise
 
     def close(self) -> None:
         self._loop.call_soon_threadsafe(self._loop.stop)

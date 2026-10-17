@@ -48,7 +48,8 @@ class Grower:
         self, client: TypeLearner, home: Path, graph_name: str, *, every: int = EVERY
     ) -> None:
         self._client, self._home, self._graph = client, home, graph_name
-        self._every, self._texts = every, []  # type: ignore[var-annotated]
+        self._every = every
+        self._texts: list[str] = []
 
     def note(self, text: str) -> None:
         """Remember an ingested item; every `every` items, learn new types from them."""
@@ -57,6 +58,8 @@ class Grower:
             return
         texts, self._texts = self._texts, []
         learned = load_learned(self._home, self._graph)
+        if len(learned) >= MAX_LEARNED:
+            return  # nothing more can be accepted, so do not pay for the model call
         known = set(HANDOFF_ENTITY_TYPES) | {label for label, _ in learned}
         new = accept_new_types(self._client.suggest_types(texts), known=known, learned=len(learned))
         if new:

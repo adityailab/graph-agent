@@ -6,18 +6,18 @@ machine holds the lead (a file lock), so sessions never run model calls for the 
 
 from __future__ import annotations
 
-import fcntl
 import logging
 import threading
 from collections.abc import Callable
 from pathlib import Path
-from typing import IO, Any
+from typing import Any
 
 from falkordb import Graph
 
 from handoff.graph.knowledge_queue import claim_next, mark_ingested
 from handoff.ids import now_ms
 from handoff.knowledge.pacing import Pacer
+from handoff.leader import LeaderLock
 
 log = logging.getLogger(__name__)
 
@@ -41,31 +41,20 @@ class KnowledgeWorker:
         grow: Callable[[str], None] | None = None,
     ) -> None:
         self._graph, self._rag, self._now = graph, rag, now
-        self._lock_path = home / "locks" / f"knowledge-{lock_name}.lock"
+        self._lock = LeaderLock(home / "locks" / f"knowledge-{lock_name}.lock")
         self._finalize_every, self._since_finalize = finalize_every, 0
         self._pacer = Pacer(max_per_hour=max_per_hour)
-        self._lock_file: IO[str] | None = None
         self._stop = threading.Event()
         self._refresh = refresh  # e.g. recompute insights once new concepts are in
         self._grow = grow  # told each ingested text, so entity types can grow
 
     def try_lead(self) -> bool:
         """Become this graph's worker on this machine, unless another one already is."""
-        self._lock_path.parent.mkdir(parents=True, exist_ok=True)
-        handle = self._lock_path.open("a")
-        try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            handle.close()
-            return False
-        self._lock_file = handle
-        return True
+        return self._lock.acquire()
 
     def stand_down(self) -> None:
-        if self._lock_file is not None:
-            fcntl.flock(self._lock_file, fcntl.LOCK_UN)
-            self._lock_file.close()
-            self._lock_file = None
+        """Give up the lead."""
+        self._lock.release()
 
     def step(self) -> bool:
         """Handle one item. True if one was ingested or skipped; False if none was
@@ -124,7 +113,7 @@ class KnowledgeWorker:
         """Loop until stopped: lead if possible, ingest, rest when there is nothing to do."""
         try:
             while not self._stop.is_set():
-                if self._lock_file is None and not self.try_lead():
+                if not self._lock.held and not self.try_lead():
                     self._stop.wait(60)
                     continue
                 if not self._guarded(self.step):

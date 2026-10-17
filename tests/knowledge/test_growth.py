@@ -87,3 +87,14 @@ def test_growth_trouble_never_stops_ingestion(ready: Graph, tmp_path: Path) -> N
     worker = KnowledgeWorker(graph=ready, rag=rag, home=tmp_path, grow=boom)
     assert worker.step() is True
     assert [d for d, _ in rag.ingested] == ["p1"]
+
+
+def test_at_the_cap_the_model_is_not_asked(tmp_path: Path) -> None:
+    save_learned(
+        tmp_path, "g", [(f"Kind{chr(65 + i)}{chr(97 + i)}x", "d") for i in range(MAX_LEARNED)]
+    )
+    client = FakeClient()
+    grower = Grower(client, tmp_path, "g", every=2)
+    grower.note("a")
+    grower.note("b")
+    assert client.asked == []

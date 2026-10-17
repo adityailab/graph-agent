@@ -85,4 +85,6 @@ def _serve(config: Config, graph: Any, thresholds: Thresholds, *, dry_run: bool)
     except KeyboardInterrupt:
         coordinator.stop()
         thread.join(timeout=5)
-    return 0
+        return 0
+    print("The coordinator stopped unexpectedly; see the log above.", file=sys.stderr)
+    return 1

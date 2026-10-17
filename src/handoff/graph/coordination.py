@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 from falkordb import Graph
 
+from handoff.graph.captions import caption
+
 
 @dataclass(frozen=True)
 class StaleNeed:
@@ -45,14 +47,54 @@ def recent_collisions(graph: Graph, *, since: int) -> list[Collision]:
     return [Collision(str(p), str(a), str(b)) for p, a, b in rows]
 
 
-def claim_action(graph: Graph, *, key: str, rule: str, text: str, at: int) -> bool:
-    """Record that the coordinator acts on `key`. False if it already did, so a subject
-    is acted on once."""
-    # MERGE on the unique key; `fresh` is set only when this call created the node.
+def action_taken(graph: Graph, *, key: str) -> bool:
+    """True if the coordinator already acted on `key` (read-only, for dry runs)."""
+    rows = graph.ro_query("MATCH (a:Action {key: $key}) RETURN count(a)", {"key": key}).result_set
+    return bool(rows[0][0])
+
+
+# One query: the Action is claimed and its messages created together, so a failure cannot
+# leave a subject marked as done with nobody told. `fresh` is set only on the call that
+# creates the Action (MERGE on a unique key), so two coordinators never both send.
+_CLAIM_AND_SEND = """
+MERGE (a:Action {key: $key})
+ON CREATE SET a.rule = $rule, a.text = $text, a.at = $at, a.name = $name, a.fresh = 1
+WITH a, a.fresh AS fresh REMOVE a.fresh
+WITH fresh WHERE fresh = 1
+MATCH (sender:Session {id: $sender})
+UNWIND $messages AS msg
+CREATE (m:Message {id: msg.id, kind: $kind, text: $text, to_role: msg.role, at: $at,
+                   name: $kind + ': ' + $caption})
+CREATE (sender)-[:SENT]->(m)
+RETURN count(m)
+"""
+
+
+def claim_and_send(
+    graph: Graph,
+    *,
+    key: str,
+    rule: str,
+    kind: str,
+    text: str,
+    at: int,
+    sender: str,
+    deliveries: list[tuple[str, str]],  # (message id, role) for each recipient
+) -> bool:
+    """Act on `key` once: record the Action and send one message per recipient. False if
+    the coordinator already acted on it."""
     rows = graph.query(
-        "MERGE (a:Action {key: $key}) "
-        "ON CREATE SET a.rule = $rule, a.text = $text, a.at = $at, a.name = $name, a.fresh = 1 "
-        "WITH a, a.fresh AS fresh REMOVE a.fresh RETURN fresh",
-        {"key": key, "rule": rule, "text": text, "at": at, "name": f"{rule}: {text}"[:60]},
+        _CLAIM_AND_SEND,
+        {
+            "key": key,
+            "rule": rule,
+            "text": text,
+            "at": at,
+            "kind": kind,
+            "sender": sender,
+            "name": f"{rule}: {caption(text)}",
+            "caption": caption(text),
+            "messages": [{"id": i, "role": r} for i, r in deliveries],
+        },
     ).result_set
-    return bool(rows[0][0] == 1)
+    return bool(rows and rows[0][0])

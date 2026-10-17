@@ -104,3 +104,47 @@ def test_the_person_is_not_listed_as_a_session_but_their_messages_are_shown(
     out = capsys.readouterr().out
     assert "person" not in out.split("messages for you")[0]
     assert "the endpoint is ready" in out
+
+
+def test_the_coordinator_is_not_listed_as_a_session(
+    two_sessions: Graph, in_workspace: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from handoff.graph.sessions import upsert_session
+
+    upsert_session(two_sessions, session_id="coordinator", role="coordinator", cwd="", at=250)
+    assert main(["status"]) == 0
+    assert "coordinator" not in capsys.readouterr().out
+
+
+def test_the_latest_digest_is_shown_in_full_and_does_not_hide_real_messages(
+    two_sessions: Graph, in_workspace: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from handoff.graph.messages import add_message
+
+    add_message(
+        two_sessions,
+        message_id="m1",
+        from_session_id="be",
+        to_role="person",
+        kind="message",
+        text="done, please review",
+        reply_to=None,
+        at=250,
+    )
+    for n in range(3):
+        add_message(
+            two_sessions,
+            message_id=f"d{n}",
+            from_session_id="be",
+            to_role="person",
+            kind="digest",
+            text=f"Digest {n}\n- backend: 2 requests",
+            reply_to=None,
+            at=260 + n,
+        )
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    assert "done, please review" in out
+    assert "Digest 2" in out
+    assert "- backend: 2 requests" in out
+    assert "Digest 0" not in out
