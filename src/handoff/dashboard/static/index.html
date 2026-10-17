@@ -119,11 +119,12 @@
     </section>
   </main>
 </div>
+<aside id="dock-chat" class="chat-panel" aria-label="Answers about this page" hidden>
+  <div id="chat-grip" class="chat-grip" role="separator" aria-orientation="vertical" aria-label="Drag to resize the answer panel" tabindex="0"></div>
+  <div class="chat-head"><span>asking about this page</span><button type="button" id="dock-chat-close" aria-label="Close the answer panel">×</button></div>
+  <div id="dock-chat-log" class="ask-log" aria-live="polite"></div>
+</aside>
 <form id="dock" class="dock" role="search" aria-label="Command line">
-  <div id="dock-chat" class="dock-chat" hidden>
-    <div class="dock-chat-head"><span>asking about this page</span><button type="button" id="dock-chat-close" aria-label="Close the answer panel">×</button></div>
-    <div id="dock-chat-log" class="ask-log" aria-live="polite"></div>
-  </div>
   <p id="dock-reply" class="dock-reply" role="status" hidden></p>
   <label class="dock-row"><span class="ps1" aria-hidden="true">$</span>
     <input id="dock-input" type="text" name="cmd" autocomplete="off" spellcheck="false" maxlength="2000" aria-label="Command"
@@ -151,6 +152,7 @@
 <script src="/logflow.js"></script>
 <script src="/ask.js"></script>
 <script src="/commands.js"></script>
+<script src="/chatpanel.js"></script>
 <script src="/dock.js"></script>
 <script src="/app.js"></script>
 </body>

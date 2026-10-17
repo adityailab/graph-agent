@@ -3,8 +3,7 @@
   "use strict";
   var MC = window.MC;
   var form = document.getElementById("dock"), input = document.getElementById("dock-input");
-  var chat = document.getElementById("dock-chat"), chatLog = document.getElementById("dock-chat-log");
-  document.getElementById("dock-chat-close").addEventListener("click", function () { chat.hidden = true; });
+  var chatLog = document.getElementById("dock-chat-log");
   var reply = document.getElementById("dock-reply"), roles = [], past = [], at = 0, hideTimer = null;
 
   function say(text, bad) {
@@ -27,7 +26,7 @@
   // looked at, and the model is told what that page is showing.
   function answer(text) {
     if (MC.view() === "ask") return say(MC.ask.start(text) ? "" : "still answering the last question", true);
-    chat.hidden = false;
+    MC.chatPanel.open();
     if (!MC.ask.start(text, chatLog, MC.pageContext())) { say("still answering the last question", true); return; }
     say("");
   }
@@ -50,7 +49,7 @@
   });
   // Up and down walk through what was typed before, like a shell.
   input.addEventListener("keydown", function (ev) {
-    if (ev.key === "Escape") { if (!chat.hidden && !input.value) chat.hidden = true; input.blur(); return; }
+    if (ev.key === "Escape") { if (MC.chatPanel.isOpen() && !input.value) MC.chatPanel.close(); input.blur(); return; }
     if ((ev.key !== "ArrowUp" && ev.key !== "ArrowDown") || !past.length) return;
     ev.preventDefault();
     at = Math.max(0, Math.min(past.length, at + (ev.key === "ArrowUp" ? -1 : 1)));
