@@ -152,5 +152,5 @@
     select(next, state);
   }
 
-  MC.views.handoff = { update: update, play: play };
+  MC.views.handoff = { update: update, play: play, context: function () { return !selected ? "" : selected.pair ? selected.pair.reader + " reading " + selected.pair.author + "'s work is selected" : selected.role + " is selected"; } };
 })();

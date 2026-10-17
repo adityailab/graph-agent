@@ -214,3 +214,19 @@ def test_a_streamed_common_question_also_uses_the_model(asking: str) -> None:
     lines = _stream(asking + "/api/ask", {"question": "which rules are in force?", "stream": True})
     assert not any("without a model" in x.get("step", "") for x in lines)
     assert "quick" not in lines[-1]
+
+
+def test_what_the_person_is_looking_at_reaches_the_model_with_the_question(asking: str) -> None:
+    _, body = _post(
+        asking + "/api/ask",
+        {"question": "what is this?", "context": "the graph page, decision: use paise"},
+    )
+    assert "what is this?" in body["answer"]
+    assert "use paise" in body["answer"]
+
+
+def test_a_huge_or_malformed_page_context_is_refused_or_trimmed(asking: str) -> None:
+    assert _post(asking + "/api/ask", {"question": "x", "context": 5})[0] == 400
+    status, body = _post(asking + "/api/ask", {"question": "x", "context": "y" * 5000})
+    assert status == 200
+    assert len(body["answer"]) < 1500

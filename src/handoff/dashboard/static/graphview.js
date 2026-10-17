@@ -203,6 +203,6 @@
     fg.centerAt(n.x, n.y, 500); fg.zoom(Math.max(fg.zoom(), 2.4), 500);
   }
 
-  MC.views.graph = { update: update, select: select, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
+  MC.views.graph = { context: function () { return selected ? "the " + selected.kind + " \"" + selected.text.slice(0, 200) + "\" (" + selected.role + ") is selected in the " + mode + " graph" : "the " + mode + " graph, nothing selected"; }, update: update, select: select, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
   resize();
 })();

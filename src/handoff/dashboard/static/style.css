@@ -273,3 +273,8 @@ details.card[open] > summary .peek { display: none; }
 .dock-hint code { font: inherit; font-weight: 600; color: var(--ink); }
 .dock:focus-within .dock-hint { display: block; }
 @media (max-width: 600px) { .dock-hint { display: none !important; } }
+.dock-chat { border-bottom: 1px solid var(--line); }
+.dock-chat[hidden] { display: none; }
+.dock-chat-head { display: flex; align-items: center; justify-content: space-between; padding: var(--s-2) var(--s-4) 0; font-size: var(--fs-xs); color: var(--dim); }
+.dock-chat-head button { border: 0; padding: 0 var(--s-2); font-size: var(--fs-lg); line-height: 1; color: var(--dim); }
+.dock-chat .ask-log { max-height: min(46vh, 420px); padding: var(--s-3) var(--s-4); font-size: var(--fs-sm); }

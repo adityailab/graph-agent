@@ -4,7 +4,7 @@
 (function () {
   "use strict";
   var MC = window.MC, el = MC.el;
-  var log = document.getElementById("ask-log"), working = false;
+  var askLog = document.getElementById("ask-log"), log = askLog, working = false;  // `log` is where the current question is drawn
   var empty = document.getElementById("ask-empty"), chips = document.getElementById("ask-chips");
   var STARTERS = [
     "What is each session working on right now?",
@@ -96,13 +96,15 @@
 
   function busy(on) { working = on; }
 
-  function ask(question) {
-    empty.hidden = true; userTurn(question);
+  // `target` is a container to draw into (the dock's answer panel); `context` says what the person is looking at.
+  function ask(question, target, context) {
+    log = target || askLog; if (!target) empty.hidden = true;
+    userTurn(question);
     var turn = claudeTurn(), finished = false;
     turn.step("sending the question"); busy(true);
     function end(fn) { if (!finished) { finished = true; fn(); } }
     fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question, history: history.slice(-6), stream: true }) })
+      body: JSON.stringify({ question: question, history: history.slice(-6), stream: true, context: context || "" }) })
       .then(function (r) {
         if ((r.headers.get("Content-Type") || "").indexOf("application/x-ndjson") !== 0) {
           // Rejected before streaming (JSON), or an older dashboard server (an HTML error page).
@@ -125,7 +127,7 @@
 
   document.getElementById("ask-new").addEventListener("click", function () {
     if (working) return;
-    history = []; MC.clear(log); empty.hidden = false;
+    history = []; MC.clear(askLog); empty.hidden = false;
   });
   STARTERS.forEach(function (s) {
     var b = el("button", { type: "button" }, s);
@@ -136,6 +138,6 @@
   if (botHolder) botHolder.appendChild(avatar(true));  // waiting for a question: alive, not asleep
 
   // The command field (dock.js) asks through here: false when the last question is still being answered.
-  MC.ask = { start: function (q) { if (working) return false; ask(q); return true; } };
+  MC.ask = { start: function (q, target, context) { if (working) return false; ask(q, target, context); return true; } };
   MC.views.ask = { update: function () {} };
 })();

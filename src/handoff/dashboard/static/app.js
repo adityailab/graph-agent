@@ -15,6 +15,12 @@
   }
 
   MC.setView = setView;
+  MC.view = function () { return current; };
+  // What the current page shows, in a sentence or two, for questions like "what is this?".
+  MC.pageContext = function () {
+    var view = MC.views[current], extra = view && view.context ? view.context() : "";
+    return "the " + current + " page of the handoff dashboard" + (extra ? ": " + extra : "");
+  };
 
   function apply(s) {
     MC.words(s.roles.map(function (r) { return r.role; }));

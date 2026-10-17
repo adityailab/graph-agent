@@ -70,5 +70,5 @@
     fresh.forEach(function (ev, i) { setTimeout(function () { play(ev); }, i * 350); });
   }
 
-  MC.views.orchestration = { update: update, play: play };
+  MC.views.orchestration = { update: update, play: play, context: function () { return chosen ? "the " + chosen + " session is open" : ""; } };
 })();
