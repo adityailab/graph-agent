@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/page-orchestration.css">
+<link rel="stylesheet" href="/page-graph.css">
 <script src="/theme.js"></script>
 </head>
 <body>
@@ -61,32 +62,29 @@
       <div id="memory"></div>
     </section>
     <section id="view-graph" class="view" hidden>
+      <div class="page-head"><h2>graph</h2><span class="dim">grouped by session · decisions and needs first, the rest on request</span></div>
+      <div id="graph-bar" class="toolbar"></div>
+      <div id="path-bar" class="path-bar" hidden></div>
       <div class="graph-layout">
-        <div class="graph-main">
-          <div class="graph-bar">
-            <button type="button" data-mode="work" aria-pressed="true">work graph</button>
-            <button type="button" data-mode="concepts" aria-pressed="false">concept graph</button>
-            <button type="button" data-mode="memory" id="graph-memory" aria-pressed="false" hidden>memory</button>
-            <button type="button" id="graph-fit">fit</button>
-            <button type="button" id="graph-pin" aria-pressed="false">pin on drag: off</button>
-            <button type="button" id="graph-unpin">unpin all</button>
-          </div>
+        <div>
           <div class="canvas-wrap">
-            <div id="graph" role="img" aria-label="The shared graph, drawn live"></div>
+            <div id="graph" role="img" aria-label="The shared graph, drawn live: one dashed hull per session, decisions as diamonds, needs as squares"></div>
             <div id="tip" class="tip" hidden></div>
           </div>
+          <div class="canvas-foot">
+            <span><b>◆</b> decision (size = how many sessions read it)</span><span><b>■</b> need (red = open)</span>
+            <span><b>◯</b> ring = a session that learned it</span><span><b>╌╌</b> read · <b>···</b> need · <b>━━</b> message</span>
+            <span>dashed hull = one session</span>
+          </div>
         </div>
-        <aside class="graph-side">
-          <h2>graph</h2>
-          <p id="graph-count" class="dim"></p>
-          <details class="fold" id="legend-fold" open><summary>legend and counts</summary><div id="legend" class="legend"></div></details>
+        <aside class="graph-side" aria-label="Graph panel">
+          <div id="side-overview"></div>
           <div id="detail" class="detail" hidden></div>
-          <p class="detail-hint dim">Click a node to read it here and see what it is connected to; each connection has a connect button that walks the graph.</p>
           <div id="mem-list" class="mem-list" hidden></div>
-          <details class="fold"><summary>how to use this graph</summary><p class="hint">Drag a node to place it, scroll to zoom, drag the background to pan, click a node to read
-            all of it and its relationships, click empty space or press Esc to clear. The same graph opens in the
-            <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a>
-            (graph <span id="graph-ref"></span>).</p></details>
+          <details class="fold"><summary>how to use this graph</summary>
+            <p class="dim">Click a node to focus it: everything not one hop away fades and its text opens here. Drag to move, scroll to zoom,
+              drag the background to pan, click empty space or press Esc to clear. "hidden: N · show" on a hull opens its other nodes. The same graph opens in the
+              <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a> (graph <span id="graph-ref"></span>).</p></details>
         </aside>
       </div>
     </section>
@@ -136,6 +134,14 @@
 <script src="/memorydetail.js"></script>
 <script src="/memory.js"></script>
 <script src="/force-graph.min.js"></script>
+<script src="/graphstate.js"></script>
+<script src="/graphmodel.js"></script>
+<script src="/graphlayout.js"></script>
+<script src="/graphpaint.js"></script>
+<script src="/graphhulls.js"></script>
+<script src="/graphcanvas.js"></script>
+<script src="/graphbar.js"></script>
+<script src="/graphside.js"></script>
 <script src="/graphdetail.js"></script>
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>

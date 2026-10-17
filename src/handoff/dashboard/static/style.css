@@ -155,16 +155,6 @@ svg text { font-family: var(--sans); }
 .card ul { margin: 0; padding-left: 1.3em; display: grid; gap: 4px; }
 .card .why { color: var(--dim); }
 .card .none { color: var(--dim); margin: 0; }
-/* graph */
-.graph-bar { display: flex; gap: 8px; align-items: baseline; margin-bottom: 8px; }
-.graph-bar .dim { margin-left: auto; }
-.graph-bar button[aria-pressed="true"] { background: var(--blue); color: var(--bg); border-color: var(--blue); }
-.canvas-wrap { position: relative; height: 620px; border: 1px solid var(--line); }
-#graph { width: 100%; height: 100%; }
-.tip { position: absolute; max-width: 320px; background: var(--bg); border: 1px solid var(--ink); padding: 4px 8px; pointer-events: none; overflow-wrap: anywhere; }
-.legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; color: var(--dim); }
-.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 6px; background: var(--c); border-radius: 50%; }
-.legend span.plain::before { display: none; }
 /* tracks */
 .track { border-top: 2px solid var(--blue); padding: 10px 0 18px; }
 .track h3::before { content: ""; }
@@ -180,21 +170,8 @@ svg text { font-family: var(--sans); }
 }
 
 .logo .screen { fill: #f6f1e4; } .logo .led { fill: #3ddc84; }
-.detail { margin-top: 10px; }
-.detail .full { margin: 2px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.detail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
-.detail li { overflow-wrap: anywhere; }
-.detail .rel { color: var(--amber); font-weight: 700; } .detail .kind { color: var(--dim); }
 a { color: var(--blue); }
-.legend span.line::before { width: 16px; height: 3px; border-radius: 0; vertical-align: middle; }
 
-/* graph: the canvas beside a panel of everything the graph is made of */
-.graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; align-items: start; }
-@media (max-width: 1000px) { .graph-layout { grid-template-columns: minmax(0, 1fr); } }
-.graph-side { position: sticky; top: 8px; max-height: calc(100vh - 24px); overflow: auto; border-left: 1px solid var(--line); padding-left: 16px; }
-.graph-side .legend { flex-direction: column; margin: 0 0 12px; gap: 3px; }
-.graph-side .detail { margin-top: 0; }
-.canvas-wrap { height: calc(100vh - 190px); min-height: 460px; }
 
 /* memory page */
 .mem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; margin-bottom: 22px; }
@@ -314,9 +291,6 @@ details.card[open] > summary .peek { display: none; }
 .flow-detail .card summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 .flow-detail .card summary .nb { white-space: nowrap; }
 .flow-detail .card summary .peek { flex-basis: 100%; }
-/* graph: what the side panel says before anything is selected */
-.detail-hint { display: none; margin: 4px 0 8px; }
-#detail[hidden] + .detail-hint { display: block; }
 
 /* the command field: one `$` input fixed at the bottom of every page */
 .dock { position: fixed; left: 50%; bottom: var(--s-5); transform: translateX(-50%); width: min(720px, calc(100% - 2 * var(--s-4)));

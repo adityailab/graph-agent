@@ -1,58 +1,85 @@
-// The selected node as a card, and each of its connections as a card of its own with a "connect"
-// button that jumps the graph to that node, so the graph can be walked one link at a time.
+// The selected node as a card, who learned it, and its connections as cards of their own, grouped
+// as came from / went to / touched, each with a connect button that walks the graph one link.
 (function () {
   "use strict";
-  var MC = window.MC, el = MC.el;
-  var box = document.getElementById("detail"), nodes = {}, edges = [], shown = null, SHOWN = 5, showAll = false;
+  var MC = window.MC, el = MC.el, SHOWN = 8;
+  var GROUPS = [["came from", "came"], ["went to", "went"], ["touched", "touched"]];
 
-  function chip(n) {
-    var c = el("span", { "class": "chip" }, n.kind.toLowerCase() + (n.role ? " · " + n.role : ""));
-    if (n.role) c.style.setProperty("--c", MC.color(n.role));
-    return c;
-  }
-
+  function label(kind) { return kind.toLowerCase().replace("_", " "); }
+  function chipOf(n) { return MC.chip(n.kind.toLowerCase() + (n.role ? " · " + n.role : ""), n.role ? MC.color(n.role) : null); }
   function when(n) { return n.at ? el("span", { "class": "when" }, MC.clock(n.at)) : null; }
 
-  // A neighbour: how it is linked, who it belongs to, its text (three lines; click for all) and a connect button.
-  function connection(label, other) {
-    var card = el("div", { "class": "link-card" }), head = el("div", { "class": "link-head" });
-    head.appendChild(el("span", { "class": "rel" }, label)); head.appendChild(chip(other));
+  function textBlock(text) {
+    var p = MC.clamp(MC.rich(el("p", { "class": "full" }), text)), b = el("button", { type: "button", "class": "readall" }, "read all ▸");
+    b.addEventListener("click", function () { var open = p.classList.toggle("open"); b.textContent = open ? "fold ◂" : "read all ▸"; });
+    return [p, b];
+  }
+
+  function connection(rel, other, go) {
+    var card = el("article", { "class": "item-card conn" }), head = el("div", { "class": "link-head" });
+    head.appendChild(el("span", { "class": "rel" }, rel)); head.appendChild(chipOf(other));
     var w = when(other); if (w) head.appendChild(w);
-    var go = el("button", { type: "button", "class": "connect" }, "connect →");
-    go.addEventListener("click", function () { MC.views.graph.select(other.id); });
-    head.appendChild(go); card.appendChild(head);
-    card.appendChild(MC.clamp(MC.rich(el("p", { "class": "full" }), other.text)));
+    if (other.id) { var b = el("button", { type: "button", "class": "connect" }, "connect →"); b.addEventListener("click", function () { go(other.id); }); head.appendChild(b); }
+    card.appendChild(head); card.appendChild(MC.clamp(MC.rich(el("p", { "class": "full" }), other.text)));
     return card;
   }
 
-  function show(n) {
-    shown = n.id; MC.clear(box); box.hidden = false;
-    var head = el("div", { "class": "node-card" }), top = el("div", { "class": "link-head" });
-    top.appendChild(chip(n)); var w = when(n); if (w) top.appendChild(w);
-    head.appendChild(top); head.appendChild(MC.rich(el("p", { "class": "full" }), n.text));
-    box.appendChild(head);
-    var links = [];
-    edges.forEach(function (e) {
-      if (e.source === n.id && nodes[e.target]) links.push(["──" + e.kind.toLowerCase().replace("_", " ") + "──▶", nodes[e.target]]);
-      if (e.target === n.id && nodes[e.source]) links.push(["◀──" + e.kind.toLowerCase().replace("_", " ") + "──", nodes[e.source]]);
+  // Every neighbour with the group it belongs to; readers of a decision count as "went to".
+  function links(m, n) {
+    var out = [];
+    m.out[n.id].forEach(function (e) { out.push([e.kind === "TOUCHED" ? "touched" : "went", "→ " + label(e.kind), m.nodes[e.target]]); });
+    m.inn[n.id].forEach(function (e) { out.push([e.kind === "TOUCHED" ? "touched" : "came", "← " + label(e.kind), m.nodes[e.source]]); });
+    Object.keys(m.readers[n.id] || {}).forEach(function (role) {
+      var session = Object.keys(m.nodes).map(function (id) { return m.nodes[id]; }).filter(function (x) { return x.kind === "Session" && x.role === role; })[0];
+      out.push(["went", "→ read by", session || { kind: "session", role: role, text: role + " read " + n.role + "'s work.", id: null, at: 0 }]);
     });
-    box.appendChild(el("h3", {}, "connections (" + links.length + ")"));
-    if (!links.length) box.appendChild(el("p", { "class": "dim" }, "no relationships in this view"));
-    links.slice(0, showAll ? links.length : SHOWN).forEach(function (l) { box.appendChild(connection(l[0], l[1])); });
-    if (links.length > SHOWN && !showAll) {
-      var more = el("button", { type: "button", "class": "more" }, "show all " + links.length);
-      more.addEventListener("click", function () { showAll = true; show(n); });
-      box.appendChild(more);
-    }
+    return out;
   }
 
-  function clear() { shown = null; showAll = false; MC.clear(box); box.hidden = true; }
-
-  // New data arrives every few seconds: keep the panel in step with it.
-  function refresh(newNodes, newEdges) {
-    nodes = newNodes; edges = newEdges;
-    if (shown && nodes[shown]) show(nodes[shown]); else if (shown) clear();
+  function learned(m, n) {
+    var read = m.readers[n.id];
+    if (!read) return null;
+    var row = el("div", { "class": "learned" });
+    row.appendChild(el("span", {}, "learned by"));
+    Object.keys(read).forEach(function (role) { row.appendChild(MC.chip(role, MC.color(role))); row.appendChild(el("span", { "class": "when" }, MC.clock(read[role]))); });
+    return row;
   }
 
-  MC.graphDetail = { show: show, clear: clear, refresh: refresh };
+  function card(m, n) {
+    var c = el("article", { "class": "node-card" }), head = el("div", { "class": "link-head" });
+    c.style.setProperty("--c", n.role ? MC.color(n.role) : MC.css("--blue"));
+    head.appendChild(chipOf(n)); var w = when(n); if (w) head.appendChild(w);
+    c.appendChild(head); textBlock(n.text).forEach(function (x) { c.appendChild(x); });
+    var l = learned(m, n); if (l) c.appendChild(l);
+    return c;
+  }
+
+  // `on.select(id)` walks to a node, `on.back()` returns to the overview.
+  function show(box, m, n, on) {
+    MC.clear(box); box.hidden = false;
+    var back = el("button", { type: "button", "class": "back" }, "← back to overview"); back.addEventListener("click", on.back);
+    box.appendChild(back); box.appendChild(card(m, n));
+    var all = links(m, n), sec = el("div", { "class": "side-sec" }), h = el("h3", {}, "connections"), left = SHOWN;
+    h.appendChild(el("span", { "class": "n" }, String(all.length))); sec.appendChild(h);
+    if (!all.length) sec.appendChild(el("p", { "class": "dim" }, "no relationships in this view"));
+    GROUPS.forEach(function (g) {
+      var mine = all.filter(function (l) { return l[0] === g[1]; }).slice(0, Math.max(0, left));
+      if (!mine.length) return;
+      left -= mine.length; sec.appendChild(el("p", { "class": "grp-h" }, g[0]));
+      mine.forEach(function (l) { sec.appendChild(connection(l[1], l[2], on.select)); });
+    });
+    if (all.length > SHOWN) sec.appendChild(el("p", { "class": "dim" }, "showing " + SHOWN + " of " + all.length + " · connect to a node to see its own"));
+    box.appendChild(sec);
+  }
+
+  // The chain behind the focus bar: what led to the node, the node, who read it.
+  function chain(m, n) {
+    var parts = [], from = m.inn[n.id].filter(function (e) { return e.kind !== "TOUCHED"; })[0];
+    if (from) parts.push(MC.chip(m.nodes[from.source].kind.toLowerCase() + " · " + m.nodes[from.source].role, MC.color(m.nodes[from.source].role)));
+    parts.push(MC.chip(n.kind.toLowerCase(), n.role ? MC.color(n.role) : null, true));
+    Object.keys(m.readers[n.id] || {}).forEach(function (r) { parts.push(MC.chip("read by " + r, MC.css("--amber"))); });
+    return parts;
+  }
+
+  window.MC.graphDetail = { show: show, chain: chain };
 })();

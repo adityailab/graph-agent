@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 from falkordb import Graph
 
+from handoff.graph.view_facts import decision_topics, need_facts
+
 SHARED = "shared"  # a file changed by more than one role
 
 
@@ -17,6 +19,9 @@ class ViewNode:
     text: str
     role: str
     at: int = 0  # when it happened (ms since the epoch); 0 when it has no time
+    topic: str = ""  # decisions: what they are about
+    for_role: str = ""  # needs: the role asked
+    status: str = ""  # needs: open or resolved
 
 
 @dataclass(frozen=True)
@@ -84,7 +89,7 @@ def work_graph(
 ) -> GraphView:
     """The newest `limit` relationships of the work graph and the nodes they join. `kinds` and
     `rels` narrow it to some node labels and relationship types (all of them by default)."""
-    owners = _owners(graph)
+    owners, topics, needs = _owners(graph), decision_topics(graph), need_facts(graph)
     nodes: dict[str, ViewNode] = {}
     edges: list[ViewEdge] = []
     for a, a_kind, a_text, b, b_kind, b_text, kind, _ts, a_at, b_at in graph.ro_query(
@@ -93,7 +98,20 @@ def work_graph(
         for node_id, node_kind, text, at in ((a, a_kind, a_text, a_at), (b, b_kind, b_text, b_at)):
             key = f"{node_kind}:{node_id}"
             role = owners.get(int(node_id), "") if node_kind != "Session" else str(text)
-            nodes.setdefault(key, ViewNode(key, str(node_kind), _short(text), role, int(at or 0)))
+            ask = needs.get(int(node_id))
+            nodes.setdefault(
+                key,
+                ViewNode(
+                    key,
+                    str(node_kind),
+                    _short(text),
+                    role,
+                    int(at or 0),
+                    topics.get(int(node_id), "") if node_kind == "Decision" else "",
+                    ask.for_role if ask and node_kind == "Need" else "",
+                    ask.status if ask and node_kind == "Need" else "",
+                ),
+            )
         edges.append(ViewEdge(f"{a_kind}:{a}", f"{b_kind}:{b}", str(kind)))
     return GraphView(tuple(nodes.values()), tuple(edges))
 
