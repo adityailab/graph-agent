@@ -55,3 +55,9 @@ def test_concepts_come_with_their_type_and_relations(kg: Graph) -> None:
         ("CDN_URL", "Technology"),
     }
     assert [e.kind for e in view.edges] == ["USES"]
+
+
+def test_an_edit_node_is_labelled_by_what_it_changed_not_none(two_sessions: Graph) -> None:
+    edits = [n.text for n in work_graph(two_sessions, limit=200).nodes if n.kind == "Edit"]
+    assert edits
+    assert all("None" not in text and text for text in edits)

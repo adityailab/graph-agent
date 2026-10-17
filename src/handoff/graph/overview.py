@@ -50,7 +50,7 @@ _PER_ROLE = {
 _FLOWS = (
     "MATCH (s:Session)-[:SENT]->(m:Message) RETURN s.role, m.to_role, m.kind, count(m), max(m.at)",
     "MATCH (a:Session)-[:RECEIVED]->(:Request)-[k:CONSULTED]->(:Request)<-[:RECEIVED]-(o:Session) "
-    "RETURN a.role, o.role, 'read', count(k), max(k.at)",
+    "RETURN o.role, a.role, 'read', count(k), max(k.at)",  # work flows author -> reader
     "MATCH (s:Session)-[:RECEIVED]->(:Request)-[:RAISED]->(n:Need) "
     "RETURN s.role, n.for_role, 'need', count(n), max(n.at)",
 )
@@ -91,7 +91,8 @@ def role_stats(graph: Graph, *, since: int) -> list[RoleStats]:
 
 
 def message_flows(graph: Graph) -> list[Flow]:
-    """Every (from role, to role, kind) with how often and when last."""
+    """Every (from role, to role, kind) with how often and when last; for a read, the work
+    flows from the author to the reader."""
     rows = [row for query in _FLOWS for row in graph.ro_query(query).result_set]
     return [Flow(str(a), str(b), str(k), int(n), int(t or 0)) for a, b, k, n, t in rows]
 

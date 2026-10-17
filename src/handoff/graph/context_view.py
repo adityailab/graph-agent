@@ -35,8 +35,8 @@ KINDS = ["Session", "Request", "Decision", "Need", "Edit", "File", "Message"]
 
 _EDGES = """
 MATCH (a)-[r]->(b) WHERE labels(a)[0] IN $kinds AND labels(b)[0] IN $kinds
-RETURN id(a), labels(a)[0], coalesce(a.role, a.text, a.path),
-       id(b), labels(b)[0], coalesce(b.role, b.text, b.path),
+RETURN id(a), labels(a)[0], coalesce(a.role, a.text, a.path, a.name),
+       id(b), labels(b)[0], coalesce(b.role, b.text, b.path, b.name),
        type(r), coalesce(r.at, b.at, a.at, 0) AS ts
 ORDER BY ts DESC LIMIT $limit
 """
@@ -60,6 +60,8 @@ LIMIT $limit
 
 
 def _short(text: object, width: int = 90) -> str:
+    if text is None:
+        return ""
     one_line = " ".join(str(text).split())
     return one_line if len(one_line) <= width else one_line[: width - 1] + "…"
 

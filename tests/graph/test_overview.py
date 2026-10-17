@@ -32,7 +32,7 @@ def test_each_role_has_its_counts(two_sessions: Graph) -> None:
 def test_flows_say_who_talked_to_whom_and_how(two_sessions: Graph) -> None:
     flows = {(f.source, f.target, f.kind): f.count for f in message_flows(_talk(two_sessions))}
     assert flows[("backend", "frontend", "message")] == 1
-    assert flows[("backend", "frontend", "read")] == 1
+    assert flows[("frontend", "backend", "read")] == 1  # work flows from author to reader
     assert flows[("frontend", "backend", "need")] == 1
 
 

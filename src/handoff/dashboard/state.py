@@ -6,7 +6,9 @@ import zlib
 from dataclasses import asdict
 from typing import Any
 
+from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import RedisError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from handoff.config import Config, knowledge_graph_name
 from handoff.dashboard.tracks import track_summary
@@ -70,8 +72,10 @@ def snapshot(config: Config, *, now: int, window_ms: int) -> dict[str, Any]:
         )
         events = recent_events(graph, limit=EVENTS)
         found = handoffs(graph, limit=20)
-    except (RedisError, OSError) as exc:  # database down: say so, keep the page alive
+    except (RedisConnectionError, RedisTimeoutError, OSError) as exc:  # keep the page alive
         return {**_empty(f"database unreachable: {exc}"), "graph": config.graph_name, "now": now}
+    except RedisError as exc:  # the database answered, but a query failed
+        return {**_empty(f"graph query failed: {exc}"), "graph": config.graph_name, "now": now}
     return {
         "error": None,
         "graph": config.graph_name,
