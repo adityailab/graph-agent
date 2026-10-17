@@ -1,6 +1,6 @@
 /* handoff: the drawing is orchestration's (see page-orchestration.css); only the detail below is its own */
 #view-handoff .orch-status b { color: var(--green); font-size: var(--fs-lg); margin-right: var(--s-1); }
-.hf-detail { display: grid; gap: var(--s-3); max-width: 820px; margin: var(--s-5) auto 0; position: static; }
+.hf-detail { display: grid; gap: var(--s-3); align-content: start; position: static; }
 .hf-detail .sel { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-3); }
 .hf-detail .sel .dim { font-size: var(--fs-xs); }
 .hcard { padding: var(--s-3); }

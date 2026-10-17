@@ -33,6 +33,8 @@
   <main>
     <section id="view-orchestration" class="view">
       <div class="page-head"><h2>orchestration</h2><span class="dim">who hands what to whom · click a session to open it</span></div>
+      <div class="split">
+      <div class="split-left">
       <div id="orch-status" class="orch-status"></div>
       <div class="svg-scroll"><svg id="orch" viewBox="0 0 760 370" role="group" aria-label="Sessions and what moves between them">
         <defs><marker id="oa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker></defs>
@@ -43,11 +45,17 @@
         <span class="k-need"><b>··· need</b> asked of another session</span>
         <span>line width = how many · moving dashes = live · a travelling square = just happened</span>
       </div>
+      </div>
+      <div class="split-right">
       <div id="orch-detail" class="orch-detail"></div>
       <details class="fold orch-lines"><summary id="lines-summary">all lines between sessions</summary><div id="flows"></div></details>
+      </div>
+      </div>
     </section>
     <section id="view-handoff" class="view" hidden>
       <div class="page-head"><h2>hand-offs</h2><span class="dim">who learned what from whose work · click an arrow or a session to open it</span></div>
+      <div class="split">
+      <div class="split-left">
       <div id="hf-stats" class="orch-status"></div>
       <div class="svg-scroll"><svg id="hf-graph" viewBox="0 0 760 370" role="group" aria-label="Which session learned decisions from which">
         <defs><marker id="hfa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker></defs>
@@ -57,7 +65,9 @@
         <span class="k-read"><b>╌╌ read</b> by the session it points to</span>
         <span>moving dashes = live · a travelling square = a read just happened</span>
       </div>
-      <aside id="hf-detail" class="flow-detail hf-detail" aria-label="Hand-off detail"></aside>
+      </div>
+      <aside id="hf-detail" class="flow-detail hf-detail split-right" aria-label="Hand-off detail"></aside>
+      </div>
     </section>
     <section id="view-memory" class="view" hidden>
       <div id="memory"></div>
