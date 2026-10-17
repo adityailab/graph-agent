@@ -15,6 +15,7 @@
     .linkDirectionalArrowLength(5).linkDirectionalArrowRelPos(1).linkWidth(function (l) { return lit(l) ? 2.2 : 1; })
     .linkColor(function (l) { return hexAlpha(edgeColour(l.kind), focus() && !lit(l) ? 0.12 : 0.85); })
     .linkCurvature("curve").nodeRelSize(1).nodeLabel(function () { return ""; });
+  fg.maxZoom(3);  // a graph of two nodes must not be zoomed until the nodes fill the canvas
   fg.d3Force("charge").strength(-45).distanceMax(260);
   fg.d3Force("link").distance(26);
 
@@ -23,6 +24,9 @@
     var one = n.text.replace(/\s+/g, " ").trim();
     return one.length > 48 ? one.slice(0, 47).replace(/\s+\S*$/, "") + "…" : one;
   }
+
+  // A graph of a handful of nodes (one kind of memory) has room: space it out and label everything.
+  function small() { return Object.keys(nodes).length < 12; }
 
   function focus() { return selected || hover; }
   function lit(l) {
@@ -65,7 +69,7 @@
     ctx.globalAlpha = (f || hoverLink) && !near && !(hoverLink && touchesLink(n)) ? 0.15 : 1;
     shape(ctx, n, r); ctx.fillStyle = fill(n); ctx.fill();
     ctx.strokeStyle = n === f ? pal.ink : n.kind === "Need" ? pal.red : pal.bg; ctx.lineWidth = (n === f ? 2.5 : 1.5) / scale; ctx.stroke();
-    if (n.kind === "Session" || n === f || near || scale > 3.4)
+    if (n.kind === "Session" || n === f || near || scale > 3.4 || small())
       caption(ctx, MC.wrap(n.text, 28, n === f ? 5 : 2), n.x, n.y + r + 11 / scale, scale, pal.ink);
     ctx.globalAlpha = 1;
   }).nodePointerAreaPaint(function (n, colour, ctx) { shape(ctx, n, (SIZE[n.kind] || 5) + 3); ctx.fillStyle = colour; ctx.fill(); });
@@ -95,6 +99,8 @@
       return { source: e.source, target: e.target, kind: e.kind, curve: i === 1 ? 0 : 0.22 * (i % 2 ? i : -i) / 1.5 };
     });
     nodes = fresh;
+    fg.d3Force("link").distance(small() ? 130 : 26);
+    fg.d3Force("charge").strength(small() ? -240 : -45);
     fg.graphData({ nodes: Object.keys(fresh).map(function (k) { return fresh[k]; }), links: links });
     count.textContent = Object.keys(nodes).length + " nodes · " + plain.length + " relationships";
     MC.graphDetail.refresh(nodes, plain); drawLegend();
