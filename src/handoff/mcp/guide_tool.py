@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from falkordb import Graph
@@ -15,6 +16,9 @@ from handoff.mcp.context import ToolContext, guarded
 
 
 def _falkordb_server_installed(cwd: str) -> bool:
+    # handoff ask brings its own FalkorDB server and says so; otherwise read the folder's.
+    if os.environ.get("HANDOFF_FALKORDB_MCP") in ("on", "off"):
+        return os.environ["HANDOFF_FALKORDB_MCP"] == "on"
     try:
         data = json.loads((Path(cwd) / ".mcp.json").read_text())
     except (OSError, ValueError):
