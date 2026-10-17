@@ -9,6 +9,7 @@ from falkordb import Graph
 from handoff.graph.edits import add_edit
 from handoff.graph.requests import (
     add_request,
+    last_request_at,
     latest_request_id,
     request_needs_decision,
     request_text,
@@ -29,9 +30,19 @@ def register_session(graph: Graph, hook: HookInput, *, role: str, at: int) -> No
     upsert_session(graph, session_id=hook.session_id, role=role, cwd=hook.cwd, at=at, pid=hook.pid)
 
 
-def on_session_start(graph: Graph, hook: HookInput, *, role: str, at: int) -> None:
-    """Register the session."""
+RESUMED = frozenset({"resume", "compact", "clear"})  # starts that lose what the session knew
+
+
+def on_session_start(
+    graph: Graph, hook: HookInput, *, role: str, at: int, live: bool = True
+) -> str:
+    """Register the session. A session that was resumed, cleared or compacted has forgotten
+    the standing rules and open needs it was told, so it hears them again."""
     register_session(graph, hook, role=role, at=at)
+    if not live or hook.source not in RESUMED:
+        return ""
+    parts = [conventions_text(graph, role), open_needs_text(graph, role)]
+    return "\n".join(p for p in parts if p)
 
 
 _WAKE_UP_PREFIX = "<task-notification>"
@@ -43,9 +54,20 @@ def is_wake_up(prompt: str) -> bool:
     return prompt.lstrip().startswith(_WAKE_UP_PREFIX)
 
 
+def _rules_to_hear(graph: Graph, role: str, seq: int, last_request: int | None) -> str:
+    """All the standing rules on a session's first request; after that only the rules made
+    since its previous request (so a rule added mid-session still reaches it, once)."""
+    if seq == 1:
+        return conventions_text(graph, role)
+    if seq > 1 and last_request is not None:
+        return conventions_text(graph, role, since=last_request)
+    return ""
+
+
 def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int, live: bool = True) -> str:
     """Record the prompt as a request. Returns text to add to Claude's context."""
-    register_session(graph, hook, role=role, at=at)
+    register_session(graph, hook, role=role, at=at)  # also creates the graph on first use
+    last_request = last_request_at(graph, hook.session_id)  # before this prompt is recorded
     seq = 0
     if not is_wake_up(hook.prompt):
         seq = add_request(
@@ -58,7 +80,7 @@ def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int, live: b
     if not live:
         return ""
     parts = [
-        conventions_text(graph, role) if seq == 1 else "",  # a session hears the rules once
+        _rules_to_hear(graph, role, seq, last_request),
         pending_messages_text(graph, session_id=hook.session_id, role=role, at=at),
         open_needs_text(graph, role),
     ]

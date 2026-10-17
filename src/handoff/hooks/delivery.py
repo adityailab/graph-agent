@@ -55,9 +55,11 @@ def collision_text(
     )
 
 
-def conventions_text(graph: Graph, role: str) -> str:
-    """The standing rules for this role, as plain statements ('' if there are none)."""
-    rules = conventions_for(graph, role)
+def conventions_text(graph: Graph, role: str, *, since: int | None = None) -> str:
+    """The standing rules for this role, as plain statements ('' if there are none). With
+    `since`, only the rules made after that time (the ones a running session has not heard)."""
+    rules = [r for r in conventions_for(graph, role) if since is None or r.at > since]
     if not rules:
         return ""
-    return f"Standing rules for the {role} role:\n{render_conventions(rules)}"
+    heading = "New standing rules" if since is not None else "Standing rules"
+    return f"{heading} for the {role} role:\n{render_conventions(rules)}"
