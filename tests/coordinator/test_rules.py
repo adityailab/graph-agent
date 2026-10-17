@@ -193,3 +193,38 @@ def test_a_collision_that_recurs_on_another_day_is_announced_again(two_sessions:
     )
     later = run_rules(two_sessions, now=day + 3000, thresholds=Thresholds(stale_minutes=10**9))
     assert [a.rule for a in later] == ["collision"]
+
+
+def _backend_decides_on_profile(graph: Graph) -> None:
+    from handoff.graph.decisions import add_decision
+
+    add_decision(
+        graph, request_id="p3", decision_id="d2", text="urls come from the CDN",
+        reason="cheaper", topic="profile", at=300,
+    )  # fmt: skip
+
+
+def test_two_roles_with_decisions_on_one_topic_are_told_about_each_other(
+    two_sessions: Graph,
+) -> None:
+    _backend_decides_on_profile(two_sessions)
+    acted = run_rules(two_sessions, now=300 + MIN, thresholds=Thresholds())
+    assert [a.rule for a in acted] == ["shared_topic"]
+    for session, role in (("fe", "frontend"), ("be", "backend")):
+        (text,) = _inbox(two_sessions, session, role)
+        assert "profile" in text
+        assert "supersede_decision" in text
+
+
+def test_a_replaced_decision_ends_the_shared_topic(two_sessions: Graph) -> None:
+    from handoff.graph.timeline import supersede_decision
+
+    _backend_decides_on_profile(two_sessions)
+    supersede_decision(two_sessions, new_id="d2", old_id="d1", at=301)
+    assert run_rules(two_sessions, now=300 + MIN, thresholds=Thresholds()) == []
+
+
+def test_a_shared_topic_is_announced_once(two_sessions: Graph) -> None:
+    _backend_decides_on_profile(two_sessions)
+    assert len(run_rules(two_sessions, now=300 + MIN, thresholds=Thresholds())) == 1
+    assert run_rules(two_sessions, now=300 + 2 * MIN, thresholds=Thresholds()) == []

@@ -94,7 +94,7 @@ Full walkthrough: [docs/guide.md](docs/guide.md). How two sessions started at di
 | `handoff conventions [add\|retire]` | Standing rules every session of a role is told once |
 | `handoff open [dashboard\|graph\|guide]` | Open mission control, this project's graph in the FalkorDB Browser, or the guide |
 | `handoff dashboard` | Mission control in your browser: sessions and their traffic, hand-offs, the graph, the tracks |
-| `handoff coordinator` | Always-on agent: reminds a role about a need open 30 min, tells two roles who changed the same file, sends you an hourly digest (`--once`, `--dry-run`) |
+| `handoff coordinator` | Always-on agent: reminds a role about a need open 30 min, tells two roles who changed the same file or who each decided on one topic, sends you an hourly digest (`--once`, `--dry-run`) |
 | `handoff knowledge` | Build the knowledge graph (concepts the work is about) |
 | `handoff demo [--headless]` | The proof |
 | `handoff doctor` | One line per check (hooks, MCP server, database, `claude`, `tmux`) with what to fix |

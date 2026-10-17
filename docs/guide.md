@@ -205,6 +205,7 @@ It sends messages only, from the role `coordinator`, and calls no model:
 |---|---|
 | Stale need | A need has been open 30 minutes: reminds the role that owes it (again every 4 hours). |
 | Collision | Two roles changed the same file within an hour: tells both. |
+| Shared topic | Two roles each recorded a decision on one topic that still stands (within a day): tells both, and points to `timeline` and `supersede_decision`. |
 | Digest | Every hour, if anything happened: a summary to you, shown in `handoff status`. |
 
 Options: `--stale-minutes`, `--repeat-minutes`, `--collision-minutes`, `--digest-minutes`

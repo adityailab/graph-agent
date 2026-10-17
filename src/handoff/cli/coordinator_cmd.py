@@ -40,6 +40,12 @@ def add_parser(commands: Any) -> None:
         default=240,
         help="remind again about a need still open this much later",
     )
+    p.add_argument(
+        "--topic-minutes",
+        type=int,
+        default=24 * 60,
+        help="tell two roles who each decided on one topic, if both decisions are this recent",
+    )
     p.add_argument("--digest-minutes", type=int, default=60, help="digest interval (0 = none)")
     p.set_defaults(run=run)
 
@@ -61,7 +67,11 @@ def run(args: argparse.Namespace) -> int:
     graph = connect(config)
     ensure_schema(graph)
     thresholds = Thresholds(
-        args.stale_minutes, args.collision_minutes, args.digest_minutes, args.repeat_minutes
+        args.stale_minutes,
+        args.collision_minutes,
+        args.digest_minutes,
+        args.repeat_minutes,
+        args.topic_minutes,
     )
     if args.once:
         _show(

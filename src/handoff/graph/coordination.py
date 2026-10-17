@@ -47,6 +47,27 @@ def recent_collisions(graph: Graph, *, since: int) -> list[Collision]:
     return [Collision(str(p), str(a), str(b)) for p, a, b in rows]
 
 
+@dataclass(frozen=True)
+class SharedTopic:
+    topic: str
+    first_role: str
+    second_role: str
+
+
+def shared_topics(graph: Graph, *, since: int) -> list[SharedTopic]:
+    """Topics on which two roles each recorded a decision, neither since replaced, at or after
+    `since`; one row per topic and role pair."""
+    rows = graph.ro_query(
+        "MATCH (s1:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(d1:Decision)-[:ABOUT]->(t:Topic), "
+        "(t)<-[:ABOUT]-(d2:Decision)<-[:LED_TO]-(:Request)<-[:RECEIVED]-(s2:Session) "
+        "WHERE s1.role < s2.role AND d1.superseded_at IS NULL AND d2.superseded_at IS NULL "
+        "AND d1.at >= $since AND d2.at >= $since "
+        "RETURN DISTINCT t.name, s1.role, s2.role ORDER BY t.name",
+        {"since": since},
+    ).result_set
+    return [SharedTopic(str(t), str(a), str(b)) for t, a, b in rows]
+
+
 def action_taken(graph: Graph, *, key: str) -> bool:
     """True if the coordinator already acted on `key` (read-only, for dry runs)."""
     rows = graph.ro_query("MATCH (a:Action {key: $key}) RETURN count(a)", {"key": key}).result_set

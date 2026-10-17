@@ -12,6 +12,7 @@ from handoff.graph.coordination import (
     action_taken,
     claim_and_send,
     recent_collisions,
+    shared_topics,
     stale_needs,
 )
 from handoff.graph.history import handoff_requests
@@ -32,11 +33,12 @@ class Thresholds:
     collision_minutes: int = 60
     digest_minutes: int = 0  # 0 = no digest
     repeat_minutes: int = 240  # remind again about a need still open this much later
+    topic_minutes: int = 24 * 60  # how recent decisions must be to count as shared
 
 
 @dataclass(frozen=True)
 class Action:
-    rule: str  # stale_need, collision or digest
+    rule: str  # stale_need, collision, shared_topic or digest
     to_roles: tuple[str, ...]
     text: str
     kind: str = "nudge"  # a message kind of its own: not a fact about the role (digest: "digest")
@@ -83,6 +85,20 @@ def _collisions(graph: Graph, now: int, t: Thresholds) -> list[tuple[str, Action
     return found
 
 
+def _shared_topics(graph: Graph, now: int, t: Thresholds) -> list[tuple[str, Action]]:
+    found = []
+    for s in shared_topics(graph, since=now - t.topic_minutes * MINUTE_MS):
+        text = (
+            f"Heads-up from the coordinator: {s.first_role} and {s.second_role} have each recorded "
+            f"a decision about {s.topic} that still stands. timeline {s.topic} shows both; "
+            "supersede_decision marks one as replacing the other."
+        )
+        # Once per topic and pair: a decision that later replaces one ends the topic's turn.
+        key = f"shared_topic:{s.topic}:{s.first_role}:{s.second_role}"
+        found.append((key, Action("shared_topic", (s.first_role, s.second_role), text)))
+    return found
+
+
 def _digest(graph: Graph, now: int, t: Thresholds) -> list[tuple[str, Action]]:
     if t.digest_minutes <= 0:
         return []
@@ -112,7 +128,7 @@ def run_rules(
 ) -> list[Action]:
     """Apply every rule once; return the actions taken (or, in a dry run, that would be)."""
     taken = []
-    for rule in (_stale, _collisions, _digest):
+    for rule in (_stale, _collisions, _shared_topics, _digest):
         for key, action in rule(graph, now, thresholds):
             if dry_run:
                 if not action_taken(graph, key=key):
