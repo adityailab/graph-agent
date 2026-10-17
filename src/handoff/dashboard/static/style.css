@@ -40,7 +40,8 @@ kbd { font: inherit; color: var(--dim); margin-right: 4px; }
 .view[hidden] { display: none; }
 .view { min-height: 480px; }
 .hint { color: var(--dim); margin: 10px 0 0; }
-#orch { width: 100%; height: auto; display: block; }
+#view-orchestration .hint { max-width: 960px; margin: 10px auto 0; }
+#orch { width: 100%; max-width: 960px; height: auto; display: block; margin: 0 auto; }  /* drawn for 800px: wider only blows the text up */
 h2, h3 { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
 h2::before, h3::before { content: "# "; color: var(--dim); }
 #ticker { list-style: none; margin: 0; padding: 0; }
@@ -73,7 +74,7 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .float { fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; font-size: 11px; font-weight: 700; text-anchor: middle; animation: rise 1.6s ease-out forwards; }
 @keyframes rise { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-22px); } }
 .empty { fill: var(--dim); font-size: 13px; text-anchor: middle; }
-.flows { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 0 24px;
+.flows { max-width: 960px; margin: 10px auto 0; border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 0 24px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); color: var(--dim); }
 .flows b { font-weight: 700; }
 .flows .message { color: var(--teal); } .flows .read { color: var(--amber); } .flows .need { color: var(--red); }
@@ -142,7 +143,7 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 @keyframes look { 0%, 100% { transform: translateX(-1.1px); } 50% { transform: translateX(1.5px); } }
 @keyframes ping { 0% { transform: scale(1); opacity: 1; } 70%, 100% { transform: scale(1.7); opacity: .25; } }
 @keyframes zzz { 0% { opacity: 0; transform: translate(0, 2px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translate(2px, -5px); } }
-.logo { height: 28px; width: auto; vertical-align: -9px; margin-right: 8px; }
+.logo { height: 22px; width: auto; vertical-align: -6px; margin-right: 8px; }
 .logo .d0 { fill: var(--blue); stroke: var(--blue); } .logo .d1 { fill: var(--purple); stroke: var(--purple); } .logo .d2 { fill: var(--amber); stroke: var(--amber); }
 .logo .stem { fill: none; } .logo .hand { stroke: var(--dim); }
 .detail { border: 1px solid var(--line); border-left: 3px solid var(--blue); padding: 8px 12px; margin-top: 10px; }
