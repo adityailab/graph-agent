@@ -49,7 +49,8 @@ def why_file(graph: Graph, path: str, limit: int = 20) -> list[WhyRow]:
         "MATCH (f:File {path: $path})<-[:TOUCHED]-(e:Edit)<-[:CAUSED]-(r:Request)"
         "<-[:RECEIVED]-(s:Session) "
         "OPTIONAL MATCH (r)-[:LED_TO]->(d:Decision) "
-        "WITH s, r, e, collect(DISTINCT [d.id, d.text, d.reason]) AS decisions "
+        "WITH s, r, e, collect(DISTINCT [d.id, d.text, d.reason, "
+        "d.superseded_at IS NOT NULL]) AS decisions "
         "RETURN s.role, r.text, decisions, e.summary, e.at "
         "ORDER BY e.at DESC LIMIT $limit",
         {"path": path, "limit": limit},

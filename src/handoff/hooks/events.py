@@ -14,7 +14,12 @@ from handoff.graph.requests import (
     request_text,
 )
 from handoff.graph.sessions import upsert_session
-from handoff.hooks.delivery import collision_text, open_needs_text, pending_messages_text
+from handoff.hooks.delivery import (
+    collision_text,
+    conventions_text,
+    open_needs_text,
+    pending_messages_text,
+)
 from handoff.hooks.hook_input import HookInput
 from handoff.ids import new_id
 
@@ -41,8 +46,9 @@ def is_wake_up(prompt: str) -> bool:
 def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int, live: bool = True) -> str:
     """Record the prompt as a request. Returns text to add to Claude's context."""
     register_session(graph, hook, role=role, at=at)
+    seq = 0
     if not is_wake_up(hook.prompt):
-        add_request(
+        seq = add_request(
             graph,
             session_id=hook.session_id,
             request_id=hook.prompt_id or new_id(),
@@ -52,6 +58,7 @@ def on_user_prompt(graph: Graph, hook: HookInput, *, role: str, at: int, live: b
     if not live:
         return ""
     parts = [
+        conventions_text(graph, role) if seq == 1 else "",  # a session hears the rules once
         pending_messages_text(graph, session_id=hook.session_id, role=role, at=at),
         open_needs_text(graph, role),
     ]
