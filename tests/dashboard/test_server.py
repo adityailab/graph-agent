@@ -26,7 +26,7 @@ def _get(url: str, host: str | None = None) -> tuple[int, str, dict[str, str]]:
     request = urllib.request.Request(url, headers={"Host": host} if host else {})
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
-            return response.status, response.read().decode(), dict(response.headers)
+            return response.status, response.read().decode(errors="replace"), dict(response.headers)
     except urllib.error.HTTPError as exc:
         return exc.code, "", {}
 
@@ -37,6 +37,15 @@ def test_the_page_and_its_assets_are_served(base: str) -> None:
         assert status == 200
         assert body
         assert "default-src 'self'" in headers["Content-Security-Policy"]
+
+
+def test_the_one_typeface_is_served_from_the_same_origin(base: str) -> None:
+    status, body, headers = _get(base + "/style.css")
+    assert 'font-family: "Saira"' in body
+    for weight in (400, 500, 600, 700):
+        status, _, headers = _get(f"{base}/Saira-{weight}.woff2")
+        assert status == 200
+        assert headers["Content-Type"] == "font/woff2"
 
 
 def test_the_state_is_json_of_the_graph(base: str) -> None:

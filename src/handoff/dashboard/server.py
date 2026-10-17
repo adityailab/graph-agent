@@ -25,6 +25,7 @@ _TYPES = {  # file suffix -> content type; only these files in static/ are serve
     ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".svg": "image/svg+xml",
+    ".woff2": "font/woff2",
 }
 # Everything is served from this origin; nothing else may load or be framed.
 _SECURITY = {
