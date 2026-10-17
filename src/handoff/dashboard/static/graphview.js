@@ -1,167 +1,134 @@
-// The context-graph view: the shared graph (or its concept map) as a live, force-directed drawing,
-// in the style of the FalkorDB browser: circles for nodes, arrows for relationships, each arrow
-// named with its relationship type. Hover or click a node to light up its own relationships.
+// The context-graph view, drawn with the force-graph library (the one the FalkorDB browser uses):
+// drag nodes (they stay where you put them), scroll to zoom, drag the background to pan. Circles
+// are nodes, arrows are relationships, each named with its type. Hover or click a node to light
+// up its own relationships; labels never come from the library, so graph text is never markup.
 (function () {
   "use strict";
   var MC = window.MC;
-  var canvas = document.getElementById("graph"), ctx = canvas.getContext("2d");
-  var tip = document.getElementById("tip"), count = document.getElementById("graph-count");
-  var legend = document.getElementById("legend");
-  var mode = "work", nodes = {}, edges = [], visible = false, alpha = 1, hover = null, selected = null;
-  var width = 600, height = 620, view = { s: 1, tx: 0, ty: 0 }, last = { work: null, concepts: null };
-  var SIZE = { Session: 22, Request: 11, Decision: 13, Need: 12, Edit: 7, File: 12, Message: 9 };
-  var typeSlots = {}, WIDE = 1.8;  // the layout is stretched sideways to use the width of the canvas
+  var holder = document.getElementById("graph"), tip = document.getElementById("tip");
+  var count = document.getElementById("graph-count"), legend = document.getElementById("legend");
+  var SIZE = { Session: 6.5, Request: 3.6, Decision: 4, Need: 4, Edit: 2.6, File: 4, Message: 3 };
+  var EDGE = ["#e11d48", "#0ea5e9", "#22c55e", "#a855f7", "#f59e0b", "#14b8a6", "#ec4899", "#84cc16", "#6366f1", "#f97316"], edgeSlots = {};
+  var mode = "work", visible = false, last = { work: null, concepts: null, sig: "" };
+  var nodes = {}, plain = [], hover = null, hoverLink = null, selected = null, pal = {}, typeSlots = {}, degree = {};
+  var fg = ForceGraph()(holder).backgroundColor("rgba(0,0,0,0)").nodeId("id").cooldownTicks(220).onEngineStop(function () { if (visible && !selected) fg.zoomToFit(300, 60); })
+    .linkDirectionalArrowLength(5).linkDirectionalArrowRelPos(1).linkWidth(function (l) { return lit(l) ? 2.2 : 1; })
+    .linkColor(function (l) { return hexAlpha(edgeColour(l.kind), focus() && !lit(l) ? 0.12 : 0.85); })
+    .linkCurvature("curve").nodeRelSize(1).nodeLabel(function () { return ""; });
+  fg.d3Force("charge").strength(-45).distanceMax(260);
+  fg.d3Force("link").distance(26);
 
-  function resize() {
-    var box = canvas.parentNode.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-    width = Math.max(300, box.width); height = box.height;
-    canvas.width = width * dpr; canvas.height = height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  function focus() { return selected || hover; }
+  function lit(l) {
+    var f = focus(), s = l.source.id || l.source, t = l.target.id || l.target;
+    return l === hoverLink || (!!f && (s === f.id || t === f.id));
+  }
+  function edgeColour(kind) {
+    if (!(kind in edgeSlots)) edgeSlots[kind] = Object.keys(edgeSlots).length % EDGE.length;
+    return EDGE[edgeSlots[kind]];
+  }
+  function hexAlpha(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return "rgba(" + (n >> 16) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
   }
 
-  // Work-graph nodes take their role's colour; concepts take one colour per concept type.
   function fill(n) {
     if (n.role) return MC.color(n.role);
     if (!(n.kind in typeSlots)) typeSlots[n.kind] = Object.keys(typeSlots).length % 5;
     return MC.css("--role-" + typeSlots[n.kind]);
   }
 
-  function sync(next) {
-    var fresh = {}, byId = {};
-    next.nodes.forEach(function (n) {
-      var old = nodes[n.id];
-      fresh[n.id] = old ? Object.assign(old, { role: n.role, text: n.text }) :
-        { id: n.id, kind: n.kind, text: n.text, role: n.role, born: performance.now(), vx: 0, vy: 0,
-          x: width * (0.1 + Math.random() * 0.8), y: height * (0.1 + Math.random() * 0.8) };
-      byId[n.id] = fresh[n.id];
-    });
-    next.edges.forEach(function (e) {
-      var a = byId[e.source], b = byId[e.target];
-      if (a && b && !nodes[b.id] && nodes[a.id]) { b.x = a.x + (Math.random() - 0.5) * 30; b.y = a.y + (Math.random() - 0.5) * 30; }
-    });
-    if (Object.keys(fresh).length !== Object.keys(nodes).length) alpha = Math.max(alpha, 0.8);
-    nodes = fresh; edges = next.edges.filter(function (e) { return fresh[e.source] && fresh[e.target]; });
-    var degree = {};
-    edges.forEach(function (e) { degree[e.source] = (degree[e.source] || 0) + 1; degree[e.target] = (degree[e.target] || 0) + 1; });
-    Object.keys(nodes).sort(function (a, b) { return (degree[b] || 0) - (degree[a] || 0); }).forEach(function (k, i) { nodes[k].hub = i < 6; });
-    count.textContent = Object.keys(nodes).length + " nodes · " + edges.length + " relationships";
-    MC.graphDetail.refresh(nodes, edges); drawLegend();
-  }
-
-  function step() {
-    var list = Object.keys(nodes).map(function (k) { return nodes[k]; }), i, j, a, b, dx, dy, d2, f;
-    for (i = 0; i < list.length; i++) {
-      a = list[i];
-      for (j = i + 1; j < list.length; j++) {
-        b = list[j]; dx = a.x - b.x; dy = a.y - b.y; d2 = (dx / WIDE) * (dx / WIDE) + dy * dy + 0.01;
-        if (d2 > 250000) continue;
-        f = 1500 / (d2 + 300); a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
-      }
-      a.vx += (width / 2 - a.x) * 0.0006; a.vy += (height / 2 - a.y) * 0.003;
-    }
-    edges.forEach(function (e) {
-      a = nodes[e.source]; b = nodes[e.target]; dx = b.x - a.x; dy = b.y - a.y;
-      f = (Math.hypot(dx / WIDE, dy) - 150) * 0.008; a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
-    });
-    list.forEach(function (n) {
-      n.vx = Math.max(-6, Math.min(6, n.vx * 0.8)); n.vy = Math.max(-6, Math.min(6, n.vy * 0.8)); n.x += n.vx * alpha; n.y += n.vy * alpha;
-      n.x = Math.min(width - 14, Math.max(14, n.x)); n.y = Math.min(height - 14, Math.max(14, n.y));
-    });
-    alpha = Math.max(0.05, alpha * 0.985);
-  }
-
-  function fit() {
-    var ids = Object.keys(nodes); if (!ids.length) return;
-    var x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-    ids.forEach(function (k) { var n = nodes[k]; x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); y0 = Math.min(y0, n.y); y1 = Math.max(y1, n.y); });
-    var s = Math.max(0.5, Math.min(2.2, Math.min((width - 160) / Math.max(1, x1 - x0), (height - 140) / Math.max(1, y1 - y0))));
-    view.s += (s - view.s) * 0.08; view.tx += (width / 2 - s * (x0 + x1) / 2 - view.tx) * 0.08; view.ty += (height / 2 - s * (y0 + y1) / 2 - view.ty) * 0.08;
-  }
-
-  function shape(n, r) {
+  function shape(ctx, n, r) {
     ctx.beginPath();
-    if (n.kind === "Decision") { ctx.moveTo(n.x, n.y - r); ctx.lineTo(n.x + r, n.y); ctx.lineTo(n.x, n.y + r); ctx.lineTo(n.x - r, n.y); ctx.closePath(); }
+    if (n.kind === "Decision") { ctx.moveTo(n.x, n.y - r * 1.3); ctx.lineTo(n.x + r * 1.3, n.y); ctx.lineTo(n.x, n.y + r * 1.3); ctx.lineTo(n.x - r * 1.3, n.y); ctx.closePath(); }
     else if (n.kind === "File" || n.kind === "Need") ctx.rect(n.x - r, n.y - r, r * 2, r * 2);
     else ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
   }
 
-  function arrow(a, b, rb, pal, lit) {
-    var dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
-    var tx = b.x - ux * (rb + 2), ty = b.y - uy * (rb + 2), s = 7 / view.s;
-    ctx.strokeStyle = ctx.fillStyle = lit ? pal.ink : pal.line; ctx.lineWidth = (lit ? 1.8 : 1.1) / view.s;
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(tx, ty); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - ux * s - uy * s * 0.5, ty - uy * s + ux * s * 0.5);
-    ctx.lineTo(tx - ux * s + uy * s * 0.5, ty - uy * s - ux * s * 0.5); ctx.closePath(); ctx.fill();
-  }
-
-  function text(lines, x, y, size, pal, colour) {
-    ctx.font = (size / view.s) + "px ui-monospace, Menlo, monospace"; ctx.textAlign = "center"; ctx.lineJoin = "round";
+  function caption(ctx, lines, x, y, scale, colour) {
+    ctx.font = (11 / scale) + "px ui-monospace, Menlo, monospace"; ctx.textAlign = "center"; ctx.lineJoin = "round";
     lines.forEach(function (l, i) {
-      ctx.strokeStyle = pal.bg; ctx.lineWidth = 4 / view.s; ctx.strokeText(l, x, y + i * 12 / view.s);
-      ctx.fillStyle = colour; ctx.fillText(l, x, y + i * 12 / view.s);
+      ctx.strokeStyle = pal.bg; ctx.lineWidth = 4 / scale; ctx.strokeText(l, x, y + i * 13 / scale);
+      ctx.fillStyle = colour; ctx.fillText(l, x, y + i * 13 / scale);
     });
   }
 
-  function draw(now) {
-    var pal = { ink: MC.css("--ink"), line: MC.css("--line"), bg: MC.css("--bg"), dim: MC.css("--dim") }, focus = selected || hover;
-    ctx.clearRect(0, 0, width, height); fit(); ctx.save(); ctx.translate(view.tx, view.ty); ctx.scale(view.s, view.s);
-    var touching = function (e) { return focus && (e.source === focus.id || e.target === focus.id); };
-    edges.forEach(function (e) { if (!touching(e)) arrow(nodes[e.source], nodes[e.target], SIZE[nodes[e.target].kind] || 9, pal, false); });
-    edges.forEach(function (e) { if (touching(e)) arrow(nodes[e.source], nodes[e.target], SIZE[nodes[e.target].kind] || 9, pal, true); });
-    edges.forEach(function (e) {
-      var a = nodes[e.source], b = nodes[e.target], lit = touching(e);
-      if (focus ? !lit : Math.hypot(a.x - b.x, a.y - b.y) * view.s < 90) return;  // short lines have no room for a name
-      text([e.kind.toLowerCase().replace("_", " ")], (a.x + b.x) / 2, (a.y + b.y) / 2 + 3 / view.s, 9, pal, lit ? pal.ink : pal.dim);
-    });
-    Object.keys(nodes).forEach(function (k) {
-      var n = nodes[k], age = now - n.born, r = (SIZE[n.kind] || 9) * Math.min(1, age / 500), c = fill(n);
-      if (age < 1800) { ctx.strokeStyle = c; ctx.globalAlpha = 1 - age / 1800; ctx.lineWidth = 2 / view.s; ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 + age / 80, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
-      shape(n, r); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = n === focus ? pal.ink : pal.bg; ctx.lineWidth = (n === focus ? 3 : 1.5) / view.s; ctx.stroke();
-      if (n.kind === "Need") { ctx.strokeStyle = MC.css("--red"); ctx.lineWidth = 2.5 / view.s; ctx.stroke(); }
-      if (n.kind === "Session" || n.hub || n === focus) text(MC.wrap(n.text, 26, n === focus ? 4 : 2), n.x, n.y + r + 13 / view.s, 11, pal, pal.ink);
-    });
-    ctx.restore();
-  }
+  fg.onRenderFramePre(function () { pal = { ink: MC.css("--ink"), line: MC.css("--line"), bg: MC.css("--bg"), dim: MC.css("--dim"), red: MC.css("--red") }; });
+  fg.nodeCanvasObject(function (n, ctx, scale) {
+    var r = SIZE[n.kind] || 5, f = focus(), near = f && (f === n || neighbours(f, n));
+    ctx.globalAlpha = (f || hoverLink) && !near && !(hoverLink && touchesLink(n)) ? 0.15 : 1;
+    shape(ctx, n, r); ctx.fillStyle = fill(n); ctx.fill();
+    ctx.strokeStyle = n === f ? pal.ink : n.kind === "Need" ? pal.red : pal.bg; ctx.lineWidth = (n === f ? 2.5 : 1.5) / scale; ctx.stroke();
+    if (n.kind === "Session" || n === f || near || scale > 3.4)
+      caption(ctx, MC.wrap(n.text, 28, n === f ? 5 : 2), n.x, n.y + r + 11 / scale, scale, pal.ink);
+    ctx.globalAlpha = 1;
+  }).nodePointerAreaPaint(function (n, colour, ctx) { shape(ctx, n, (SIZE[n.kind] || 5) + 3); ctx.fillStyle = colour; ctx.fill(); });
 
-  function loop(now) { if (visible && !document.hidden) { step(); draw(now); } requestAnimationFrame(loop); }
+  fg.linkCanvasObjectMode(function () { return "after"; }).linkCanvasObject(function (l, ctx, scale) {
+    if (!(focus() ? lit(l) : scale > 1.6) || !l.source.x) return;
+    var mx = (l.source.x + l.target.x) / 2, my = (l.source.y + l.target.y) / 2;
+    caption(ctx, [l.kind.toLowerCase().replace("_", " ")], mx, my, scale, edgeColour(l.kind));
+  });
+
+  var links = [];
+  function touchesLink(n) { return !!hoverLink && [hoverLink.source.id, hoverLink.target.id].indexOf(n.id) >= 0; }
+  function neighbours(a, b) { return links.some(function (l) { var s = l.source.id || l.source, t = l.target.id || l.target; return (s === a.id && t === b.id) || (t === a.id && s === b.id); }); }
+
+  function sync(next) {
+    var fresh = {};
+    next.nodes.forEach(function (n) {
+      var old = nodes[n.id];
+      fresh[n.id] = old ? Object.assign(old, { role: n.role, text: n.text }) : { id: n.id, kind: n.kind, text: n.text, role: n.role };
+    });
+    var pair = {}, seen = {};
+    plain = next.edges.filter(function (e) { return fresh[e.source] && fresh[e.target]; });
+    degree = {};
+    links = plain.map(function (e) {
+      var key = [e.source, e.target].sort().join("|"), i = seen[key] = (seen[key] || 0) + 1;
+      degree[e.source] = (degree[e.source] || 0) + 1; degree[e.target] = (degree[e.target] || 0) + 1;
+      return { source: e.source, target: e.target, kind: e.kind, curve: i === 1 ? 0 : 0.22 * (i % 2 ? i : -i) / 1.5 };
+    });
+    nodes = fresh;
+    fg.graphData({ nodes: Object.keys(fresh).map(function (k) { return fresh[k]; }), links: links });
+    count.textContent = Object.keys(nodes).length + " nodes · " + plain.length + " relationships";
+    MC.graphDetail.refresh(nodes, plain); drawLegend();
+  }
 
   function drawLegend() {
-    MC.clear(legend);
-    var seen = {};
+    MC.clear(legend); var seen = {};
     Object.keys(nodes).forEach(function (k) { var n = nodes[k]; seen[n.role || n.kind] = fill(n); });
     Object.keys(seen).forEach(function (label) {
       var s = MC.el("span", {}, label === "shared" ? "shared by two roles" : label); s.style.setProperty("--c", seen[label]); legend.appendChild(s);
     });
+    var kinds = {}; plain.forEach(function (e) { kinds[e.kind] = true; });
+    Object.keys(kinds).forEach(function (k) { var t = MC.el("span", { "class": "line" }, k.toLowerCase().replace("_", " ")); t.style.setProperty("--c", edgeColour(k)); legend.appendChild(t); });
     if (mode === "work") legend.appendChild(MC.el("span", { "class": "plain" }, "◆ decision · ■ file or need (red outline = need) · ● session, request, message · arrows read source → target"));
   }
 
-  function recentre() {
-    Object.keys(nodes).forEach(function (k) { var n = nodes[k]; n.x = width * (0.1 + Math.random() * 0.8); n.y = height * (0.1 + Math.random() * 0.8); n.vx = 0; n.vy = 0; });
-  }
+  function resize() { var box = holder.parentNode.getBoundingClientRect(); fg.width(Math.max(300, box.width)).height(box.height); }
 
   function show() {
-    var v = last[mode]; nodes = {}; edges = []; selected = null; MC.graphDetail.clear();
+    var v = last[mode]; nodes = {}; plain = []; links = []; selected = null; MC.graphDetail.clear();
+    fg.graphData({ nodes: [], links: [] });
     if (v && v.nodes.length) sync(v); else { count.textContent = mode === "concepts" ? "no concepts yet: run handoff knowledge" : ""; MC.clear(legend); }
-    alpha = 1;
   }
 
-  function pick(ev) {
-    var box = canvas.getBoundingClientRect(), x = ev.clientX - box.left, y = ev.clientY - box.top, best = null, bd = 20;
-    var wx = (x - view.tx) / view.s, wy = (y - view.ty) / view.s;
-    Object.keys(nodes).forEach(function (k) { var n = nodes[k], d = Math.hypot(n.x - wx, n.y - wy) * view.s; if (d < bd) { bd = d; best = n; } });
-    return { node: best, x: x, y: y };
-  }
-
-  canvas.addEventListener("mousemove", function (ev) {
-    var p = pick(ev); hover = p.node; tip.hidden = !p.node; canvas.style.cursor = p.node ? "pointer" : "default";
-    if (p.node) { tip.textContent = p.node.kind + (p.node.role ? " (" + p.node.role + ")" : "") + ": " + p.node.text; tip.style.left = Math.min(p.x + 14, width - 340) + "px"; tip.style.top = (p.y + 14) + "px"; }
+  fg.onLinkHover(function (l) { hoverLink = l || null; holder.style.cursor = l ? "pointer" : "default"; });
+  fg.onNodeHover(function (n) {
+    hover = n || null; holder.style.cursor = n ? "pointer" : "default"; tip.hidden = !n;
+    if (n) tip.textContent = n.kind + (n.role ? " (" + n.role + ")" : "") + ": " + n.text;
   });
-  canvas.addEventListener("click", function (ev) { selected = pick(ev).node; if (selected) MC.graphDetail.show(selected); else MC.graphDetail.clear(); });
-  canvas.addEventListener("mouseleave", function () { hover = null; tip.hidden = true; });
+  holder.addEventListener("mousemove", function (ev) { var b = holder.getBoundingClientRect(); tip.style.left = Math.min(ev.clientX - b.left + 14, b.width - 340) + "px"; tip.style.top = (ev.clientY - b.top + 14) + "px"; });
+  fg.onNodeClick(function (n) { selected = n; MC.graphDetail.show(n); });
+  fg.onBackgroundClick(function () { selected = null; MC.graphDetail.clear(); });
+  fg.onNodeDragEnd(function (n) { n.fx = n.x; n.fy = n.y; });  // a dragged node stays where it is put
+  document.getElementById("graph-fit").addEventListener("click", function () { fg.zoomToFit(400, 40); });
+  document.getElementById("graph-unpin").addEventListener("click", function () { Object.keys(nodes).forEach(function (k) { nodes[k].fx = nodes[k].fy = undefined; }); fg.d3ReheatSimulation(); });
   document.querySelectorAll("[data-mode]").forEach(function (b) {
     b.addEventListener("click", function () {
       mode = b.getAttribute("data-mode");
       document.querySelectorAll("[data-mode]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
-      show();
+      show(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
     });
   });
   window.addEventListener("resize", resize);
@@ -170,10 +137,11 @@
     var sig = JSON.stringify([state.work, state.concepts]);
     if (sig === last.sig) return;
     last = { work: state.work, concepts: state.concepts, sig: sig };
-    var v = last[mode];
+    var v = last[mode], first = !Object.keys(nodes).length;
     if (v && (v.nodes.length || mode === "work")) sync(v); else show();
+    if (first && visible) setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
   }
 
-  MC.views.graph = { update: update, setVisible: function (v) { visible = v; if (v) { resize(); recentre(); alpha = 0.9; } } };
-  resize(); requestAnimationFrame(loop);
+  MC.views.graph = { update: update, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
+  resize();
 })();
