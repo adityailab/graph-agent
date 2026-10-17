@@ -49,3 +49,11 @@ def test_a_pane_is_ready_once_claude_shows_its_input_and_no_trust_prompt() -> No
     assert not pane_ready("")  # still starting
     assert not pane_ready(" > No, exit\n   Yes, I trust this folder")
     assert pane_ready("> \n  accept edits on (shift+tab to cycle)")
+
+
+def test_a_working_spinner_is_recognised() -> None:
+    from handoff.demo.tmux import working
+
+    assert working("\u2722 Crunching\u2026 (9s \u00b7 \u2193 1.4k tokens)")
+    assert working("* Cogitating\u2026 (1m 3s \u00b7 thinking)")
+    assert not working("Cooked for 3s \u00b7 done 1:40 PM\n> ")

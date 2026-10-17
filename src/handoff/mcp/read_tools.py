@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Annotated
 
 from mcp.server.mcpserver import MCPServer
 from pydantic import Field
+from redis.exceptions import RedisError
 
 from handoff.config import normalise_role
 from handoff.format import render_handoff, render_why, select_requests, shorten
@@ -17,10 +19,11 @@ from handoff.graph.overlaps import shared_files
 from handoff.graph.requests import latest_request_id, request_text
 from handoff.graph.sessions import active_sessions
 from handoff.mcp.context import ToolContext, guarded
-from handoff.mcp.current import current_request, current_session
+from handoff.mcp.current import current_request_id, current_session
 from handoff.mcp.insights_view import insights_section
 from handoff.paths import relative_path
 
+log = logging.getLogger(__name__)
 _MINUTE_MS = 60_000
 _WEEK_MINUTES = 7 * 24 * 60
 
@@ -46,6 +49,18 @@ def sessions(ctx: ToolContext, within_minutes: int = 120) -> str:
     return "\n".join(lines) or f"No sessions active in the last {minutes} minutes."
 
 
+def _record_reading(ctx: ToolContext, consulted: list[str]) -> None:
+    """Note which requests this session just read. Secondary to the answer: a failure here
+    must not cost the person the handoff they asked for."""
+    reader = current_request_id(ctx)
+    if reader is None or not consulted:
+        return
+    try:
+        add_consultations(ctx.graph, request_id=reader, consulted_ids=consulted, at=ctx.now())
+    except RedisError as exc:
+        log.warning("could not record what was read: %s", exc)
+
+
 @guarded
 def handoff(
     ctx: ToolContext, role: str | None = None, since_minutes: int = 240, limit: int = 10
@@ -58,11 +73,7 @@ def handoff(
     )
     selected = select_requests(requests, _clamp(limit, 1, 50))
     text = render_handoff(selected)
-    reader = current_request(ctx)
-    if reader is not None and selected:
-        add_consultations(
-            ctx.graph, request_id=reader.id, consulted_ids=[r.id for r in selected], at=ctx.now()
-        )
+    _record_reading(ctx, [r.id for r in selected])
     shared = shared_files(ctx.graph, since=since)
     if shared:
         listed = "; ".join(f"{f.path} ({', '.join(f.roles)})" for f in shared)

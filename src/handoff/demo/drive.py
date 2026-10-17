@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable, Sequence
 
 from handoff.cli.runner import Runner
-from handoff.demo.tmux import done_line, pane_ready, panes_by_role
+from handoff.demo.tmux import done_line, pane_ready, panes_by_role, working
 
 ROUND_CAP_SECONDS = 480
 POLL_SECONDS = 4.0
@@ -24,8 +24,22 @@ def _send(runner: Runner, pane: str, text: str, sleep: Callable[[float], None]) 
 
 
 def _finished(runner: Runner, pane: str, was: str) -> Callable[[], bool]:
-    """A check that this pane's 'done' line differs from `was` (its turn has ended)."""
-    return lambda: done_line(_screen(runner, pane)) not in ("", was)
+    """A check that this pane's turn has ended: its 'done' line changed, or it was seen
+    working and is idle again (two turns finishing in the same minute after the same time
+    print the same 'done' line, so the line alone cannot be relied on)."""
+    seen_working = False
+
+    def check() -> bool:
+        nonlocal seen_working
+        screen = _screen(runner, pane)
+        if working(screen):
+            seen_working = True
+            return False
+        if done_line(screen) not in ("", was):
+            return True
+        return seen_working and pane_ready(screen)
+
+    return check
 
 
 def _wait(check: Callable[[], bool], *, seconds: float, sleep: Callable[[float], None]) -> bool:

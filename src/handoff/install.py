@@ -114,18 +114,20 @@ def install(
     config: Config,
     falkordb_mcp: bool = True,
     graph: str | None = None,
+    default_graph: str | None = None,
 ) -> str:
     """Install hooks and MCP servers into `workspace`; return what to do next.
 
-    The workspace gets a graph of its own (HANDOFF_GRAPH in its settings), unless `graph`
-    names one or its settings already choose one."""
+    The workspace gets a graph of its own (HANDOFF_GRAPH in its settings): `graph` if given,
+    else one its settings already choose, else `default_graph` (the person's exported
+    HANDOFF_GRAPH, so existing history is not silently left behind), else a new name."""
     settings_path = workspace / ".claude" / "settings.local.json"
     settings = _read_json(settings_path)
     _merge_hooks(settings, bin_dir, settings_path)
     env = _section(settings, "env", settings_path)
     if graph:
         env["HANDOFF_GRAPH"] = graph
-    env.setdefault("HANDOFF_GRAPH", graph_for_workspace(workspace))
+    env.setdefault("HANDOFF_GRAPH", default_graph or graph_for_workspace(workspace))
     database = non_default_database(config)  # sessions and servers must reach the same one
     env.update(database)
     _write_json(settings_path, settings)

@@ -129,3 +129,22 @@ def test_the_default_address_is_not_written(tmp_path: Path, config: Config) -> N
     default = Config("localhost", 6379, "g", config.home)
     install(tmp_path, bin_dir=Path("/opt/h/bin"), config=default)
     assert "HANDOFF_DB_PORT" not in _read(tmp_path / ".claude" / "settings.local.json")["env"]
+
+
+def test_a_graph_exported_in_the_shell_is_used_when_nothing_else_chooses(
+    tmp_path: Path, config: Config
+) -> None:
+    text = install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config, default_graph="team")
+    assert _read(tmp_path / ".claude" / "settings.local.json")["env"]["HANDOFF_GRAPH"] == "team"
+    assert "team" in text
+
+
+def test_settings_that_already_choose_a_graph_beat_the_exported_one(
+    tmp_path: Path, config: Config
+) -> None:
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.local.json").write_text(
+        json.dumps({"env": {"HANDOFF_GRAPH": "shop"}})
+    )
+    install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config, default_graph="team")
+    assert _read(tmp_path / ".claude" / "settings.local.json")["env"]["HANDOFF_GRAPH"] == "shop"

@@ -66,13 +66,19 @@ UNWIND dups AS dup
 CALL {
   WITH keep, dup
   MATCH (dup)-[r:RELATES]->(t) WHERE t <> keep
-  CREATE (keep)-[n:RELATES]->(t) SET n = properties(r)
+  MERGE (keep)-[n:RELATES {rel_type: coalesce(r.rel_type, '')}]->(t)
+  ON CREATE SET n = properties(r)
+  ON MATCH SET n.source_chunk_ids = coalesce(n.source_chunk_ids, []) +
+    [x IN coalesce(r.source_chunk_ids, []) WHERE NOT x IN coalesce(n.source_chunk_ids, [])]
   RETURN count(*) AS moved_out
 }
 CALL {
   WITH keep, dup
   MATCH (s)-[r:RELATES]->(dup) WHERE s <> keep
-  CREATE (s)-[n:RELATES]->(keep) SET n = properties(r)
+  MERGE (s)-[n:RELATES {rel_type: coalesce(r.rel_type, '')}]->(keep)
+  ON CREATE SET n = properties(r)
+  ON MATCH SET n.source_chunk_ids = coalesce(n.source_chunk_ids, []) +
+    [x IN coalesce(r.source_chunk_ids, []) WHERE NOT x IN coalesce(n.source_chunk_ids, [])]
   RETURN count(*) AS moved_in
 }
 CALL {
