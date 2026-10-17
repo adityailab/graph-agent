@@ -35,3 +35,16 @@ def test_worker_can_be_switched_off(config: Config) -> None:
 def test_unreachable_database_means_no_worker_not_a_crash(config: Config) -> None:
     down = Config(host="localhost", port=1, graph_name=config.graph_name, home=config.home)
     assert start_knowledge(down, NoModel(), NoEmbedder(), env={}) is None
+
+
+def test_quiet_mode_silences_library_chatter_but_not_our_own_logs() -> None:
+    import logging
+
+    from handoff.knowledge.cli import configure_logging
+
+    configure_logging(quiet=True)
+    assert logging.getLogger("graphrag_sdk").level == logging.CRITICAL
+    assert logging.getLogger("httpx2").level >= logging.WARNING
+    assert logging.getLogger("handoff").level != logging.CRITICAL
+    configure_logging(quiet=False)
+    assert logging.getLogger("graphrag_sdk").level == logging.NOTSET
