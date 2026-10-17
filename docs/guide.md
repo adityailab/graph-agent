@@ -131,13 +131,13 @@ handoff dashboard            # opens http://127.0.0.1:8765/ in your browser
 handoff dashboard --port 9000 --no-open
 ```
 
-Mission control, the visual version of `watch`, with five pages (keys 1 to 5): **Orchestration** (each session as a terminal-style card with
+Mission control, the visual version of `watch`, with six pages (keys 1 to 6): **Orchestration** (each session as a terminal-style card with
 a pixel bot and its latest action; messages, reads and needs travel between the cards),
 **Handoff** (what each session learned from another's work with the decision and its reason;
 the bars show each session's own work next to the decisions it learned from others), **Graph**
 (the shared graph drawn live: drag nodes, scroll to zoom, links coloured and named by
 relationship; click a node for all of it in the side panel; a toggle shows the concept graph),
-**Tracks** (how handoff answers each competition track, with live numbers) and **Log**
+**Memory** (the six kinds of memory with counts, and what each session holds right now and learned from others), **Tracks** (how handoff answers each competition track, with live numbers) and **Log**
 (everything that lands in the graph, in full). **replay** replays the newest events as
 animation, which is handy when recording.
 The server listens on `127.0.0.1` only and shows the graph of the folder you run it in.
@@ -209,6 +209,23 @@ It sends messages only, from the role `coordinator`, and calls no model:
 
 Options: `--stale-minutes`, `--repeat-minutes`, `--collision-minutes`, `--digest-minutes`
 (0 turns the digest off).
+
+### Memory
+
+```bash
+handoff memory                  # the six kinds of memory, and what each session holds
+handoff timeline "auth tokens"  # how decisions on a topic changed, and what replaced what
+handoff conventions             # standing rules every session of a role is told once
+handoff conventions add "money is integer paise" --why "floats round wrongly"
+handoff conventions add "run the linter" --why "keeps diffs small" --role backend
+handoff conventions retire <id>
+```
+
+handoff keeps working, episodic, semantic, procedural, temporal and social memory in one graph:
+see [memory.md](memory.md) for where each lives and what it is for. Sessions use the same
+memory through tools: `timeline`, `supersede_decision`, `record_convention`, `conventions`. When
+an agent records a decision on a topic that already has decisions, the reply lists them and says
+how to mark one as replaced. A session hears its role's standing rules once, on its first prompt.
 
 ### Check and repair
 

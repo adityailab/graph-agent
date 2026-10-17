@@ -52,3 +52,20 @@ def test_a_missing_graph_gives_an_empty_snapshot_not_an_error(config: Config) ->
     assert state["roles"] == []
     assert state["events"] == []
     assert state["error"] is None
+
+
+def test_the_snapshot_carries_the_memory_overview(config: Config, two_sessions: Graph) -> None:
+    from handoff.graph.consultations import add_consultations
+
+    add_consultations(two_sessions, request_id="p3", consulted_ids=["p1"], at=230)
+    memory = snapshot(config, now=300, window_ms=1_000)["memory"]
+    assert [t["key"] for t in memory["types"]] == [
+        "working", "episodic", "semantic", "procedural", "temporal", "social",
+    ]  # fmt: skip
+    contexts = {c["role"]: c for c in memory["contexts"]}
+    assert contexts["backend"]["learned"] == (("frontend", "read avatarUrl"),)
+
+
+def test_an_empty_snapshot_still_has_the_memory_keys(config: Config) -> None:
+    memory = snapshot(config, now=300, window_ms=1_000)["memory"]
+    assert memory == {"types": [], "contexts": []}

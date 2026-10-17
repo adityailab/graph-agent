@@ -16,6 +16,7 @@ from handoff.graph.connection import connect, graph_exists
 from handoff.graph.context_view import GraphView, concept_graph, work_graph
 from handoff.graph.feed import recent_events
 from handoff.graph.insights import current_insights
+from handoff.graph.memory_view import concept_total, memory_types, role_contexts
 from handoff.graph.overview import handoffs, message_flows, role_stats
 
 EVENTS = 80
@@ -32,6 +33,7 @@ def _empty(error: str | None) -> dict[str, Any]:
     return {
         "error": error, "graph": "", "now": 0, "roles": [], "events": [], "flows": [],
         "handoffs": [], "work": nothing, "concepts": nothing, "tracks": [],
+        "memory": {"types": [], "contexts": []},
     }  # fmt: skip
 
 
@@ -72,6 +74,8 @@ def snapshot(config: Config, *, now: int, window_ms: int) -> dict[str, Any]:
         )
         events = recent_events(graph, limit=EVENTS)
         found = handoffs(graph, limit=20)
+        kinds = memory_types(graph, concepts=concept_total(config), since=now - window_ms)
+        contexts = role_contexts(graph, since=now - window_ms)
     except (RedisConnectionError, RedisTimeoutError, OSError) as exc:  # keep the page alive
         return {**_empty(f"database unreachable: {exc}"), "graph": config.graph_name, "now": now}
     except RedisError as exc:  # the database answered, but a query failed
@@ -92,5 +96,6 @@ def snapshot(config: Config, *, now: int, window_ms: int) -> dict[str, Any]:
         ],
         "work": _view(work),
         "concepts": _view(concepts),
+        "memory": {"types": [asdict(t) for t in kinds], "contexts": [asdict(c) for c in contexts]},
         "tracks": track_summary(_counts(roles, flows, insights, work, len(concepts.nodes))),
     }
