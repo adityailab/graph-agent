@@ -114,3 +114,18 @@ def test_our_server_gets_the_workspace_graph_literally(tmp_path: Path, config: C
     server_env = _read(tmp_path / ".mcp.json")["mcpServers"]["handoff"]["env"]
     assert server_env["HANDOFF_GRAPH"] == graph
     assert server_env["HANDOFF_ROLE"] == "${HANDOFF_ROLE:-}"  # still per terminal
+
+
+def test_a_custom_database_address_reaches_sessions_and_the_server(tmp_path: Path) -> None:
+    custom = Config("db.local", 6390, "g", tmp_path / "home")
+    install(tmp_path, bin_dir=Path("/opt/h/bin"), config=custom)
+    env = _read(tmp_path / ".claude" / "settings.local.json")["env"]
+    assert (env["HANDOFF_DB_HOST"], env["HANDOFF_DB_PORT"]) == ("db.local", "6390")
+    server = _read(tmp_path / ".mcp.json")["mcpServers"]["handoff"]["env"]
+    assert (server["HANDOFF_DB_HOST"], server["HANDOFF_DB_PORT"]) == ("db.local", "6390")
+
+
+def test_the_default_address_is_not_written(tmp_path: Path, config: Config) -> None:
+    default = Config("localhost", 6379, "g", config.home)
+    install(tmp_path, bin_dir=Path("/opt/h/bin"), config=default)
+    assert "HANDOFF_DB_PORT" not in _read(tmp_path / ".claude" / "settings.local.json")["env"]

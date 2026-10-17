@@ -42,6 +42,16 @@ def resolve_need(graph: Graph, *, need_id: str, request_id: str) -> bool:
     return bool(rows)
 
 
+def open_needs(graph: Graph, role: str, *, limit: int = 5) -> list[tuple[str, str, str]]:
+    """Open needs addressed to `role` as (id, role that raised it, text), oldest first."""
+    rows = graph.ro_query(
+        "MATCH (s:Session)-[:RECEIVED]->(:Request)-[:RAISED]->(n:Need {for_role: $role, "
+        "status: 'open'}) RETURN n.id, s.role, n.text ORDER BY n.at LIMIT $limit",
+        {"role": role, "limit": limit},
+    ).result_set
+    return [(str(i), str(r), str(t)) for i, r, t in rows]
+
+
 def count_open_needs(graph: Graph, role: str) -> int:
     """Count needs addressed to `role` that are still open."""
     rows = graph.ro_query(

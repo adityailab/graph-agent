@@ -54,3 +54,18 @@ def test_control_c_ends_the_loop_cleanly() -> None:
         raise KeyboardInterrupt
 
     assert watch_loop(_frame, lambda _: None, sleep=interrupted, frames=None, width=80) == 0
+
+
+def test_escape_sequences_in_event_text_are_not_passed_to_the_terminal() -> None:
+    frame = Frame(
+        graph="shop",
+        sessions=[],
+        events=[
+            FeedEvent(1_792_000_000_000, "frontend", "asked", "hi \x1b]0;pwned\x07\x1b[2J there")
+        ],
+        insights=[],
+    )
+    line = next(x for x in render_frame(frame, width=120).splitlines() if "asked" in x)
+    assert "\x1b]0" not in line
+    assert "\x1b[2J" not in line
+    assert "\x07" not in line

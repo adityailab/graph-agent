@@ -51,6 +51,15 @@ def add_parser(commands: Any) -> None:
     p.set_defaults(run=run)
 
 
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _plain(text: str) -> str:
+    """Text from other sessions with control characters removed (they could move the
+    cursor, retitle the window or clear the screen); only our own colours remain."""
+    return _CONTROL.sub("", text)
+
+
 def _role(role: str) -> str:
     return f"{_COLOURS.get(role, chr(27) + '[34m')}{role}{RESET}"
 
@@ -85,7 +94,7 @@ def render_frame(frame: Frame, width: int) -> str:
     ]
     lines += [
         f"{DIM}{_clock(e.at)}{RESET} {_role(e.role)} {BOLD}{e.kind:<14}{RESET} "
-        f"{' '.join(e.text.split())}"
+        f"{' '.join(_plain(e.text).split())}"
         for e in frame.events
     ]
     if frame.insights:

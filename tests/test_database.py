@@ -56,3 +56,60 @@ def test_a_failing_docker_command_is_reported(tmp_path: Path) -> None:
     calls: list[list[str]] = []
     with pytest.raises(DatabaseUnavailable, match="docker"):
         ensure_database(Config("localhost", 1, "g", tmp_path), fake_runner(calls, code=1))
+
+
+def test_a_slow_docker_command_is_one_sentence(tmp_path: Path) -> None:
+    import subprocess
+
+    def slow(argv: object) -> subprocess.CompletedProcess[str]:
+        raise subprocess.TimeoutExpired("docker", 120)
+
+    with pytest.raises(DatabaseUnavailable, match="timed out"):
+        ensure_database(Config("localhost", 1, "g", tmp_path), slow, wait_seconds=0.2)
+
+
+def test_the_image_is_pulled_as_its_own_step_before_it_runs(tmp_path: Path) -> None:
+    calls: list[list[str]] = []
+    with pytest.raises(DatabaseUnavailable):
+        ensure_database(
+            Config("localhost", 1, "g", tmp_path),
+            fake_runner(calls, {("docker", "ps", "-a"): ""}),
+            wait_seconds=0.2,
+        )
+    verbs = [c[1] for c in calls if c[0] == "docker"]
+    assert verbs.index("pull") < verbs.index("run")
+
+
+def test_the_browser_port_can_be_moved(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HANDOFF_BROWSER_PORT", "3100")
+    calls: list[list[str]] = []
+    with pytest.raises(DatabaseUnavailable):
+        ensure_database(
+            Config("localhost", 1, "g", tmp_path),
+            fake_runner(calls, {("docker", "ps", "-a"): ""}),
+            wait_seconds=0.2,
+        )
+    run = next(c for c in calls if c[:2] == ["docker", "run"])
+    assert "127.0.0.1:3100:3000" in run
+
+
+def test_plain_redis_on_the_port_is_not_taken_for_falkordb(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from redis.exceptions import ResponseError
+
+    class PlainRedis:
+        def __init__(self, **kwargs: object) -> None:
+            self.connection = self
+
+        def ping(self) -> bool:
+            return True
+
+        def list_graphs(self) -> list[str]:
+            raise ResponseError("unknown command 'GRAPH.LIST'")
+
+    monkeypatch.setattr("handoff.graph.connection.FalkorDB", PlainRedis)
+    calls: list[list[str]] = []
+    with pytest.raises(DatabaseUnavailable, match="not FalkorDB"):
+        ensure_database(Config("localhost", 6390, "g", tmp_path), fake_runner(calls))
+    assert calls == []

@@ -97,6 +97,16 @@ def _instructions(workspace: Path, graph: str, falkordb_mcp: bool) -> str:
     )
 
 
+def non_default_database(config: Config) -> dict[str, str]:
+    """HANDOFF_DB_HOST / HANDOFF_DB_PORT for a database not at localhost:6379."""
+    out = {}
+    if config.host != "localhost":
+        out["HANDOFF_DB_HOST"] = config.host
+    if config.port != 6379:
+        out["HANDOFF_DB_PORT"] = str(config.port)
+    return out
+
+
 def install(
     workspace: Path,
     *,
@@ -116,12 +126,16 @@ def install(
     if graph:
         env["HANDOFF_GRAPH"] = graph
     env.setdefault("HANDOFF_GRAPH", graph_for_workspace(workspace))
+    database = non_default_database(config)  # sessions and servers must reach the same one
+    env.update(database)
     _write_json(settings_path, settings)
 
     mcp_path = workspace / ".mcp.json"
     mcp = _read_json(mcp_path)
     servers = _section(mcp, "mcpServers", mcp_path)
-    servers["handoff"] = handoff_server_entry(str(bin_dir / "handoff-mcp"), env["HANDOFF_GRAPH"])
+    servers["handoff"] = handoff_server_entry(
+        str(bin_dir / "handoff-mcp"), env["HANDOFF_GRAPH"], database
+    )
     if falkordb_mcp:
         servers["falkordb"] = falkordb_server_entry(config)
     else:

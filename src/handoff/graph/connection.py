@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from falkordb import FalkorDB, Graph
 from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import RedisError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from handoff.config import Config
@@ -29,15 +30,24 @@ def ping(graph: Graph) -> None:
     graph.ro_query("RETURN 1")
 
 
-def server_reachable(config: Config) -> bool:
-    """True if a FalkorDB (Redis) server answers at the configured address."""
+def probe_server(config: Config) -> str:
+    """'falkordb' if FalkorDB answers, 'other' if something else does (plain Redis, or a
+    password), 'none' if nothing does."""
     try:  # the client connects as soon as it is created
         db = FalkorDB(
             host=config.host, port=config.port, socket_connect_timeout=1, socket_timeout=2
         )
-        return bool(db.connection.ping())
+        db.list_graphs()
     except (RedisConnectionError, RedisTimeoutError, OSError):
-        return False
+        return "none"
+    except RedisError:  # unknown command GRAPH.LIST, or authentication required
+        return "other"
+    return "falkordb"
+
+
+def server_reachable(config: Config) -> bool:
+    """True if FalkorDB answers at the configured address."""
+    return probe_server(config) == "falkordb"
 
 
 def graph_exists(config: Config) -> bool:

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from handoff.config import Config
 from handoff.demo.script import TOOLS
+from handoff.install import non_default_database
 from handoff.models.claude_code import child_environment
 
 SESSION_TIMEOUT = 300
@@ -38,6 +39,7 @@ def session_env(role: str, config: Config, *, base: Mapping[str, str]) -> dict[s
     """The role and handoff's home; no HANDOFF_GRAPH, so the graph comes only from the
     workspace's settings, as it does for a real user. One knowledge worker runs later."""
     env = {k: v for k, v in base.items() if not k.startswith("HANDOFF_")}
+    env.update(non_default_database(config))
     env.update(
         HANDOFF_ROLE=role,
         HANDOFF_HOME=str(config.home),

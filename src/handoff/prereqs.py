@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -32,7 +33,7 @@ _NPX_FIX = (
 def _docker_running(runner: Runner) -> bool:
     try:
         return runner(["docker", "info", "--format", "{{.ServerVersion}}"]).returncode == 0
-    except (FileNotFoundError, OSError):
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
         return False
 
 

@@ -31,3 +31,19 @@ def test_the_config_carries_the_workspace_graph(tmp_path: Path) -> None:
     _settings(tmp_path, '{"env": {"HANDOFF_GRAPH": "shop"}}')
     config = workspace_config(tmp_path, {"HANDOFF_DB_PORT": "6390"})
     assert (config.graph_name, config.port) == ("shop", 6390)
+
+
+def test_a_subfolder_uses_the_graph_of_the_project_above_it(tmp_path: Path) -> None:
+    from handoff.workspace import find_workspace
+
+    _settings(tmp_path, '{"env": {"HANDOFF_GRAPH": "shop"}}')
+    sub = tmp_path / "src" / "ui"
+    sub.mkdir(parents=True)
+    assert find_workspace(sub) == tmp_path
+    assert workspace_graph(find_workspace(sub), {}) == "shop"
+
+
+def test_without_an_installed_parent_the_folder_itself_is_used(tmp_path: Path) -> None:
+    from handoff.workspace import find_workspace
+
+    assert find_workspace(tmp_path) == tmp_path

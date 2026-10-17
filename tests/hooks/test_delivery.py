@@ -80,3 +80,16 @@ def test_editing_a_file_another_session_just_changed_is_flagged(
     context = output["hookSpecificOutput"]["additionalContext"]
     assert "hello.txt was also changed by the backend session" in context
     assert '"rename the field"' in context
+
+
+def test_open_needs_are_listed_with_their_ids_and_who_raised_them(
+    graph: Graph, hook_json: HookJson
+) -> None:
+    _backend_says(graph, "hi")
+    add_request(graph, session_id="be", request_id="pb", text="api", at=55)
+    add_need(
+        graph, request_id="pb", need_id="n1", text="show the new field", for_role="frontend", at=56
+    )
+    text = _apply(graph, hook_json("user_prompt"))
+    assert "need n1 from backend: show the new field" in text
+    assert "resolve_need" in text

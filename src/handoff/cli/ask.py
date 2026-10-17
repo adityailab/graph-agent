@@ -15,6 +15,7 @@ from typing import Any
 
 from handoff.cli.stream_json import parse_stream
 from handoff.config import Config
+from handoff.install import non_default_database
 from handoff.mcp_config import falkordb_server_entry, handoff_server_entry
 from handoff.models.claude_code import child_environment
 from handoff.workspace import workspace_config
@@ -47,7 +48,9 @@ def add_parser(commands: Any) -> None:
 
 def write_mcp_config(folder: Path, config: Config, *, bin_dir: Path, falkordb: bool) -> Path:
     """Servers for the headless run: ours as the person, with no knowledge worker."""
-    handoff = handoff_server_entry(str(bin_dir / "handoff-mcp"), config.graph_name)
+    handoff = handoff_server_entry(
+        str(bin_dir / "handoff-mcp"), config.graph_name, non_default_database(config)
+    )
     handoff["env"].update(
         HANDOFF_ROLE="person",
         HANDOFF_KNOWLEDGE="off",

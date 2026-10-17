@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
 import time
 
 from handoff.cli.runner import Runner
 from handoff.config import Config
-from handoff.graph.connection import server_reachable
+from handoff.graph.connection import probe_server, server_reachable
 
 IMAGE = "falkordb/falkordb:v4.22.1"
 CONTAINER = "handoff-falkordb"
@@ -22,6 +24,8 @@ class DatabaseUnavailable(RuntimeError):  # noqa: N818 - reads as a state, like 
 def _docker(runner: Runner, args: list[str]) -> str:
     try:
         done = runner(["docker", *args])
+    except subprocess.TimeoutExpired as exc:
+        raise DatabaseUnavailable(f"docker {args[0]} timed out; run it again.") from exc
     except (FileNotFoundError, OSError) as exc:
         raise DatabaseUnavailable(f"docker could not run: {exc}") from exc
     if done.returncode != 0:
@@ -32,6 +36,12 @@ def _docker(runner: Runner, args: list[str]) -> str:
     return done.stdout
 
 
+def browser_port() -> str:
+    """The port for FalkorDB Browser on this machine (HANDOFF_BROWSER_PORT, default 3000;
+    3000 is also where React and Next dev servers run)."""
+    return os.environ.get("HANDOFF_BROWSER_PORT", "3000")
+
+
 def _start_container(config: Config, runner: Runner) -> str:
     existing = _docker(
         runner, ["ps", "-a", "--filter", f"name=^{CONTAINER}$", "--format", "{{.Names}}"]
@@ -39,6 +49,7 @@ def _start_container(config: Config, runner: Runner) -> str:
     if CONTAINER in existing.split():
         _docker(runner, ["start", CONTAINER])
         return "started"
+    _docker(runner, ["pull", IMAGE])  # its own step: a first pull can take minutes
     _docker(
         runner,
         [
@@ -49,7 +60,7 @@ def _start_container(config: Config, runner: Runner) -> str:
             "-p",
             f"127.0.0.1:{config.port}:6379",
             "-p",
-            "127.0.0.1:3000:3000",
+            f"127.0.0.1:{browser_port()}:3000",
             "-v",
             f"{VOLUME}:{DATA_DIR}",
             IMAGE,
@@ -62,8 +73,14 @@ def ensure_database(config: Config, runner: Runner, *, wait_seconds: float = 30)
     """'running' if FalkorDB already answers; otherwise start ours ('started' or
     'created') and wait for it. Never starts anything for a remote host, and never
     deletes a container or its data."""
-    if server_reachable(config):
+    state = probe_server(config)
+    if state == "falkordb":
         return "running"
+    if state == "other":
+        raise DatabaseUnavailable(
+            f"Something on {config.host}:{config.port} answers but is not FalkorDB (plain Redis, "
+            "or password-protected). Set HANDOFF_DB_PORT=6380 and run handoff init again."
+        )
     if config.host not in _LOCAL_HOSTS:
         raise DatabaseUnavailable(f"FalkorDB at {config.host}:{config.port} does not answer.")
     status = _start_container(config, runner)

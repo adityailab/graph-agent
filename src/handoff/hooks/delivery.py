@@ -6,7 +6,7 @@ from falkordb import Graph
 
 from handoff.format import render_messages, shorten
 from handoff.graph.messages import claim_pending_messages, has_pending_messages
-from handoff.graph.needs import count_open_needs
+from handoff.graph.needs import count_open_needs, open_needs
 from handoff.graph.overlaps import recent_edits_by_others
 
 MESSAGE_WINDOW_MS = 24 * 60 * 60_000
@@ -22,12 +22,18 @@ def pending_messages_text(graph: Graph, *, session_id: str, role: str, at: int) 
 
 
 def open_needs_text(graph: Graph, role: str) -> str:
-    """A one-line count of open needs addressed to this role ('' if none)."""
+    """Open needs addressed to this role, each with its id and who raised it ('' if none),
+    so a session can resolve one without first hunting for its id."""
     count = count_open_needs(graph, role)
     if count == 0:
         return ""
     noun = "need is" if count == 1 else "needs are"
-    return f"{count} open {noun} addressed to {role}; handoff shows them with their ids."
+    lines = [f"{count} open {noun} addressed to {role}:"]
+    lines += [
+        f"- need {i} from {who}: {shorten(text, 160)}" for i, who, text in open_needs(graph, role)
+    ]
+    lines.append("resolve_need closes one by its id once it is met.")
+    return "\n".join(lines)
 
 
 COLLISION_WINDOW_MS = 2 * 60 * 60_000
