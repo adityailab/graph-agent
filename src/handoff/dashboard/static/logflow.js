@@ -3,9 +3,9 @@
 // with buttons to step to the same session's earlier or later event. Text goes in as textContent.
 (function () {
   "use strict";
-  var MC = window.MC, el = MC.el, SHOWN = 40;
+  var MC = window.MC, el = MC.el, PER_LANE = 15;  // each column shows its own newest events
   var chart = document.getElementById("flow"), detail = document.getElementById("flow-detail");
-  var events = [], selected = null, seen = null, signature = "";
+  var events = [], selected = null, seen = null, signature = "", expanded = Object.create(null);
 
   function chip(role) {
     var c = el("span", { "class": "chip" }, role); c.style.setProperty("--c", MC.color(role)); return c;
@@ -35,25 +35,35 @@
     MC.clear(chart);
     chart.style.gridTemplateColumns = "repeat(" + roles.length + ", minmax(160px, 1fr))";
     roles.forEach(function (role, c) {
-      var head = el("div", { "class": "flow-head" }); head.appendChild(chip(role)); head.style.gridColumn = String(c + 1); head.style.gridRow = "1";
-      chart.appendChild(head);
-      var line = el("div", { "class": "flow-line" }); line.style.gridColumn = String(c + 1); line.style.gridRow = "2 / span " + Math.max(1, events.length);
+      var all = sameLane({ role: role }), shown = expanded[role] ? all : all.slice(0, PER_LANE);
+      var head = el("div", { "class": "flow-head" }); head.appendChild(chip(role));
+      head.appendChild(el("span", { "class": "dim" }, " " + all.length + (all.length === 1 ? " event" : " events")));
+      head.style.gridColumn = String(c + 1); head.style.gridRow = "1"; chart.appendChild(head);
+      var line = el("div", { "class": "flow-line" }); line.style.gridColumn = String(c + 1); line.style.gridRow = "2 / span " + Math.max(1, shown.length + (all.length > shown.length ? 1 : 0));
       line.style.setProperty("--c", MC.color(role)); chart.appendChild(line);
-    });
-    events.forEach(function (e, r) {
-      var node = el("button", { type: "button", "class": "flow-node k-" + e.kind.toLowerCase() + (seen && !seen[e.key] ? " fresh" : ""), "data-key": e.key });
-      node.style.gridColumn = String(roles.indexOf(e.role) + 1); node.style.gridRow = String(r + 2);
-      node.appendChild(el("span", { "class": "dot" }));
-      node.appendChild(el("span", { "class": "when" }, MC.clock(e.at) + " "));
-      node.appendChild(el("span", { "class": "kind" }, e.kind.toLowerCase()));
-      node.appendChild(el("span", { "class": "peek" }, e.text.replace(/\s+/g, " ")));
-      node.addEventListener("click", function () { show(e); });
-      chart.appendChild(node);
+      shown.forEach(function (e, r) {
+        var node = el("button", { type: "button", "class": "flow-node k-" + e.kind.toLowerCase() + (seen && !seen[e.key] ? " fresh" : ""), "data-key": e.key });
+        node.style.gridColumn = String(c + 1); node.style.gridRow = String(r + 2);
+        node.appendChild(el("span", { "class": "dot" }));
+        node.appendChild(el("span", { "class": "when" }, MC.clock(e.at) + " "));
+        node.appendChild(el("span", { "class": "kind" }, e.kind.toLowerCase()));
+        node.appendChild(el("span", { "class": "peek" }, e.text.replace(/\s+/g, " ")));
+        node.addEventListener("click", function () { show(e); });
+        chart.appendChild(node);
+      });
+      if (all.length > shown.length) {
+        var more = el("button", { type: "button", "class": "more" }, "show " + (all.length - shown.length) + " older");
+        more.style.gridColumn = String(c + 1); more.style.gridRow = String(shown.length + 2); more.style.margin = "0";
+        more.addEventListener("click", function () { expanded[role] = true; signature = ""; update(last); });
+        chart.appendChild(more);
+      }
     });
   }
 
+  var last = null;
   function update(state) {
-    var recent = state.events.slice(-SHOWN).reverse();
+    last = state;
+    var recent = state.events.slice().reverse();  // every event the page was given, newest first
     var sig = recent.map(function (e) { return e.key; }).join("|");
     if (sig === signature) return;
     events = recent; signature = sig;

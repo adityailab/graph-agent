@@ -78,7 +78,7 @@
     shape(ctx, n, r); ctx.fillStyle = fill(n); ctx.fill();
     ctx.strokeStyle = n === f ? pal.ink : n.kind === "Need" ? pal.red : pal.bg; ctx.lineWidth = (n === f ? 2.5 : 1.5) / scale; ctx.stroke();
     if (n.kind === "Session" || n === f || near || scale > 3.4 || small())
-      caption(ctx, MC.wrap(stamp(n) + n.text, 28, n === f ? 5 : 2), n.x, n.y + r + 11 / scale, scale, pal.ink);
+      caption(ctx, MC.wrap((mode === "memory" ? stamp(n) : "") + n.text, 28, n === f ? 5 : 2), n.x, n.y + r + 11 / scale, scale, pal.ink);
     ctx.globalAlpha = 1;
   }).nodePointerAreaPaint(function (n, colour, ctx) { shape(ctx, n, (SIZE[n.kind] || 5) + 3); ctx.fillStyle = colour; ctx.fill(); });
 

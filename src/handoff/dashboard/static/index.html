@@ -31,6 +31,7 @@
     <section id="view-orchestration" class="view">
       <div class="svg-scroll"><svg id="orch" viewBox="0 0 800 350" role="img" aria-label="Sessions and the messages, needs and reads between them">
         <defs>
+          <marker id="oa-flow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker>
           <marker id="oa-message" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
           <marker id="oa-read" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-read"/></marker>
           <marker id="oa-need" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-need"/></marker>
@@ -79,8 +80,9 @@
         <aside class="graph-side">
           <h2>graph</h2>
           <p id="graph-count" class="dim"></p>
-          <details class="fold" id="legend-fold"><summary>legend and counts</summary><div id="legend" class="legend"></div></details>
+          <details class="fold" id="legend-fold" open><summary>legend and counts</summary><div id="legend" class="legend"></div></details>
           <div id="detail" class="detail" hidden></div>
+          <p class="detail-hint dim">Click a node to read it here and see what it is connected to; each connection has a connect button that walks the graph.</p>
           <div id="mem-list" class="mem-list" hidden></div>
           <details class="fold"><summary>how to use this graph</summary><p class="hint">Drag a node to place it, scroll to zoom, drag the background to pan, click a node to read
             all of it and its relationships, click empty space or press Esc to clear. The same graph opens in the

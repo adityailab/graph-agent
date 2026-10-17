@@ -27,24 +27,33 @@
     return { x: c.x + dx * t, y: c.y + dy * t };
   }
 
-  // A curve between two cards; `lane` separates lines of different kinds and directions.
-  function curve(a, b, lane) {
+  // The curve between two cards; `lane` separates lines going opposite ways.
+  function geom(a, b, lane) {
     var s = edge(a, b), e = edge(b, a), dx = e.x - s.x, dy = e.y - s.y, len = Math.hypot(dx, dy) || 1, off = 14 + lane * 18;
-    return "M" + s.x + "," + s.y + " Q" + ((s.x + e.x) / 2 - dy / len * off) + "," + ((s.y + e.y) / 2 + dx / len * off) + " " + e.x + "," + e.y;
+    return { s: s, e: e, cx: (s.x + e.x) / 2 - dy / len * off, cy: (s.y + e.y) / 2 + dx / len * off, nx: -dy / len, ny: dx / len };
   }
+  function curve(a, b, lane) { var g = geom(a, b, lane); return "M" + g.s.x + "," + g.s.y + " Q" + g.cx + "," + g.cy + " " + g.e.x + "," + g.e.y; }
 
+  // One arrow per direction between two sessions; a label says what travels along it.
   function drawEdges(flows) {
     MC.clear(layers.edges); MC.clear(flowsBox);
-    var count = Object.create(null);
-    lanes = Object.create(null);
+    var by = Object.create(null); lanes = Object.create(null);
     flows.forEach(function (f) {
       if (!positions[f.source] || !positions[f.target] || f.source === f.target) return;
-      var key = f.source + ">" + f.target, lane = count[key] = (count[key] || 0) + 1;
-      lanes[key + ":" + f.kind] = lane - 1;
-      layers.edges.appendChild(el("path", { d: curve(positions[f.source], positions[f.target], lane - 1),
-        "class": "edge " + f.kind, "marker-end": "url(#oa-" + f.kind + ")", "stroke-width": String(1 + Math.min(3, Math.log2(f.count + 1)) * 0.6) }));
-      var row = el("div", {}, f.source + " → " + f.target + "  ");
-      row.appendChild(el("b", { "class": f.kind }, f.kind + " ×" + f.count)); flowsBox.appendChild(row);
+      var key = f.source + ">" + f.target, p = by[key] || (by[key] = { source: f.source, target: f.target, kinds: [], total: 0 });
+      p.kinds.push(f); p.total += f.count; lanes[key + ":" + f.kind] = 0;  // events ride the one drawn line
+      var row = el("div", {}, f.source + " → " + f.target + "  "); row.appendChild(el("b", { "class": f.kind }, f.kind + " ×" + f.count)); flowsBox.appendChild(row);
+    });
+    Object.keys(by).forEach(function (key) {
+      var p = by[key], a = positions[p.source], b = positions[p.target], g = geom(a, b, 0), w = 1 + Math.min(3, Math.log2(p.total + 1) * 0.6);
+      layers.edges.appendChild(el("path", { d: curve(a, b, 0), "class": "edge flow", "marker-end": "url(#oa-flow)", "stroke-width": String(w) }));
+      var mx = (g.s.x + 2 * g.cx + g.e.x) / 4 + g.nx * 12, my = (g.s.y + 2 * g.cy + g.e.y) / 4 + g.ny * 12 + 3;
+      var label = el("text", { x: mx, y: my, "class": "orch-label" });
+      p.kinds.forEach(function (f, i) {
+        if (i) label.appendChild(el("tspan", { "class": "dim-sep" }, " · "));
+        label.appendChild(el("tspan", { "class": "k-" + f.kind.toLowerCase() }, f.kind.toLowerCase().replace("_", " ") + " ×" + f.count));
+      });
+      layers.edges.appendChild(label);
     });
   }
 
