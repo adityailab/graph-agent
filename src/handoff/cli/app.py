@@ -4,9 +4,19 @@ from __future__ import annotations
 
 import argparse
 
-from handoff.cli import ask, doctor, init_cmd, install_cmd, knowledge_cmd, log_cmd, send, status
+from handoff.cli import (
+    ask,
+    doctor,
+    init_cmd,
+    insights_cmd,
+    install_cmd,
+    knowledge_cmd,
+    log_cmd,
+    send,
+    status,
+)
 
-COMMANDS = (init_cmd, install_cmd, status, log_cmd, send, ask, knowledge_cmd, doctor)
+COMMANDS = (init_cmd, install_cmd, status, log_cmd, send, ask, insights_cmd, knowledge_cmd, doctor)
 
 
 def main(argv: list[str] | None = None) -> int:

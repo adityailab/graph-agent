@@ -62,3 +62,8 @@ def newest_insight_at(graph: Graph) -> int | None:
     """When insights were last computed, or None if never."""
     rows = graph.ro_query("MATCH (i:Insight) RETURN max(i.at)").result_set
     return int(rows[0][0]) if rows and rows[0][0] is not None else None
+
+
+def refresh_insights(graph: Graph, kg: Graph | None, *, at: int) -> None:
+    """Recompute the insights and store them in place of the old ones."""
+    replace_insights(graph, compute_insights(graph, kg), at=at)

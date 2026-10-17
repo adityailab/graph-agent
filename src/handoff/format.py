@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from collections.abc import Sequence
 
-from handoff.graph.records import MessageView, RequestView, WhyRow
+from handoff.graph.records import InsightView, MessageView, RequestView, WhyRow
 
 
 def select_requests(requests: Sequence[RequestView], limit: int) -> list[RequestView]:
@@ -110,3 +110,10 @@ def render_messages(messages: Sequence[MessageView]) -> str:
     if hidden > 0:
         shown.append(f"{hidden} more messages arrived; they are not shown here.")
     return "\n".join(shown)
+
+
+def render_insights(insights: Sequence[InsightView]) -> str:
+    """The 'What matters now' section; empty when there is nothing to say."""
+    if not insights:
+        return ""
+    return "What matters now:\n" + "\n".join(f"- {i.text}" for i in insights)

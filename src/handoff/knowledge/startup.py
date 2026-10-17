@@ -13,7 +13,9 @@ from redis.exceptions import RedisError
 from handoff.config import Config, knowledge_graph_name
 from handoff.embed import Embedder
 from handoff.graph.connection import connect, ping
+from handoff.graph.insights import refresh_insights
 from handoff.graph.schema import EMBED_DIM
+from handoff.ids import now_ms
 from handoff.knowledge.adapters import EmbedderAdapter, ModelLLM
 from handoff.knowledge.client import KnowledgeClient
 from handoff.knowledge.extractor import WorkExtractor, handoff_ontology
@@ -82,6 +84,7 @@ def start_knowledge(
         home=config.home,
         lock_name=lock_name(config),
         max_per_hour=int(env.get("HANDOFF_KNOWLEDGE_MAX_PER_HOUR", "60")),
+        refresh=lambda: refresh_insights(graph, ingest.kg, at=now_ms()),
     )
     if background:
         worker.start()

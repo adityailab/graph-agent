@@ -102,3 +102,19 @@ def test_reading_a_handoff_records_what_was_consulted(backend: ToolContext) -> N
         "MATCH (:Request {id: 'p9'})-[:CONSULTED]->(c:Request) RETURN c.id"
     ).result_set
     assert rows == [["p1"]]
+
+
+def test_handoff_ends_with_what_matters_now(backend: ToolContext) -> None:
+    for rid, eid in (("p1", "e1"), ("p9", "e9")):
+        add_edit(
+            backend.graph,
+            request_id=rid,
+            edit_id=eid,
+            tool="Edit",
+            path="Card.tsx",
+            summary="x",
+            at=1_600,
+        )
+    text = handoff(backend)
+    assert "What matters now:" in text
+    assert "backend and frontend both changed Card.tsx" in text
