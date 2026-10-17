@@ -30,6 +30,7 @@ GROUPS = (
             ("open", "jump to mission control, the graph or the guide"),
             ("watch", "a live feed in the terminal"),
             ("status", "who is active, what is open"),
+            ("memory", "what is remembered, by kind"),
             ("log", "what each role asked and decided"),
         ),
     ),

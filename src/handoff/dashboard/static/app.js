@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   var MC = window.MC, POLL_MS = 1500;
-  var VIEWS = ["orchestration", "handoff", "graph", "tracks", "log"];
+  var VIEWS = ["orchestration", "handoff", "memory", "graph", "tracks", "log"];
   var seenEvents = null, state = null, current = "orchestration";
   var ticker = document.getElementById("ticker"), status = document.getElementById("status");
 

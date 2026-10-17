@@ -66,3 +66,20 @@ def test_the_timeline_of_an_unknown_topic_says_so(
 ) -> None:
     assert main(["timeline", "nothing"]) == 0
     assert "No decisions recorded about nothing." in capsys.readouterr().out
+
+
+def test_memory_shows_each_kind_and_what_each_session_holds(
+    two_sessions: Graph, in_workspace: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(["memory", "--hours", "1000000"]) == 0
+    out = capsys.readouterr().out
+    for kind in ("working", "episodic", "semantic", "procedural", "temporal", "social"):
+        assert kind in out
+    assert "working on: pick up frontend" in out
+
+
+def test_memory_without_a_graph_says_so(
+    config: Config, in_workspace: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(["memory"]) == 0
+    assert "No work recorded yet" in capsys.readouterr().out
