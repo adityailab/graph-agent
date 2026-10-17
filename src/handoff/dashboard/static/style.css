@@ -269,3 +269,7 @@ details.card[open] > summary .peek { display: none; }
 .dock-reply.bad { color: var(--red); }
 .dock-reply[hidden] { display: none; }
 @media (max-width: 600px) { .dock { bottom: var(--s-3); } .dock input::placeholder { font-size: var(--fs-sm); } }
+.dock-hint { display: none; margin: 0; padding: 0 var(--s-4) var(--s-3); font-size: var(--fs-xs); color: var(--dim); }
+.dock-hint code { font: inherit; font-weight: 600; color: var(--ink); }
+.dock:focus-within .dock-hint { display: block; }
+@media (max-width: 600px) { .dock-hint { display: none !important; } }
