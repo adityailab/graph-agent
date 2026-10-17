@@ -11,7 +11,7 @@ from handoff.graph.decisions import normalise_topic
 from handoff.graph.topics import ensure_topic, nearest_topics, topic_shares_files
 from handoff.mcp.context import ToolContext
 
-SAME = 0.15  # close enough on wording alone
+SAME = 0.23  # close enough on wording alone: the top of the measured same-subject range
 RELATED = 0.30  # close enough only if the work behind both touched the same files
 
 

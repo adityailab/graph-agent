@@ -11,7 +11,8 @@ from handoff.mcp.topic_choice import choose_topic
 POINTS = {
     "auth tokens": (1.0, 0.0),
     "login tokens": (0.99, 0.12),  # very close: same subject
-    "session handling": (0.8, 0.6),  # distance 0.2: related, not the same
+    "login sessions": (0.8, 0.6),  # distance 0.20: still the same subject (measured up to 0.23)
+    "session handling": (0.73, 0.683),  # distance 0.27: related, not the same
     "css layout": (0.0, 1.0),
 }
 
@@ -39,6 +40,14 @@ def test_near_duplicate_reuses_the_existing_topic(frontend: ToolContext) -> None
     ctx = _ctx(frontend)
     choose_topic(ctx, "auth tokens", request_id="p1")
     assert choose_topic(ctx, "login tokens", request_id="p1") == "auth tokens"
+
+
+def test_wording_up_to_the_top_of_the_measured_same_subject_range_is_one_topic(
+    frontend: ToolContext,
+) -> None:
+    ctx = _ctx(frontend)
+    choose_topic(ctx, "auth tokens", request_id="p1")
+    assert choose_topic(ctx, "login sessions", request_id="p1") == "auth tokens"
 
 
 def _frontend_decided_on_auth(backend: ToolContext) -> None:
