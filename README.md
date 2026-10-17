@@ -61,7 +61,7 @@ Open **http://localhost:3000** (FalkorDB Browser), pick the demo graph and run
 
 ## The commands
 
-Full walkthrough: [docs/guide.md](docs/guide.md).
+Full walkthrough: [docs/guide.md](docs/guide.md). How two sessions started at different times work together, with diagrams: [docs/how-it-works.md](docs/how-it-works.md).
 
 | Command | What it does |
 |---|---|
