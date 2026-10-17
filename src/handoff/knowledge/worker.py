@@ -38,6 +38,7 @@ class KnowledgeWorker:
         finalize_every: int = 10,
         max_per_hour: int = 60,
         refresh: Callable[[], None] | None = None,
+        grow: Callable[[str], None] | None = None,
     ) -> None:
         self._graph, self._rag, self._now = graph, rag, now
         self._lock_path = home / "locks" / f"knowledge-{lock_name}.lock"
@@ -46,6 +47,7 @@ class KnowledgeWorker:
         self._lock_file: IO[str] | None = None
         self._stop = threading.Event()
         self._refresh = refresh  # e.g. recompute insights once new concepts are in
+        self._grow = grow  # told each ingested text, so entity types can grow
 
     def try_lead(self) -> bool:
         """Become this graph's worker on this machine, unless another one already is."""
@@ -87,10 +89,21 @@ class KnowledgeWorker:
             return False
         mark_ingested(self._graph, item, at=self._now())
         self._pacer.ingested(now)
+        self._note_growth(item.text)
         self._since_finalize += 1
         if self._since_finalize >= self._finalize_every:
             self._finalize()
         return True
+
+    def _note_growth(self, text: str) -> None:
+        if self._grow is None:
+            return
+        try:
+            self._grow(text)
+        except Exception:
+            # Learning new types is optional: whatever goes wrong (model, database, bad
+            # proposal) must never stop ingestion.
+            log.exception("learning new entity types failed")
 
     def _finalize(self) -> None:
         if self._since_finalize:

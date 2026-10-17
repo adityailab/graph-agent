@@ -38,11 +38,11 @@ _GUIDANCE = (
 )
 
 
-def handoff_ontology() -> Ontology:
-    """The entity types for a software project's knowledge graph."""
-    return Ontology(
-        entities=[Entity(label=k, description=v) for k, v in HANDOFF_ENTITY_TYPES.items()]
-    )
+def handoff_ontology(learned: list[tuple[str, str]] | None = None) -> Ontology:
+    """The entity types for a software project's knowledge graph: ours, then any the graph
+    has learned from its own work (see growth.py)."""
+    types = [*HANDOFF_ENTITY_TYPES.items(), *(learned or [])]
+    return Ontology(entities=[Entity(label=k, description=v) for k, v in types])
 
 
 class WorkExtractor(EntityExtractor):
