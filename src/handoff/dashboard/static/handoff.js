@@ -5,8 +5,9 @@
   "use strict";
   var MC = window.MC, el = MC.el, W = 600, H = 300, NODE_W = 160, NODE_H = 56;
   var svg = document.getElementById("hf-graph"), detail = document.getElementById("hf-detail"), stats = document.getElementById("hf-stats");
-  var layers = { edges: el("g"), nodes: el("g") }, selected = null, signature = "", last = null;
-  svg.appendChild(layers.edges); svg.appendChild(layers.nodes);
+  var layers = { edges: el("g"), nodes: el("g"), live: el("g") }, selected = null, signature = "", last = null;
+  var where = {}, paths = {}, rings = {};
+  svg.appendChild(layers.edges); svg.appendChild(layers.nodes); svg.appendChild(layers.live);
 
   function place(roles) {
     var pos = Object.create(null), names = roles.map(function (r) { return r.role; }).sort();
@@ -51,7 +52,7 @@
   }
 
   function drawEdges(state, pos) {
-    MC.clear(layers.edges);
+    MC.clear(layers.edges); paths = {};
     var all = pairs(state.handoffs), has = {};
     all.forEach(function (q) { has[q.author + ">" + q.reader] = true; });
     all.forEach(function (p) {
@@ -61,6 +62,7 @@
       var on = selected && selected.pair && selected.pair.author === p.author && selected.pair.reader === p.reader;
       var d = "M" + s.x + "," + s.y + " Q" + mx + "," + my + " " + t.x + "," + t.y;
       var g = el("g", { "class": "hf-edge" + (on ? " on" : ""), role: "button", tabindex: "0", "aria-label": p.author + " to " + p.reader + ": " + p.decisions + " decisions, " + p.list.length + " reads" });
+      paths[p.author + ">" + p.reader] = d;
       g.appendChild(el("path", { d: d, "class": "hf-line", "stroke-width": String(Math.min(2.4, 1 + p.decisions * 0.1)), "marker-end": "url(#hfa)" }));
       g.appendChild(el("path", { d: d, "class": "hf-hit" }));
       pill(g, p, (s.x + 2 * mx + t.x) / 4, (s.y + 2 * my + t.y) / 4);
@@ -72,11 +74,12 @@
   }
 
   function drawNodes(state, pos) {
-    MC.clear(layers.nodes);
+    MC.clear(layers.nodes); rings = {};
     state.roles.forEach(function (r) {
       var p = pos[r.role], x = p.x - NODE_W / 2, y = p.y - NODE_H / 2, colour = MC.color(r.role);
       var g = el("g", { "class": "hf-node" + (selected && selected.role === r.role ? " on" : ""), role: "button", tabindex: "0", "aria-label": r.role + " session, open its hand-offs" });
       var learned = state.handoffs.reduce(function (n, h) { return n + (h.reader === r.role ? h.decisions.length : 0); }, 0), own = r.requests + r.decisions + r.edits;
+      rings[r.role] = el("rect", { x: x, y: y, width: NODE_W, height: NODE_H, rx: 6, "class": "node-ring", stroke: colour }); g.appendChild(rings[r.role]);
       g.appendChild(el("rect", { x: x, y: y, width: NODE_W, height: NODE_H, rx: 6, "class": "card-box" }));
       g.appendChild(el("rect", { x: x, y: y, width: 4, height: NODE_H, fill: colour }));
       var mac = el("g", { transform: "translate(" + (x + 6) + "," + (y + 10) + ")" }); mac.appendChild(MC.critter.draw(0, 0, colour, state.now - r.last_seen_at <= 120000)); g.appendChild(mac);
@@ -92,9 +95,40 @@
   }
 
   function draw(state) {
-    var pos = place(state.roles);
+    var pos = where = place(state.roles);
     svg.setAttribute("viewBox", "0 0 " + W + " " + (state.roles.length > 2 ? 300 : 140));
     drawEdges(state, pos); drawNodes(state, pos);
+  }
+
+  function floatLabel(role, text) {
+    var p = where[role]; if (!p) return;
+    var t = el("text", { x: p.x, y: p.y - NODE_H / 2 - 6, "class": "float" }, text);
+    layers.live.appendChild(t); setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 1700);
+  }
+  function pulse(role) {
+    var ring = rings[role]; if (!ring) return;
+    ring.classList.remove("pulse"); void ring.getBoundingClientRect(); ring.classList.add("pulse");
+  }
+
+  // A read happening now: a green square rides the arrow from the author to the reader.
+  function travel(from, to, then) {
+    var d = paths[from + ">" + to];
+    if (!d || MC.reduced) { then(); return; }
+    var path = el("path", { d: d, fill: "none" }), dot = el("rect", { width: "8", height: "8", fill: MC.css("--green") });
+    layers.live.appendChild(dot);
+    var len = path.getTotalLength(), start = performance.now();
+    (function frame(now) {
+      var t = Math.min(1, (now - start) / 1100), pt = path.getPointAtLength(len * t);
+      dot.setAttribute("x", pt.x - 4); dot.setAttribute("y", pt.y - 4);
+      if (t < 1) requestAnimationFrame(frame); else { dot.remove(); then(); }
+    })(start);
+  }
+
+  function play(ev) {
+    var r = MC.route(ev);
+    if (ev.kind === "READ" && r && where[r.from] && where[r.to]) {
+      floatLabel(r.from, "read"); travel(r.from, r.to, function () { pulse(r.to); floatLabel(r.to, "learned"); });
+    } else if (where[ev.role]) { pulse(ev.role); floatLabel(ev.role, ev.kind.toLowerCase()); }
   }
 
   function counters(state) {
@@ -106,7 +140,8 @@
     });
   }
 
-  function update(state) {
+  function update(state, fresh) {
+    (fresh || []).forEach(function (ev, i) { setTimeout(function () { play(ev); }, i * 350); });
     var sig = JSON.stringify([state.handoffs, state.roles.map(function (r) { return [r.role, r.requests, r.decisions, r.edits]; })]);
     if (sig === signature) return;
     signature = sig; last = state; counters(state);
@@ -117,5 +152,5 @@
     select(next, state);
   }
 
-  MC.views.handoff = { update: update };
+  MC.views.handoff = { update: update, play: play };
 })();

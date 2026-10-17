@@ -41,3 +41,7 @@
 .hcard li { border-left: 3px solid var(--green); padding-left: var(--s-3); overflow-wrap: anywhere; }
 .why-fold { margin: var(--s-1) 0 0; } .why-fold summary { font-size: var(--fs-xs); }
 .why { margin: var(--s-1) 0 0; color: var(--dim); font-size: var(--fs-sm); }
+
+/* alive, like orchestration: dashes move along the arrows, a square rides one when a read happens */
+.hf-line { stroke-dasharray: 7 5; animation: flow 1.4s linear infinite; }
+.hf-node .node-ring { stroke-width: 1.5; }

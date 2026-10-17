@@ -43,7 +43,7 @@
   document.getElementById("replay").addEventListener("click", function () {
     if (!state) return;
     setView("orchestration");
-    state.events.slice(-12).forEach(function (e, i) { setTimeout(function () { MC.views.orchestration.play(e); }, i * 700); });
+    state.events.slice(-12).forEach(function (e, i) { setTimeout(function () { MC.views.orchestration.play(e); MC.views.handoff.play(e); }, i * 700); });
   });
 
   document.addEventListener("keydown", function (ev) {
