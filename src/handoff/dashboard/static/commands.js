@@ -1,10 +1,9 @@
-// The command field's grammar: `ask <question>`, `msg <session> <text>`, `need <session> <text>`,
-// `go <page>`. Pure: text in, a plain object out, so the dock only has to carry it out.
+// The command field's grammar: type a question in plain words, or `msg <session> <text>`,
+// `need <session> <text>`, `go <page>`. Pure: text in, a plain object out, so the dock only has to carry it out.
 (function () {
   "use strict";
   var PAGES = ["orchestration", "handoff", "memory", "graph", "log", "ask", "tracks"];
-  var HELP = "try: ask <question> · msg <session> <text> · need <session> <text> · go <page>";
-  var MAX_ASK = 500, MAX_TEXT = 2000;
+    var MAX_ASK = 500, MAX_TEXT = 2000;
 
   function fail(message) { return { kind: "error", message: message }; }
 
@@ -24,27 +23,26 @@
     return w && starts.length === 1 ? starts[0] : null;
   }
 
+  // Anything that is not one of the four commands is a question: the model reads it and writes the Cypher.
+  function question(text) {
+    return text.length > MAX_ASK ? fail("questions are kept to " + MAX_ASK + " characters") : { kind: "ask", text: text };
+  }
+
   function parse(input, roles) {
-    var m = /^\s*(\S+)(?:\s+([\s\S]*))?$/.exec(input || "");
+    var text = (input || "").trim(), m = /^(\S+)(?:\s+([\s\S]*))?$/.exec(text);
     if (!m) return null;
     var verb = m[1].toLowerCase(), rest = (m[2] || "").trim();
-    if (verb === "go") {
-      var p = page(rest);
-      return p ? { kind: "go", page: p } : fail("go where? " + PAGES.join(", "));
-    }
-    if (verb === "ask") {
-      if (!rest) return fail("ask what? ask <question>");
-      return rest.length > MAX_ASK ? fail("questions are kept to " + MAX_ASK + " characters") : { kind: "ask", text: rest };
-    }
+    if (verb === "go" && page(rest)) return { kind: "go", page: page(rest) };
+    if (verb === "ask" && rest) return question(rest);
     if (verb === "msg" || verb === "need") {
-      var parts = /^(\S+)(?:\s+([\s\S]+))?$/.exec(rest);
-      if (!parts || !parts[2]) return fail(verb + " <session> <text>");
-      var who = session(parts[1], roles);
-      if (!who) return fail("no session called " + parts[1] + (roles.length ? " (sessions: " + roles.join(", ") + ")" : " yet"));
-      var text = parts[2].trim();
-      return text.length > MAX_TEXT ? fail("that is longer than " + MAX_TEXT + " characters") : { kind: verb, to: who, text: text };
+      var parts = /^(\S+)(?:\s+([\s\S]+))?$/.exec(rest), who = parts && session(parts[1], roles);
+      if (who && parts[2]) {
+        var body = parts[2].trim();
+        return body.length > MAX_TEXT ? fail("that is longer than " + MAX_TEXT + " characters") : { kind: verb, to: who, text: body };
+      }
+      if (verb === "msg") return fail("msg <session> <text>" + (roles.length ? " (sessions: " + roles.join(", ") + ")" : ""));
     }
-    return fail(HELP);
+    return question(text);  // "need to know…" and "go through…" are questions too
   }
 
   window.MC.parseCommand = parse;

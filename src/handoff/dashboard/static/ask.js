@@ -53,14 +53,13 @@
       },
       text: function (words) { live.textContent += words; toBottom(); },
       thought: function (words) { live.classList.add("thinking"); live.textContent += words; toBottom(); },
-      done: function (answer, queries, quick) {
+      done: function (answer, queries) {
         clearInterval(timer); tick(); live.remove(); clock.remove();
         var count = steps.children.length, secs = ((Date.now() - started) / 1000).toFixed(1);
         var how = el("details", { "class": "ask-how" });
         how.appendChild(el("summary", {}, "how it got there · " + count + " steps · " + secs + "s"));
         body.replaceChild(how, steps); how.appendChild(steps);
         var text = el("div", { "class": "ask-answer" }); MC.markdown(text, answer); body.appendChild(text);
-        if (quick) body.appendChild(el("p", { "class": "dim" }, "answered straight from the graph, no model used · source: " + quick));
         if (queries.length) {
           var d = el("details", { "class": "ask-cypher" });
           d.appendChild(el("summary", {}, "Cypher it ran (" + queries.length + ")"));
@@ -117,7 +116,7 @@
           else if (line.text) turn.text(line.text);
           else if (line.thought) turn.thought(line.thought);
           else if (line.error) end(function () { turn.fail(line.error); });
-          else if (line.answer) end(function () { turn.done(line.answer, line.queries || [], line.quick); history.push({ q: question, a: line.answer }); });
+          else if (line.answer) end(function () { turn.done(line.answer, line.queries || []); history.push({ q: question, a: line.answer }); });
         });
       })
       .catch(function (e) { end(function () { turn.fail("could not ask: " + e.message); }); })
