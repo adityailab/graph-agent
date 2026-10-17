@@ -20,6 +20,30 @@
     return box;
   }
 
+  // The little markdown Claude uses (bold, `code`, "- " bullets), built as nodes, never as HTML.
+  function inline(parent, text) {
+    text.split(/(\*\*[^*]+\*\*|`[^`]+`)/).forEach(function (part) {
+      if (/^\*\*[^*]+\*\*$/.test(part)) parent.appendChild(el("strong", {}, part.slice(2, -2)));
+      else if (/^`[^`]+`$/.test(part)) parent.appendChild(el("code", {}, part.slice(1, -1)));
+      else if (part) MC.rich(parent, part);
+    });
+    return parent;
+  }
+
+  function markdown(box, text) {
+    var list = null;
+    text.split("\n").forEach(function (line) {
+      var bullet = /^\s*(?:[-*]|\d+\.)\s+(.*)$/.exec(line);
+      if (bullet) {
+        if (!list) { list = el("ul", { "class": "ask-list" }); box.appendChild(list); }
+        list.appendChild(inline(el("li"), bullet[1]));
+      } else {
+        list = null;
+        if (line.trim()) box.appendChild(inline(el("p", { "class": "full" }), line));
+      }
+    });
+  }
+
   function showQueries(box, queries) {
     if (!queries.length) return;
     var d = el("details", { "class": "ask-cypher" });
@@ -44,7 +68,7 @@
       .then(function (res) {
         pending.removeChild(pending.lastChild);
         if (!res.ok) { pending.appendChild(el("p", { "class": "ask-error" }, res.body.error || "no answer")); return; }
-        pending.appendChild(MC.rich(el("p", { "class": "full" }), res.body.answer));
+        markdown(pending, res.body.answer);
         showQueries(pending, res.body.queries);
       })
       .catch(function (e) { pending.removeChild(pending.lastChild); pending.appendChild(el("p", { "class": "ask-error" }, "could not ask: " + e.message)); })
