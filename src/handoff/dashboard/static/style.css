@@ -1,6 +1,6 @@
 /* Plain black and white, monospace: it should sit beside the terminals it describes. */
 :root {
-  --bg: #fff; --ink: #1f2328; --dim: #6a737d; --line: #d8dee4; --soft: #f3f5f7;
+  --bg: #fff; --ink: #1f2328; --dim: #5a626c; --line: #d8dee4; --soft: #f3f5f7;
   --blue: #0969da; --purple: #8250df; --amber: #b15c00; --green: #1a7f37; --red: #cf222e; --teal: #0a7f8f; --pink: #bf3989;
   --role-0: var(--blue); --role-1: var(--purple); --role-2: var(--amber); --role-3: var(--green); --role-4: var(--pink);
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
@@ -289,3 +289,7 @@ details.card[open] > summary .peek { display: none; }
 .orch-detail, .orch-lines { max-width: 960px; margin: 10px auto 0; }
 .orch-detail .link-card { margin-bottom: 6px; }
 @media (prefers-reduced-motion: reduce) { .edge.read, .edge.need { animation: none; } }
+
+/* on a small screen the drawings keep a readable size and scroll sideways inside their own box */
+.svg-scroll { min-width: 0; overflow-x: auto; }
+@media (max-width: 760px) { #orch { min-width: 700px; } #hf-graph { min-width: 700px; } }

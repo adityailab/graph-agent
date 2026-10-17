@@ -85,9 +85,9 @@ def memory_types(graph: Graph, *, concepts: int, since: int) -> list[MemoryType]
             "semantic",
             "semantic",
             "what things mean: decisions, topics and concepts",
-            decisions + topics + concepts,
-            f"{_plural(decisions, 'decision')}, {_plural(topics, 'topic')}, "
-            f"{_plural(concepts, 'concept')}",
+            decisions + topics,
+            f"{_plural(decisions, 'decision')}, {_plural(topics, 'topic')} · "
+            f"{_plural(concepts, 'concept')} in the concept graph",
         ),
         MemoryType(
             "procedural",

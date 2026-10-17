@@ -23,6 +23,10 @@ class MemoryItem:
     at: int
 
 
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
+
+
 def _rows(graph: Graph, query: str) -> list[list[Any]]:
     return list(graph.ro_query(query).result_set)
 
@@ -51,9 +55,18 @@ def _semantic(graph: Graph, since: int) -> list[MemoryItem]:
         "MATCH (s:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(d:Decision)-[:ABOUT]->(t:Topic) "
         "RETURN s.role, t.name, d.text, d.reason, d.at",
     )
-    return [
+    found = [
         MemoryItem(f"decision · {t}", f"{d}  (why: {why})", str(r), int(a))
         for r, t, d, why, a in rows
+    ]
+    topics = _rows(
+        graph,
+        "MATCH (t:Topic) OPTIONAL MATCH (d:Decision)-[:ABOUT]->(t) "
+        "RETURN t.name, count(d), coalesce(min(d.at), 0)",
+    )
+    return found + [
+        MemoryItem("topic", f"{name}  ({_plural(int(n), 'decision')})", "", int(at))
+        for name, n, at in topics
     ]
 
 
