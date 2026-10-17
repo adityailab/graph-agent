@@ -68,3 +68,14 @@ def test_an_unreachable_remote_database_is_not_blamed_on_docker(
     err = capsys.readouterr().err
     assert "db.example.invalid" in err
     assert "Docker is not running" not in err
+
+
+def test_init_keeps_a_graph_exported_in_the_shell(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HANDOFF_GRAPH", "team")
+    monkeypatch.setattr("handoff.cli.init_cmd.run_command", fake_runner([]))
+    monkeypatch.setattr("handoff.cli.init_cmd.shutil.which", lambda n: f"/b/{n}")
+    assert main(["init", str(tmp_path)]) == 0
+    env = json.loads((tmp_path / ".claude" / "settings.local.json").read_text())["env"]
+    assert env["HANDOFF_GRAPH"] == "team"

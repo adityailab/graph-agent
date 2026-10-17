@@ -46,3 +46,20 @@ def test_same_named_entities_of_different_types_become_one(kg: Graph) -> None:
 
 def test_merging_twice_changes_nothing(kg: Graph) -> None:
     assert merge_same_name_entities(kg) == 0
+
+
+def test_merging_does_not_leave_parallel_edges_and_keeps_every_source(kg: Graph) -> None:
+    kg.query(
+        "MATCH (u:__Entity__ {name: 'CDN_URL'}) "
+        "CREATE (a:__Entity__:Concept {name: 'Orders API', description: 'short'}), "
+        "(b:__Entity__:API {name: 'orders api', description: 'a much longer description'}), "
+        "(a)-[:RELATES {rel_type: 'RETURNS', source_chunk_ids: ['c1']}]->(u), "
+        "(b)-[:RELATES {rel_type: 'RETURNS', source_chunk_ids: ['c2']}]->(u)"
+    )
+    assert merge_same_name_entities(kg) == 1
+    rows = kg.query(
+        "MATCH (e:__Entity__ {name: 'orders api'})-[r:RELATES {rel_type: 'RETURNS'}]->"
+        "(:__Entity__ {name: 'CDN_URL'}) RETURN count(r), collect(r.source_chunk_ids)"
+    ).result_set
+    assert rows[0][0] == 1
+    assert sorted(rows[0][1][0]) == ["c1", "c2"]

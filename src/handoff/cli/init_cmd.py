@@ -54,6 +54,7 @@ def run(args: argparse.Namespace) -> int:
             bin_dir=Path(sys.executable).parent,
             config=config,
             falkordb_mcp=not any(p.name == "npx" for p in problems),
+            default_graph=os.environ.get("HANDOFF_GRAPH") or None,
         )
     except (DatabaseUnavailable, InstallError) as exc:
         print(str(exc), file=sys.stderr)

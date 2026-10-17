@@ -13,6 +13,7 @@ import shlex
 SESSION = "handoff-demo"
 ROLES = ("frontend", "deploy", "backend")
 _DONE = re.compile(r"for \d+(?:m \d+)?s · done[^\n]*")
+_WORKING = re.compile(r"\u2026 \(\d+(?:m \d+)?s \u00b7")  # "Crunching\u2026 (9s \u00b7 ..."
 _ROLE = re.compile(r"^(\d+) .*HANDOFF_ROLE=(\w+)")
 
 
@@ -88,3 +89,8 @@ def pane_ready(screen: str) -> bool:
     """True once Claude Code shows its input and is not asking about trust. Typing earlier
     would land in the trust dialog, or be lost while Claude starts."""
     return not trust_pending(screen) and "accept edits on" in screen
+
+
+def working(screen: str) -> bool:
+    """True while Claude Code shows its working spinner ("Crunching… (9s · ↓ 1k tokens)")."""
+    return _WORKING.search(screen) is not None

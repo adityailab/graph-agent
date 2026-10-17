@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,7 @@ def run(args: argparse.Namespace) -> int:
             config=Config.from_env(),
             falkordb_mcp=not args.no_falkordb_mcp,
             graph=args.graph,
+            default_graph=os.environ.get("HANDOFF_GRAPH") or None,
         )
     except InstallError as exc:
         print(str(exc), file=sys.stderr)

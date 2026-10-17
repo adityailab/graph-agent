@@ -134,3 +134,25 @@ def test_a_failing_insight_refresh_does_not_break_the_handoff(
     text = handoff(backend, role="frontend")
     assert '"show avatar"' in text
     assert "unreachable" not in text
+
+
+def test_recording_who_read_never_costs_the_reply(
+    backend: ToolContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from redis.exceptions import ResponseError
+
+    def broken(*args: object, **kwargs: object) -> None:
+        raise ResponseError("write refused")
+
+    monkeypatch.setattr("handoff.mcp.read_tools.add_consultations", broken)
+    text = handoff(backend, role="frontend")
+    assert '"show avatar"' in text
+    assert "unreachable" not in text
+
+
+def test_the_lean_lookup_finds_the_same_request(backend: ToolContext) -> None:
+    from handoff.mcp.current import current_request, current_request_id
+
+    full = current_request(backend)
+    assert full is not None
+    assert current_request_id(backend) == full.id

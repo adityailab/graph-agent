@@ -48,6 +48,13 @@ def _sharing_note(ctx: ToolContext) -> str:
     )
 
 
+def current_request_id(ctx: ToolContext) -> str | None:
+    """The id of the request this session is working on, with as few queries as possible
+    (current_request also fetches its text and a sharing note)."""
+    session = _exact_session(ctx) or active_session(ctx.graph, role=ctx.role, cwd=ctx.cwd)
+    return latest_request_id(ctx.graph, session.id) if session else None
+
+
 def current_request(ctx: ToolContext) -> CurrentRequest | None:
     """Return the request this session is working on now, if any."""
     exact = _exact_session(ctx)
