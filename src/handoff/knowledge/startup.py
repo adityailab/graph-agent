@@ -10,7 +10,7 @@ from falkordb import Graph
 from graphrag_sdk import ConnectionConfig, GraphExtraction, GraphRAG
 from redis.exceptions import RedisError
 
-from handoff.config import Config
+from handoff.config import Config, knowledge_graph_name
 from handoff.embed import Embedder
 from handoff.graph.connection import connect, ping
 from handoff.graph.schema import EMBED_DIM
@@ -22,12 +22,6 @@ from handoff.knowledge.worker import KnowledgeWorker
 from handoff.models.base import ModelClient
 
 log = logging.getLogger(__name__)
-
-
-def knowledge_graph_name(config: Config) -> str:
-    """The knowledge graph lives beside ours, never inside it: GraphRAG-SDK writes its own
-    node types and can delete its whole graph."""
-    return f"{config.graph_name}_kg"
 
 
 def build_knowledge_client(

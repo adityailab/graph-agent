@@ -6,8 +6,8 @@ import pytest
 
 pytest.importorskip("graphrag_sdk")
 
-from handoff.config import Config
-from handoff.knowledge.startup import knowledge_graph_name, start_knowledge
+from handoff.config import Config, knowledge_graph_name
+from handoff.knowledge.startup import start_knowledge
 
 
 class NoModel:

@@ -12,12 +12,11 @@ import sys
 
 from falkordb import FalkorDB
 
-from handoff.config import Config
+from handoff.config import Config, knowledge_graph_name
 from handoff.format import render_handoff, select_requests
 from handoff.graph.connection import connect
 from handoff.graph.history import handoff_requests
 from handoff.graph.schema import ensure_schema
-from handoff.knowledge.startup import knowledge_graph_name
 
 # What the deploy session's handoff must contain for the run to count.
 EXPECTED = {

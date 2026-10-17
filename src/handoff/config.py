@@ -47,3 +47,9 @@ def graph_for_workspace(workspace: Path) -> str:
     slug = re.sub(r"[^a-z0-9]+", "_", workspace.name.lower()).strip("_") or "workspace"
     digest = hashlib.sha256(str(workspace.resolve()).encode()).hexdigest()[:6]
     return f"handoff_{slug}_{digest}"
+
+
+def knowledge_graph_name(config: Config) -> str:
+    """The knowledge graph lives beside ours, never inside it: GraphRAG-SDK writes its own
+    node types and can delete its whole graph."""
+    return f"{config.graph_name}_kg"
