@@ -8,6 +8,11 @@ import pytest
 
 pytest.importorskip("graphrag_sdk")
 
+from graphrag_sdk import GraphExtraction
+from graphrag_sdk.core.context import Context
+from graphrag_sdk.core.models import TextChunk, TextChunks
+
+from handoff.knowledge.adapters import ModelLLM
 from handoff.knowledge.extractor import HANDOFF_ENTITY_TYPES, WorkExtractor, handoff_ontology
 
 
@@ -33,3 +38,26 @@ def test_the_ontology_names_kinds_of_software_work() -> None:
     labels = [e.label for e in handoff_ontology().entities]
     assert labels == list(HANDOFF_ENTITY_TYPES)
     assert {"API", "DataField", "Component", "Concept"} <= set(labels)
+
+
+class RecordingModel:
+    def __init__(self) -> None:
+        self.prompts: list[str] = []
+
+    def complete(self, system: str, user: str) -> str:
+        self.prompts.append(user)
+        return "[]"
+
+
+def test_graphrags_own_pipeline_sends_our_guidance() -> None:
+    """GraphRAG-SDK batches prompts itself for LLMExtractor subclasses, skipping
+    extract_entities; this drives its real extraction to prove the guidance arrives."""
+    model = RecordingModel()
+    llm = ModelLLM(model, name="fake", max_concurrency=1)  # type: ignore[arg-type]
+    extraction = GraphExtraction(llm, entity_extractor=WorkExtractor(llm), max_concurrency=1)
+    chunks = TextChunks(chunks=[TextChunk(text="Use the ask tool on Checkout.tsx", index=0)])
+    asyncio.run(extraction.extract(chunks, handoff_ontology(), Context()))
+    ner = [p for p in model.prompts if "Use the ask tool on Checkout.tsx" in p]
+    assert ner, model.prompts
+    assert "Do NOT extract the AI assistant's own tools" in ner[0]
+    assert "a field, column, key" in ner[0]  # the types arrive with their meanings

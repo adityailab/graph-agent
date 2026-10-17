@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from graphrag_sdk import Entity, Ontology
 from graphrag_sdk.core.models import ExtractedEntity
+from graphrag_sdk.core.providers import LLMInterface
 from graphrag_sdk.ingestion.extraction_strategies.entity_extractors import (
     NER_PROMPT,
+    EntityExtractor,
     LLMExtractor,
 )
 
@@ -43,16 +45,27 @@ def handoff_ontology() -> Ontology:
     )
 
 
-class WorkExtractor(LLMExtractor):
-    """GraphRAG-SDK's LLM entity extractor, told what to leave out."""
+class WorkExtractor(EntityExtractor):
+    """GraphRAG-SDK's LLM entity extraction, told what to leave out.
+
+    Deliberately not an LLMExtractor subclass: GraphRAG batches its own stock prompt for
+    those and never calls extract_entities, so the guidance would never be sent."""
+
+    def __init__(self, llm: LLMInterface, threshold: float = 0.75) -> None:
+        self._llm = llm
+        self._threshold = threshold
 
     async def extract_entities(
         self, text: str, entity_types: list[str], source_chunk_id: str
     ) -> list[ExtractedEntity]:
-        prompt = NER_PROMPT.format(entity_types=", ".join(entity_types), text=text).replace(
+        types = ", ".join(
+            f"{t} ({HANDOFF_ENTITY_TYPES[t]})" if t in HANDOFF_ENTITY_TYPES else t
+            for t in entity_types
+        )
+        prompt = NER_PROMPT.format(entity_types=types, text=text).replace(
             "## Instructions\n", _GUIDANCE + "\n## Instructions\n", 1
         )
         response = await self._llm.ainvoke(prompt)
-        return self._parse_response(
+        return LLMExtractor._parse_response(
             response.content, entity_types, source_chunk_id, self._threshold
         )

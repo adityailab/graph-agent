@@ -44,7 +44,8 @@ def build_knowledge_client(
         ontology=handoff_ontology(),
     )
     # An LLM extractor avoids GLiNER's separate model download.
-    extractor = GraphExtraction(llm, entity_extractor=WorkExtractor(llm))
+    # Two at a time: each model call may start a `claude -p` process.
+    extractor = GraphExtraction(llm, entity_extractor=WorkExtractor(llm), max_concurrency=2)
     kg = connect(Config(config.host, config.port, kg_name, config.home))
     return KnowledgeClient(rag=rag, llm=llm, extractor=extractor, kg=kg)
 
