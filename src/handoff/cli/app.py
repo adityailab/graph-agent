@@ -7,6 +7,7 @@ from importlib.metadata import PackageNotFoundError, version
 from handoff.cli import (
     ask,
     completion,
+    consolidate_cmd,
     conventions_cmd,
     coordinator_cmd,
     dashboard_cmd,
@@ -43,6 +44,7 @@ COMMANDS = (
     knowledge_cmd,
     memory_cmd,
     conventions_cmd,
+    consolidate_cmd,
     timeline_cmd,
     doctor,
     completion,

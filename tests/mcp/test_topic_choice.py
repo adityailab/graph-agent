@@ -12,6 +12,7 @@ POINTS = {
     "auth tokens": (1.0, 0.0),
     "login tokens": (0.99, 0.12),  # very close: same subject
     "login sessions": (0.8, 0.6),  # distance 0.20: still the same subject (measured up to 0.23)
+    "login handling": (0.76, 0.65),  # distance 0.24: same subject at the new limit of 0.25
     "session handling": (0.73, 0.683),  # distance 0.27: related, not the same
     "css layout": (0.0, 1.0),
 }
@@ -48,6 +49,12 @@ def test_wording_up_to_the_top_of_the_measured_same_subject_range_is_one_topic(
     ctx = _ctx(frontend)
     choose_topic(ctx, "auth tokens", request_id="p1")
     assert choose_topic(ctx, "login sessions", request_id="p1") == "auth tokens"
+
+
+def test_wording_a_little_past_the_old_limit_is_still_one_topic(frontend: ToolContext) -> None:
+    ctx = _ctx(frontend)
+    choose_topic(ctx, "auth tokens", request_id="p1")
+    assert choose_topic(ctx, "login handling", request_id="p1") == "auth tokens"
 
 
 def _frontend_decided_on_auth(backend: ToolContext) -> None:

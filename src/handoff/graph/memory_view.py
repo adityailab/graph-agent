@@ -63,7 +63,8 @@ def memory_types(graph: Graph, *, concepts: int, since: int) -> list[MemoryType]
     rules = _count(graph, "MATCH (x:Convention) WHERE x.active = true RETURN count(x)")
     replaced = _count(graph, "MATCH (x:Decision) WHERE x.superseded_at IS NOT NULL RETURN count(x)")
     reads = _count(graph, "MATCH ()-[k:CONSULTED]->() RETURN count(k)")
-    events = requests + edits + decisions + messages + replaced  # all of the timeline
+    agreed = _count(graph, "MATCH ()-[r:AGREES_WITH]->() RETURN count(r)")
+    events = requests + edits + decisions + messages + replaced + agreed  # the whole timeline
     return [
         MemoryType(
             "working",
@@ -101,7 +102,8 @@ def memory_types(graph: Graph, *, concepts: int, since: int) -> list[MemoryType]
             "when things happened, in order, and what replaced what",
             events,
             f"{_plural(events, 'event')} {_span_text(graph)} · "
-            f"{_plural(replaced, 'decision')} replaced by a later one",
+            f"{_plural(replaced, 'decision')} replaced by a later one · "
+            f"{_plural(agreed, 'agreement')} between roles",
         ),
         MemoryType(
             "social",

@@ -52,3 +52,14 @@ showed only replaced decisions and no times (now the whole timeline, with times)
 decision could still be offered as "relevant". Still open (see the report): topic matching misses
 about 60% of same-subject pairs at `SAME = 0.15`; standing rules reach a session only on its first
 request; nothing is ever forgotten or summarised.
+
+## Consolidation (18 Oct)
+
+- Topics within cosine distance 0.25 are one topic.
+- When a role records a decision that is within 0.20 of another role's, the two are linked
+  `AGREES_WITH` (one edge per pair, later to earlier, at the later decision's time) and the
+  recording session is told. `handoff consolidate` links decisions recorded before this existed and
+  folds knowledge-graph concepts whose names differ only in case, spaces or `/ . - _`.
+- In the dashboard's ask tab, the common questions (what each session is on, replaced decisions,
+  agreements, standing rules, who read whose work) are answered straight from the graph in about
+  20 ms with no model. Follow-ups and anything else go to Claude Code.

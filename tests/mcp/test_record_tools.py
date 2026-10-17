@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 
 from falkordb import Graph
 
@@ -8,7 +9,7 @@ from handoff.config import Config
 from handoff.graph.connection import connect
 from handoff.graph.history import handoff_requests
 from handoff.graph.requests import add_request
-from handoff.graph.schema import ensure_schema
+from handoff.graph.schema import EMBED_DIM, ensure_schema
 from handoff.graph.sessions import upsert_session
 from handoff.mcp.context import UNREACHABLE, ToolContext
 from handoff.mcp.read_tools import handoff
@@ -107,3 +108,36 @@ def test_after_clear_the_newest_session_of_this_process_is_used(frontend: ToolCo
         graph=frontend.graph, role="frontend", cwd="/w", now=lambda: 2_000, session_id="old", pid=7
     )
     assert '"after clear"' in record_decision(ctx, "x", "y", "z")
+
+
+class SameVectorEmbedder:
+    """Every text gets one vector, so any two decisions are the same statement."""
+
+    def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        return [[1.0] + [0.0] * (EMBED_DIM - 1) for _ in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed([text])[0]
+
+
+def _with_same_vectors(ctx: ToolContext) -> ToolContext:
+    return ToolContext(
+        graph=ctx.graph, role=ctx.role, cwd=ctx.cwd, now=ctx.now, embedder=SameVectorEmbedder()
+    )
+
+
+def test_recording_what_another_role_already_decided_says_so(
+    frontend: ToolContext, backend: ToolContext
+) -> None:
+    record_decision(_with_same_vectors(frontend), "prices are integer paise", "no floats", "price")
+    reply = record_decision(
+        _with_same_vectors(backend), "all prices are paise integers", "no rounding", "price format"
+    )
+    assert "frontend" in reply
+    assert "already decided" in reply
+    assert "prices are integer paise" in reply
+
+
+def test_a_first_decision_has_no_agreement_note(frontend: ToolContext) -> None:
+    reply = record_decision(_with_same_vectors(frontend), "use paise", "no floats", "price")
+    assert "already decided" not in reply

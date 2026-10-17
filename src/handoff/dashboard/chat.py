@@ -10,6 +10,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from handoff.config import Config
+from handoff.dashboard.quick import QuickAnswer, quick_answer
+from handoff.graph.connection import connect, graph_exists
+from handoff.ids import now_ms
 
 Asker = Callable[
     [str, Config, list[tuple[str, str]], Callable[[str, str], None] | None], tuple[str, list[str]]
@@ -65,6 +68,15 @@ def is_busy() -> bool:
     return _busy.locked()
 
 
+LIVE_MS = 24 * 60 * 60_000
+
+
+def _quick(request: AskRequest, config: Config) -> QuickAnswer | None:
+    if not graph_exists(config):
+        return None
+    return quick_answer(connect(config), request.question, since=now_ms() - LIVE_MS)
+
+
 def run_ask(
     request: AskRequest,
     config: Config,
@@ -73,6 +85,11 @@ def run_ask(
 ) -> tuple[int, Any]:
     """Ask, calling `progress(kind, text)` on the way (kind is step, text or thought);
     (status, JSON) at the end."""
+    quick = _quick(request, config) if not request.history else None
+    if quick is not None:  # a common question: answered from the graph, no model, no waiting
+        if progress:
+            progress("step", "answering from the graph, without a model")
+        return 200, {"answer": quick.answer, "queries": [], "quick": quick.source}
     if not _busy.acquire(blocking=False):
         return 429, {"error": "still answering the last question"}
     try:

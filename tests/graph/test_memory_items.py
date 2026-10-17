@@ -132,3 +132,29 @@ def test_a_replaced_decision_is_not_offered_as_relevant(two_sessions: Graph) -> 
 def test_relevant_memories_carry_their_time(two_sessions: Graph) -> None:
     [item] = relevant_memories(two_sessions, "show the avatarUrl", k=5)
     assert item.at == 112
+
+
+def test_an_agreement_between_roles_is_on_the_timeline(two_sessions: Graph) -> None:
+    from handoff.graph.agreements import link_agreements
+    from handoff.graph.decisions import set_decision_embedding
+    from handoff.graph.schema import EMBED_DIM
+
+    vec = [1.0] + [0.0] * (EMBED_DIM - 1)
+    set_decision_embedding(two_sessions, "d1", vec)
+    add_decision(
+        two_sessions,
+        request_id="p3",
+        decision_id="d2",
+        text="avatar url from server",
+        reason="r",
+        topic="profile",
+        at=300,
+    )
+    set_decision_embedding(two_sessions, "d2", vec)
+    link_agreements(two_sessions, "d2", vec, role="backend", at=310)
+    items = memory_items(two_sessions, "temporal", since=0, limit=50, oldest_first=True)
+    agreed = next(i for i in items if i.title == "agrees")
+    assert agreed.role == "backend"
+    assert "frontend" in agreed.text
+    assert "read avatarUrl" in agreed.text
+    assert agreed.at == 310

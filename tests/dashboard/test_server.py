@@ -191,3 +191,25 @@ def test_a_streamed_ask_sends_each_step_then_the_answer(asking: str) -> None:
 def test_a_streamed_ask_that_fails_ends_with_an_error_line(asking: str) -> None:
     lines = _stream(asking + "/api/ask", {"question": "boom", "stream": True})
     assert "error" in lines[-1]
+
+
+def test_a_common_question_is_answered_without_the_model(asking: str) -> None:
+    status, body = _post(asking + "/api/ask", {"question": "Who has read whose work?"})
+    assert status == 200
+    assert "No session has read" in body["answer"]  # from the graph, not the fake model
+    assert body["queries"] == []
+    assert body["quick"]
+
+
+def test_a_follow_up_goes_to_the_model_even_if_it_sounds_common(asking: str) -> None:
+    turns = [{"q": "earlier", "a": "something"}]
+    _, body = _post(
+        asking + "/api/ask", {"question": "which rules are in force?", "history": turns}
+    )
+    assert body["answer"].startswith("answer to")
+
+
+def test_a_streamed_quick_answer_says_no_model_was_used(asking: str) -> None:
+    lines = _stream(asking + "/api/ask", {"question": "which rules are in force?", "stream": True})
+    assert any("without a model" in x.get("step", "") for x in lines)
+    assert lines[-1]["quick"]

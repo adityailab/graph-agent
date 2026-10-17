@@ -66,6 +66,7 @@ def test_temporal_memory_counts_the_timeline_and_names_what_was_replaced(
     assert temporal.count == 3 + 2 + 2 + 0 + 1
     assert "1 decision replaced" in temporal.detail
     assert "spanning" in temporal.detail
+    assert "0 agreements between roles" in temporal.detail
 
 
 def test_social_memory_counts_reads_and_messages(two_sessions: Graph) -> None:

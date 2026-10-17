@@ -17,7 +17,7 @@ _PARTS: dict[str, tuple[list[str], list[str]]] = {
     "semantic": (["Session", "Request", "Decision", "Topic"], ["RECEIVED", "LED_TO", "ABOUT"]),
     "temporal": (
         ["Request", "Decision", "Message"],
-        ["NEXT", "LED_TO", "SUPERSEDES", "REPLY_TO"],
+        ["NEXT", "LED_TO", "SUPERSEDES", "REPLY_TO", "AGREES_WITH"],
     ),
     "social": (["Session", "Request", "Message"], ["SENT", "DELIVERED_TO", "CONSULTED"]),
 }
