@@ -14,7 +14,7 @@ SESSION = "handoff-demo"
 ROLES = ("frontend", "deploy", "backend")
 _DONE = re.compile(r"for \d+(?:m \d+)?s · done[^\n]*")
 _WORKING = re.compile(r"\u2026 \(\d+(?:m \d+)?s \u00b7")  # "Crunching\u2026 (9s \u00b7 ..."
-_INPUT_BOX = re.compile(r"^\u2500{10,}\n[\u276f>]\\s", re.MULTILINE)  # rule, then the prompt line
+_INPUT_BOX = re.compile(r"^\u2500{10,}\n[\u276f>]\s", re.MULTILINE)  # rule, then the prompt line
 _ROLE = re.compile(r"^(\d+) .*HANDOFF_ROLE=(\w+)")
 
 
