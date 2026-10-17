@@ -25,7 +25,7 @@
 
   function floatLabel(role, text) {
     var p = pos[role]; if (!p) return;
-    var t = el("text", { x: p.x, y: p.y - map.CARD_H / 2 - 8, "class": "float" }, text);
+    var t = el("text", { x: p.x, y: p.y - map.CARD_H / 2 - 6, "class": "float" }, text);
     layers.live.appendChild(t);
     setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 1700);
   }

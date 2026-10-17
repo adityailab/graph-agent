@@ -3,7 +3,7 @@
 // or a node and the hand-offs behind it open as cards on the right.
 (function () {
   "use strict";
-  var MC = window.MC, el = MC.el, W = 760, H = 400, NODE_W = 196, NODE_H = 64;
+  var MC = window.MC, el = MC.el, W = 600, H = 300, NODE_W = 160, NODE_H = 56;
   var svg = document.getElementById("hf-graph"), detail = document.getElementById("hf-detail"), stats = document.getElementById("hf-stats");
   var layers = { edges: el("g"), nodes: el("g") }, selected = null, signature = "", last = null;
   svg.appendChild(layers.edges); svg.appendChild(layers.nodes);
@@ -11,9 +11,9 @@
   function place(roles) {
     var pos = Object.create(null), names = roles.map(function (r) { return r.role; }).sort();
     names.forEach(function (role, i) {
-      if (names.length === 1) { pos[role] = { x: W / 2, y: H / 2 }; return; }
+      if (names.length === 1) { pos[role] = { x: W / 2, y: 60 }; return; }
       var angle = (-90 + 360 / names.length * i) * Math.PI / 180;
-      pos[role] = { x: W / 2 + 280 * Math.cos(angle), y: H / 2 + 135 * Math.sin(angle) };
+      pos[role] = { x: W / 2 + 215 * Math.cos(angle), y: 150 + 110 * Math.sin(angle) };
     });
     return pos;
   }
@@ -42,22 +42,31 @@
     draw(state);
   }
 
+  function pill(g, p, x, y) {
+    var w = 122, hgt = 30, route = p.author + " → " + p.reader;
+    g.appendChild(el("rect", { "class": "pill-box", x: x - w / 2, y: y - hgt / 2, width: w, height: hgt, rx: 6 }));
+    g.appendChild(el("text", { "class": "hf-route", x: x - w / 2 + 7, y: y - 3 }, route));
+    g.appendChild(el("text", { "class": "hf-dec", x: x - w / 2 + 7, y: y + 10 }, "◆ " + p.decisions + (p.decisions === 1 ? " decision" : " decisions")));
+    g.appendChild(el("text", { "class": "hf-rd", x: x + w / 2 - 7, y: y + 10, "text-anchor": "end" }, "╌╌ " + p.list.length));
+  }
+
   function drawEdges(state, pos) {
     MC.clear(layers.edges);
-    pairs(state.handoffs).forEach(function (p, i) {
+    var all = pairs(state.handoffs), has = {};
+    all.forEach(function (q) { has[q.author + ">" + q.reader] = true; });
+    all.forEach(function (p) {
       var a = pos[p.author], b = pos[p.reader]; if (!a || !b || a === b) return;
-      var s = exit(a, b), t = exit(b, a), dx = t.x - s.x, dy = t.y - s.y, len = Math.hypot(dx, dy) || 1, off = 26;
+      var s = exit(a, b), t = exit(b, a), dx = t.x - s.x, dy = t.y - s.y, len = Math.hypot(dx, dy) || 1, off = has[p.reader + ">" + p.author] ? 52 : 24;
       var mx = (s.x + t.x) / 2 - dy / len * off, my = (s.y + t.y) / 2 + dx / len * off;
       var on = selected && selected.pair && selected.pair.author === p.author && selected.pair.reader === p.reader;
       var d = "M" + s.x + "," + s.y + " Q" + mx + "," + my + " " + t.x + "," + t.y;
-      var g = el("g", { "class": "hf-edge" + (on ? " on" : "") });
-      g.appendChild(el("path", { d: d, "class": "hf-line", "marker-end": "url(#hf-arrow)" }));
+      var g = el("g", { "class": "hf-edge" + (on ? " on" : ""), role: "button", tabindex: "0", "aria-label": p.author + " to " + p.reader + ": " + p.decisions + " decisions, " + p.list.length + " reads" });
+      g.appendChild(el("path", { d: d, "class": "hf-line", "stroke-width": String(Math.min(2.4, 1 + p.decisions * 0.1)), "marker-end": "url(#hfa)" }));
       g.appendChild(el("path", { d: d, "class": "hf-hit" }));
-      // the curve's own midpoint, nudged outward, so the two directions' labels never meet
-      var label = el("text", { x: (s.x + 2 * mx + t.x) / 4 - dy / len * 10, y: (s.y + 2 * my + t.y) / 4 + dx / len * 10 + 3, "class": "hf-label", "text-anchor": "middle" },
-        p.decisions + (p.decisions === 1 ? " decision" : " decisions") + " · " + p.list.length + (p.list.length === 1 ? " read" : " reads"));
-      g.appendChild(label);
-      g.addEventListener("click", function () { select({ pair: p }, state); });
+      pill(g, p, (s.x + 2 * mx + t.x) / 4, (s.y + 2 * my + t.y) / 4);
+      var open = function () { select({ pair: p }, state); };
+      g.addEventListener("click", open);
+      g.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } });
       layers.edges.appendChild(g);
     });
   }
@@ -65,20 +74,26 @@
   function drawNodes(state, pos) {
     MC.clear(layers.nodes);
     state.roles.forEach(function (r) {
-      var p = pos[r.role], x = p.x - NODE_W / 2, y = p.y - NODE_H / 2, colour = MC.color(r.role), g = el("g", { "class": "hf-node" + (selected && selected.role === r.role ? " on" : "") });
-      var learned = state.handoffs.reduce(function (n, h) { return n + (h.reader === r.role ? h.decisions.length : 0); }, 0);
-      g.appendChild(el("rect", { x: x, y: y, width: NODE_W, height: NODE_H, rx: 4, "class": "card-box" }));
-      g.appendChild(el("rect", { x: x, y: y, width: 5, height: NODE_H, fill: colour }));
-      g.appendChild(MC.critter.draw(x + 12, y + 16, colour, state.now - r.last_seen_at <= 120000));
-      g.appendChild(el("text", { x: x + 62, y: y + 26, "class": "card-title hf-name" }, r.role));
-      g.appendChild(el("text", { x: x + 62, y: y + 43, "class": "card-line dim" }, (r.requests + r.decisions + r.edits) + " own · " + learned + " learned"));
-      g.addEventListener("click", function () { select({ role: r.role }, state); });
+      var p = pos[r.role], x = p.x - NODE_W / 2, y = p.y - NODE_H / 2, colour = MC.color(r.role);
+      var g = el("g", { "class": "hf-node" + (selected && selected.role === r.role ? " on" : ""), role: "button", tabindex: "0", "aria-label": r.role + " session, open its hand-offs" });
+      var learned = state.handoffs.reduce(function (n, h) { return n + (h.reader === r.role ? h.decisions.length : 0); }, 0), own = r.requests + r.decisions + r.edits;
+      g.appendChild(el("rect", { x: x, y: y, width: NODE_W, height: NODE_H, rx: 6, "class": "card-box" }));
+      g.appendChild(el("rect", { x: x, y: y, width: 4, height: NODE_H, fill: colour }));
+      var mac = el("g", { transform: "translate(" + (x + 6) + "," + (y + 10) + ")" }); mac.appendChild(MC.critter.draw(0, 0, colour, state.now - r.last_seen_at <= 120000)); g.appendChild(mac);
+      g.appendChild(el("text", { x: x + 52, y: y + 22, "class": "card-title hf-name" }, r.role));
+      g.appendChild(el("text", { x: x + 52, y: y + 36, "class": "card-line dim" }, own + " own · " + learned + " learned"));
+      g.appendChild(el("rect", { x: x + 52, y: y + 42, width: 96, height: 4, rx: 2, "class": "hf-bar" }));
+      g.appendChild(el("rect", { x: x + 52, y: y + 42, width: 96 * (own + learned ? learned / (own + learned) : 0), height: 4, rx: 2, fill: MC.css("--green") }));
+      var open = function () { select({ role: r.role }, state); };
+      g.addEventListener("click", open);
+      g.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } });
       layers.nodes.appendChild(g);
     });
   }
 
   function draw(state) {
     var pos = place(state.roles);
+    svg.setAttribute("viewBox", "0 0 " + W + " " + (state.roles.length > 2 ? 300 : 140));
     drawEdges(state, pos); drawNodes(state, pos);
   }
 

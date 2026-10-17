@@ -135,26 +135,6 @@ svg text { font-family: var(--sans); }
 /* orchestration */
 .card-box { fill: var(--soft); stroke: var(--line); stroke-width: 1.2; }
 /* handoff */
-.stats { display: flex; flex-wrap: wrap; gap: 6px 32px; margin-bottom: 18px; }
-.stat b { font-size: 22px; font-weight: 700; margin-right: 8px; color: var(--blue); }
-.stat:nth-child(2) b { color: var(--green); } .stat:nth-child(3) b { color: var(--purple); }
-.stat span { color: var(--dim); }
-.memory { margin-bottom: 20px; }
-.mem-row { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
-.bar { display: flex; height: 12px; border: 1px solid var(--line); background: var(--soft); }
-.bar i { display: block; height: 100%; transition: width .6s ease; }
-.bar i.got { background: var(--green); }
-.key-row { display: flex; flex-wrap: wrap; gap: 4px 22px; color: var(--dim); margin: 0 0 8px; }
-.key-row span::before { content: ""; display: inline-block; width: 12px; height: 8px; margin-right: 6px; background: var(--c); }
-.cards { display: grid; gap: 12px; }
-.card { border-top: 1px solid var(--line); padding-top: 8px; }
-.card.fresh { animation: blink 1.2s steps(2) 2; }
-.card .route { font-weight: 700; margin-bottom: 4px; }
-.card .route .arrow { color: var(--amber); }
-.card .asked { color: var(--dim); margin: 0 0 6px; overflow-wrap: anywhere; }
-.card ul { margin: 0; padding-left: 1.3em; display: grid; gap: 4px; }
-.card .why { color: var(--dim); }
-.card .none { color: var(--dim); margin: 0; }
 /* tracks */
 .track { border-top: 2px solid var(--blue); padding: 10px 0 18px; }
 .track h3::before { content: ""; }
@@ -270,27 +250,11 @@ details.card[open] > summary .peek { display: none; }
 .flow-steps .connect:disabled { opacity: .35; cursor: default; }
 
 /* the handoff workflow */
-#hf-graph { width: 100%; height: auto; display: block; }
-.hf-line { fill: none; stroke: var(--amber); stroke-width: 2; opacity: .75; }
-.hf-edge .hf-hit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; }
-.hf-edge:hover .hf-line, .hf-edge.on .hf-line { stroke-width: 3.2; opacity: 1; }
-.hf-label { fill: var(--dim); font-size: 10.5px; }
-.hf-edge.on .hf-label { fill: var(--ink); font-weight: 700; }
-.arrowhead { fill: var(--amber); }
-.hf-node { cursor: pointer; }
-.hf-node.on .card-box { stroke: var(--ink); stroke-width: 2; }
-.hf-name { fill: var(--ink); font-size: 13px; }
-.flow-detail .card { margin-bottom: 8px; }
-.flow-detail .card summary .peek { display: block; margin: 2px 0 0 0; color: var(--dim); }
-.flow-detail .card[open] summary .peek { display: none; }
 
 
 @media (max-width: 760px) { #hf-graph { min-width: 700px; } }
 
 /* handoff cards: the header never breaks in the middle of "2 decisions" */
-.flow-detail .card summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
-.flow-detail .card summary .nb { white-space: nowrap; }
-.flow-detail .card summary .peek { flex-basis: 100%; }
 
 /* the command field: one `$` input fixed at the bottom of every page */
 .dock { position: fixed; left: 50%; bottom: var(--s-5); transform: translateX(-50%); width: min(720px, calc(100% - 2 * var(--s-4)));

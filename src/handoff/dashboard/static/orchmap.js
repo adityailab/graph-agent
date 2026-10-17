@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   var MC = window.MC, el = MC.el;
-  var CARD_W = 250, CARD_H = 116, LINE_H = 14, MIN_PILL = 150, WIDTH = 960;
+  var CARD_W = 176, CARD_H = 74, LINE_H = 13, MIN_PILL = 104, WIDTH = 760;
   var GLYPH = { message: "━━", nudge: "━━", digest: "━━", read: "╌╌", need: "···", question: "?", standin_answer: "↩" };
   var KINDS = ["message", "nudge", "digest", "question", "standin_answer", "read", "need"];
 
@@ -14,11 +14,11 @@
   function place(roles) {
     var names = roles.map(function (r) { return r.role; }).sort(), pos = Object.create(null), n = names.length;
     names.forEach(function (name, i) {
-      if (n === 1) pos[name] = { x: WIDTH / 2, y: 90 };
-      else if (n === 2) pos[name] = { x: 155 + i * 650, y: 90 };
+      if (n === 1) pos[name] = { x: WIDTH / 2, y: 60 };
+      else if (n === 2) pos[name] = { x: 120 + i * 520, y: 60 };
       else {
         var angle = (-90 + (360 / n) * i) * Math.PI / 180;
-        pos[name] = { x: WIDTH / 2 + 375 * Math.cos(angle), y: 263 + 189 * Math.sin(angle) };
+        pos[name] = { x: WIDTH / 2 + 290 * Math.cos(angle), y: 248 + 185 * Math.sin(angle) };
       }
     });
     return pos;
@@ -39,28 +39,28 @@
     var a2 = { x: a.x + nx * o, y: a.y + ny * o }, b2 = { x: b.x + nx * o, y: b.y + ny * o };
     var s = leave(a, a2, { x: dx, y: dy }), e = leave(b, b2, { x: -dx, y: -dy });
     var cx = (s.x + e.x) / 2 + nx * bow, cy = (s.y + e.y) / 2 + ny * bow;
-    return { d: "M" + s.x + "," + s.y + " Q" + cx + "," + cy + " " + e.x + "," + e.y, mx: (s.x + 2 * cx + e.x) / 4, my: (s.y + 2 * cy + e.y) / 4 };
+    return { nx: nx, ny: ny, d: "M" + s.x + "," + s.y + " Q" + cx + "," + cy + " " + e.x + "," + e.y, mx: (s.x + 2 * cx + e.x) / 4, my: (s.y + 2 * cy + e.y) / 4 };
   }
 
   function size(p, latest) {
     var rows = p.kinds.map(function (f) { return GLYPH[f.kind] + " " + label(f.kind) + " ×" + f.count; });
     var route = p.source + " → " + p.target, tag = latest ? "● latest " + MC.clock(p.at) : "";
     var longest = Math.max(route.length, tag.length, Math.max.apply(null, rows.map(function (r) { return r.length; })));
-    return { rows: rows, route: route, tag: tag, w: Math.max(MIN_PILL, longest * 6.6 + 18), h: (1 + rows.length + (latest ? 1 : 0)) * LINE_H + 10 };
+    return { rows: rows, route: route, tag: tag, w: Math.max(MIN_PILL, longest * 5.9 + 16), h: (1 + rows.length + (latest ? 1 : 0)) * LINE_H + 8 };
   }
 
   function pill(group, p, c, z) {
-    var x = c.mx - z.w / 2, y = c.my - z.h / 2, yy = y + 15;
-    group.appendChild(el("rect", { "class": "pill-box", x: x, y: y, width: z.w, height: z.h, rx: 8 }));
-    group.appendChild(el("text", { "class": "pill-route", x: x + 9, y: yy }, z.route));
+    var x = c.mx - z.w / 2, y = c.my - z.h / 2, yy = y + 13;
+    group.appendChild(el("rect", { "class": "pill-box", x: x, y: y, width: z.w, height: z.h, rx: 6 }));
+    group.appendChild(el("text", { "class": "pill-route", x: x + 8, y: yy }, z.route));
     if (z.tag) group.appendChild(el("text", { "class": "pill-tag", x: x + 9, y: (yy += LINE_H) }, z.tag));
     p.kinds.forEach(function (f, i) { group.appendChild(el("text", { "class": "pill-line k-" + f.kind, x: x + 9, y: yy + LINE_H * (i + 1) }, z.rows[i])); });
   }
 
-  // How far apart two opposite lines run: enough that their pills do not overlap along the normal.
-  function apart(a, b, z) {
-    var dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
-    return Math.min(78, (Math.abs(dy) / len * z.w + Math.abs(dx) / len * z.h) / 2 + 8);
+  // How far each of two opposite lines sits from the middle: a little, but never off its card.
+  function apart(a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1, nx = Math.abs(dy / len), ny = Math.abs(dx / len);
+    return Math.min(14, 0.8 * (CARD_W / 2) / (nx || 1e-6), 0.8 * (CARD_H / 2) / (ny || 1e-6));
   }
 
   // One arrow per direction. Returns {key: path} so a travelling square can ride the same line.
@@ -75,9 +75,10 @@
     Object.keys(by).forEach(function (key) {
       var p = by[key], latest = p.at === newest && newest > 0, both = !!by[p.target + ">" + p.source];
       p.kinds.sort(dir);
-      var z = size(p, latest), a = pos[p.source], b = pos[p.target], c = both ? curve(a, b, apart(a, b, z), 0) : curve(a, b, 0, 36);
+      var z = size(p, latest), a = pos[p.source], b = pos[p.target], c = both ? curve(a, b, apart(a, b), 0) : curve(a, b, 0, 30);
+      if (both) { var out = (Math.abs(c.nx) * z.w + Math.abs(c.ny) * z.h) / 2 + 3; c.mx += c.nx * out; c.my += c.ny * out; }
       var g = el("g", { "class": "orch-edge" + (latest ? " latest" : ""), role: "img", "aria-label": p.source + " to " + p.target + ": " + p.kinds.map(function (f) { return label(f.kind) + " " + f.count; }).join(", ") });
-      g.appendChild(el("path", { d: c.d, "class": "edge flow", "stroke-width": String(Math.min(5, 1.5 + p.total * 0.3)), "marker-end": "url(#oa)" }));
+      g.appendChild(el("path", { d: c.d, "class": "edge flow", "stroke-width": String(Math.min(2.4, 1 + p.total * 0.12)), "marker-end": "url(#oa)" }));
       pill(g, p, c, z); layer.appendChild(g); paths[key] = c.d;
     });
     return paths;

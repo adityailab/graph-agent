@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/page-orchestration.css">
 <link rel="stylesheet" href="/page-graph.css">
+<link rel="stylesheet" href="/page-handoff.css">
 <script src="/theme.js"></script>
 </head>
 <body>
@@ -33,8 +34,8 @@
     <section id="view-orchestration" class="view">
       <div class="page-head"><h2>orchestration</h2><span class="dim">who hands what to whom · click a session to open it</span></div>
       <div id="orch-status" class="orch-status"></div>
-      <div class="svg-scroll"><svg id="orch" viewBox="0 0 960 440" role="group" aria-label="Sessions and what moves between them">
-        <defs><marker id="oa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker></defs>
+      <div class="svg-scroll"><svg id="orch" viewBox="0 0 760 370" role="group" aria-label="Sessions and what moves between them">
+        <defs><marker id="oa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker></defs>
       </svg></div>
       <div class="orch-key" aria-label="Line key">
         <span class="k-message"><b>━━ message</b> sent to another session</span>
@@ -46,16 +47,17 @@
       <details class="fold orch-lines"><summary id="lines-summary">all lines between sessions</summary><div id="flows"></div></details>
     </section>
     <section id="view-handoff" class="view" hidden>
-      <div class="ask-bar">
-        <h2>hand-offs</h2>
-        <span class="dim">each arrow is one session reading another's work and learning its decisions · click an arrow or a session</span>
-      </div>
+      <div class="page-head"><h2>hand-offs</h2><span class="dim">who learned what from whose work · click an arrow or a session</span></div>
       <div id="hf-stats" class="stats"></div>
       <div class="flow-layout">
-        <div class="svg-scroll"><svg id="hf-graph" viewBox="0 0 760 400" role="img" aria-label="Who read whose work, as a workflow">
-          <defs><marker id="hf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
-        </svg></div>
-        <aside id="hf-detail" class="flow-detail"></aside>
+        <div>
+          <div class="svg-scroll"><svg id="hf-graph" viewBox="0 0 600 280" role="group" aria-label="Which session learned decisions from which">
+            <defs><marker id="hfa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
+          </svg></div>
+          <div class="hf-key"><span>arrow = decisions flowing from the session that made them to the one that read them</span>
+            <span><b class="k-decided">◆</b> decisions · <b class="k-read">╌╌</b> reads</span><span>green bar = share of a session's knowledge learned from others</span></div>
+        </div>
+        <aside id="hf-detail" class="flow-detail" aria-label="Hand-off detail"></aside>
       </div>
     </section>
     <section id="view-memory" class="view" hidden>
