@@ -62,19 +62,19 @@
       <div id="memory"></div>
     </section>
     <section id="view-graph" class="view" hidden>
-      <div class="page-head"><h2>graph</h2><span class="dim">grouped by session · decisions and needs first, the rest on request</span></div>
+      <div class="page-head"><h2>graph</h2><span class="dim">the shared graph, live · click a node to read it and walk its connections</span></div>
       <div id="graph-bar" class="toolbar"></div>
       <div id="path-bar" class="path-bar" hidden></div>
       <div class="graph-layout">
         <div>
           <div class="canvas-wrap">
-            <div id="graph" role="img" aria-label="The shared graph, drawn live: one dashed hull per session, decisions as diamonds, needs as squares"></div>
+            <div id="graph" role="img" aria-label="The shared graph, drawn live: decisions as diamonds, files and needs as squares"></div>
             <div id="tip" class="tip" hidden></div>
           </div>
           <div class="canvas-foot">
-            <span><b>◆</b> decision (size = how many sessions read it)</span><span><b>■</b> need (red = open)</span>
-            <span><b>◯</b> ring = a session that learned it</span><span><b>╌╌</b> read · <b>···</b> need · <b>━━</b> message</span>
-            <span>dashed hull = one session</span>
+            <span><b>◆</b> decision</span><span><b>■</b> file or need (red outline = need)</span><span><b>●</b> session, request, message</span>
+            <span><b>╌╌</b> read · <b>···</b> need · <b>━━</b> message</span>
+            
           </div>
         </div>
         <aside class="graph-side" aria-label="Graph panel">
@@ -134,12 +134,7 @@
 <script src="/memorydetail.js"></script>
 <script src="/memory.js"></script>
 <script src="/force-graph.min.js"></script>
-<script src="/graphstate.js"></script>
 <script src="/graphmodel.js"></script>
-<script src="/graphlayout.js"></script>
-<script src="/graphpaint.js"></script>
-<script src="/graphhulls.js"></script>
-<script src="/graphcanvas.js"></script>
 <script src="/graphbar.js"></script>
 <script src="/graphside.js"></script>
 <script src="/graphdetail.js"></script>

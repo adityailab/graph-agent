@@ -3,7 +3,7 @@
   "use strict";
   var MC = window.MC, el = MC.el, M = MC.graphModel;
   var GLYPH = { Decision: "◆ decisions", Need: "■ needs", Message: "● messages", Request: "● requests", File: "▪ files" };
-  var MODES = [["work", "work graph"], ["concepts", "concept graph"]], GROUPS = ["session", "topic", "none"];
+  var MODES = [["work", "work graph"], ["concepts", "concept graph"]];
 
   function button(text, pressed, id) {
     var b = el("button", { type: "button", "aria-pressed": String(pressed) }, text);
@@ -25,9 +25,6 @@
     mem.setAttribute("data-mode", "memory"); mem.hidden = !s.memoryKind; mem.addEventListener("click", function () { on.mode("memory"); }); modes.appendChild(mem);
     box.appendChild(modes);
     if (s.mode === "work") {
-      var by = group("Group by", "seg");
-      GROUPS.forEach(function (g) { var b = button(g, s.by === g); b.addEventListener("click", function () { on.group(g); }); by.appendChild(b); });
-      box.appendChild(by);
       var show = group("Show"); show.appendChild(el("span", { "class": "lbl" }, "show"));
       M.TOGGLES.forEach(function (k) {
         var b = button(GLYPH[k] + " ", s.kinds[k]); b.className = "toggle"; b.appendChild(el("i", {}, String(counts[k] || 0)));

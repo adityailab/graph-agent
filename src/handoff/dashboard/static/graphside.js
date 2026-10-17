@@ -36,12 +36,12 @@
     return box;
   }
 
-  function legend(m) {
+  function legend(m, on) {
     var tally = {}, ul = el("ul", { "class": "rels" });
     m.edges.forEach(function (e) { tally[e.kind] = (tally[e.kind] || 0) + 1; });
     Object.keys(tally).sort(function (a, b) { return tally[b] - tally[a]; }).forEach(function (k) {
-      var l = MC.graphPaint.link(k), li = el("li"), i = el("i");
-      li.style.setProperty("--c", l.colour); li.appendChild(i); li.appendChild(document.createTextNode(k.toLowerCase().replace("_", " ") + " " + l.glyph));
+      var li = el("li"), i = el("i");
+      li.style.setProperty("--c", on.edgeColour(k)); li.appendChild(i); li.appendChild(document.createTextNode(k.toLowerCase().replace("_", " ")));
       li.appendChild(el("b", {}, String(tally[k]))); ul.appendChild(li);
     });
     return ul;
@@ -67,7 +67,7 @@
     if (start.length) { var st = section("start here"); start.forEach(function (p) { st.appendChild(p); }); box.appendChild(st); }
     if (roles) { var ss = section(s.by === "topic" ? "topics" : "sessions", "click to show only one"); ss.appendChild(sessions(m, s, on)); box.appendChild(ss); }
     var fold = el("details", { "class": "fold" }); fold.appendChild(el("summary", {}, "legend and counts · " + plural(Object.keys(m.edges.reduce(function (o, e) { o[e.kind] = 1; return o; }, {})).length, "relationship")));
-    fold.appendChild(legend(m)); box.appendChild(fold);
+    fold.appendChild(legend(m, on)); box.appendChild(fold);
   }
 
   window.MC.graphSide = { render: render };
