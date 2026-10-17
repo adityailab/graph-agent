@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from handoff.cli.stream_json import parse_stream
+from handoff.cli.stream_json import ToolCall, parse_stream
 
 CAPTURE = Path(__file__).parent / "data" / "ask_stream.jsonl"  # a real run, trimmed
 
@@ -19,3 +19,13 @@ def test_a_real_run_gives_the_answer_and_the_cypher_it_ran() -> None:
 def test_junk_lines_are_skipped() -> None:
     answer, calls = parse_stream(["not json", "", '{"type": "result", "result": "ok"}'])
     assert (answer, calls) == ("ok", [])
+
+
+def test_a_query_less_call_is_not_listed_as_cypher() -> None:
+    from handoff.cli.ask import cypher_run
+
+    calls = [
+        ToolCall("mcp__falkordb__query_graph_readonly", {}),
+        ToolCall("mcp__falkordb__query_graph_readonly", {"query": "MATCH (n) RETURN n"}),
+    ]
+    assert cypher_run(calls) == ["MATCH (n) RETURN n"]

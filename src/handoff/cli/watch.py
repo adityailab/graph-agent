@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import RedisError
 from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from handoff.config import Config
@@ -27,6 +28,7 @@ from handoff.ids import now_ms
 from handoff.workspace import workspace_config
 
 INTERVAL = 2.0
+DAY_MS = 24 * 60 * 60_000
 CLEAR, BOLD, DIM, RESET = "\x1b[2J\x1b[H", "\x1b[1m", "\x1b[2m", "\x1b[0m"
 _COLOURS = {
     "frontend": "\x1b[36m",
@@ -118,6 +120,8 @@ def watch_loop(
                 text = render_frame(fetch(), width)
             except (RedisConnectionError, RedisTimeoutError, OSError):
                 text = "database unreachable: retrying every 2 s (handoff init starts it)"
+            except RedisError as exc:  # e.g. a graph deleted while watching
+                text = f"database error: {exc} (retrying every 2 s)"
             write(CLEAR + text)
             drawn += 1
             if frames is None or drawn < frames:
@@ -132,11 +136,11 @@ def _fetcher(config: Config, rows: int) -> Callable[[], Frame]:
         if not graph_exists(config):
             return Frame(config.graph_name, [], [], [])
         graph = connect(config)
-        sessions = active_sessions(graph, since=now_ms() - 24 * 60 * 60_000)
+        sessions = active_sessions(graph, since=now_ms() - DAY_MS)
         return Frame(
             config.graph_name,
             sessions,
-            recent_events(graph, limit=rows),
+            recent_events(graph, limit=rows, since=now_ms() - DAY_MS),
             current_insights(graph, limit=3),
         )
 

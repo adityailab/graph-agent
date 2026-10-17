@@ -27,10 +27,28 @@ falkor.register('overlap', overlap);
 """
 
 
+_FUNCTIONS = ["overlap"]  # what _SOURCE registers; a different set means an outdated library
+
+
+def _text(value: object) -> str:
+    return value.decode() if isinstance(value, bytes) else str(value)
+
+
+def _installed_functions(graph: Graph) -> list[str] | None:
+    """The functions of our library as the server has it, or None if it is not loaded.
+    Matches the library name exactly: 'handoff_other' is not ours."""
+    for entry in graph.execute_command("GRAPH.UDF", "LIST"):
+        info = {_text(k): v for k, v in zip(entry[::2], entry[1::2], strict=False)}
+        if _text(info.get("library_name")) == UDF_LIBRARY:
+            return sorted(_text(f) for f in info.get("functions", []))
+    return None
+
+
 def load_udfs(graph: Graph) -> bool:
-    """Make sure handoff.overlap exists on the server. False if UDFs are unavailable."""
+    """Make sure the current handoff.overlap exists on the server (loading or replacing the
+    library when it is missing or outdated). False if UDFs are unavailable."""
     try:
-        if UDF_LIBRARY in str(graph.execute_command("GRAPH.UDF", "LIST")):
+        if _installed_functions(graph) == _FUNCTIONS:
             return True
         graph.execute_command("GRAPH.UDF", "LOAD", "REPLACE", UDF_LIBRARY, _SOURCE)
     except ResponseError as exc:  # an older FalkorDB without UDFs: handoff works without

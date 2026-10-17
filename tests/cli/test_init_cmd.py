@@ -56,3 +56,15 @@ def test_malformed_settings_are_one_sentence_not_a_traceback(
     err = capsys.readouterr().err
     assert "settings.local.json" in err
     assert "Traceback" not in err
+
+
+def test_an_unreachable_remote_database_is_not_blamed_on_docker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("HANDOFF_DB_HOST", "db.example.invalid")
+    monkeypatch.setattr("handoff.cli.init_cmd.run_command", fake_runner([], code=1))
+    monkeypatch.setattr("handoff.cli.init_cmd.shutil.which", lambda n: f"/b/{n}")
+    assert main(["init", str(tmp_path)]) == 1
+    err = capsys.readouterr().err
+    assert "db.example.invalid" in err
+    assert "Docker is not running" not in err

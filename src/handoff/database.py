@@ -14,7 +14,7 @@ IMAGE = "falkordb/falkordb:v4.22.1"
 CONTAINER = "handoff-falkordb"
 VOLUME = "handoff-data"
 DATA_DIR = "/var/lib/falkordb/data"  # the image's FALKORDB_DATA_PATH
-_LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
 
 
 class DatabaseUnavailable(RuntimeError):  # noqa: N818 - reads as a state, like ModelUnavailable
@@ -81,7 +81,7 @@ def ensure_database(config: Config, runner: Runner, *, wait_seconds: float = 30)
             f"Something on {config.host}:{config.port} answers but is not FalkorDB (plain Redis, "
             "or password-protected). Set HANDOFF_DB_PORT=6380 and run handoff init again."
         )
-    if config.host not in _LOCAL_HOSTS:
+    if config.host not in LOCAL_HOSTS:
         raise DatabaseUnavailable(f"FalkorDB at {config.host}:{config.port} does not answer.")
     status = _start_container(config, runner)
     deadline = time.monotonic() + wait_seconds

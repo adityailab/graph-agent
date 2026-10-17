@@ -40,3 +40,21 @@ def test_without_the_library_overlap_is_unknown_not_an_error(two_requests: Graph
         assert file_overlap(two_requests, "p1", "p2") is None
     finally:
         load_udfs(two_requests)
+
+
+def test_a_library_that_merely_contains_the_name_does_not_count(two_requests: Graph) -> None:
+    two_requests.execute_command("GRAPH.UDF", "DELETE", UDF_LIBRARY)
+    other = "function f(a){return 1;}\nfalkor.register('f', f);"
+    two_requests.execute_command("GRAPH.UDF", "LOAD", "REPLACE", "handoff_other", other)
+    try:
+        assert load_udfs(two_requests) is True
+        assert file_overlap(two_requests, "p1", "p2") == pytest.approx(1 / 3)
+    finally:
+        two_requests.execute_command("GRAPH.UDF", "DELETE", "handoff_other")
+
+
+def test_an_outdated_library_is_replaced(two_requests: Graph) -> None:
+    old = "function old(a){return 0;}\nfalkor.register('old', old);"
+    two_requests.execute_command("GRAPH.UDF", "LOAD", "REPLACE", UDF_LIBRARY, old)
+    assert load_udfs(two_requests) is True
+    assert file_overlap(two_requests, "p1", "p2") == pytest.approx(1 / 3)
