@@ -42,7 +42,7 @@ run_role() {  # run_role <role> <prompt>
 step "fresh workspace $WORKSPACE and graph $HANDOFF_GRAPH"
 rm -rf "$WORKSPACE" && mkdir -p "$WORKSPACE"
 "$BIN/python" "$REPO/scripts/e2e_check.py" --reset
-"$BIN/handoff" install "$WORKSPACE" --no-falkordb-mcp > /dev/null
+"$BIN/handoff" install "$WORKSPACE" --no-falkordb-mcp --graph "$HANDOFF_GRAPH" > /dev/null
 
 run_role frontend "Create Checkout.tsx that shows the order total from order.totalPaise \
 as rupees with two decimals. Record a decision: money stays in integer paise end to end, \

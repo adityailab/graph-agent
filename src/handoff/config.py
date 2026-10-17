@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,3 +39,11 @@ def normalise_role(role: str) -> str:
 def resolve_role(cwd: str, env: Mapping[str, str]) -> str:
     """Return the session's role: HANDOFF_ROLE, else the folder name, else 'unknown'."""
     return normalise_role(env.get("HANDOFF_ROLE", "") or Path(cwd).name) or "unknown"
+
+
+def graph_for_workspace(workspace: Path) -> str:
+    """A graph name of this workspace's own, so separate projects never see each other's
+    work: the folder name made safe, plus a short hash of its full path."""
+    slug = re.sub(r"[^a-z0-9]+", "_", workspace.name.lower()).strip("_") or "workspace"
+    digest = hashlib.sha256(str(workspace.resolve()).encode()).hexdigest()[:6]
+    return f"handoff_{slug}_{digest}"

@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from handoff.config import Config
+from handoff.config import Config, graph_for_workspace
 from handoff.mcp_config import falkordb_server_entry, handoff_server_entry
 
 _OURS = "handoff-hook"
@@ -54,7 +54,7 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n")
 
 
-def _instructions(workspace: Path, falkordb_mcp: bool) -> str:
+def _instructions(workspace: Path, graph: str, falkordb_mcp: bool) -> str:
     roles = "\n".join(f"     HANDOFF_ROLE={r} claude" for r in ("frontend", "backend", "deploy"))
     extra = (
         "\nThe FalkorDB MCP server (read-only) runs through npx, which needs Node 18 or later."
@@ -62,22 +62,37 @@ def _instructions(workspace: Path, falkordb_mcp: bool) -> str:
         else ""
     )
     return (
-        f"handoff is set up in {workspace}.\n\n"
+        f"handoff is set up in {workspace}, on its own graph {graph}.\n\n"
         "1. Start FalkorDB from the handoff folder:  docker compose up -d\n"
-        "   (graph browser: http://localhost:3000)\n"
+        f"   (graph browser: http://localhost:3000, graph {graph})\n"
         f"2. In {workspace}, open one terminal per role and start Claude Code with it:\n"
         f"{roles}\n"
         "   Claude Code asks once to approve the project's MCP servers.\n"
-        "3. Optional, for the knowledge graph (needs the 'knowledge' extra):  handoff-knowledge"
+        "3. Optional, for the knowledge graph (needs the 'knowledge' extra):\n"
+        f"     HANDOFF_GRAPH={graph} handoff-knowledge"
         f"{extra}"
     )
 
 
-def install(workspace: Path, *, bin_dir: Path, config: Config, falkordb_mcp: bool = True) -> str:
-    """Install hooks and MCP servers into `workspace`; return what to do next."""
+def install(
+    workspace: Path,
+    *,
+    bin_dir: Path,
+    config: Config,
+    falkordb_mcp: bool = True,
+    graph: str | None = None,
+) -> str:
+    """Install hooks and MCP servers into `workspace`; return what to do next.
+
+    The workspace gets a graph of its own (HANDOFF_GRAPH in its settings), unless `graph`
+    names one or its settings already choose one."""
     settings_path = workspace / ".claude" / "settings.local.json"
     settings = _read_json(settings_path)
     _merge_hooks(settings, bin_dir)
+    env = settings.setdefault("env", {})
+    if graph:
+        env["HANDOFF_GRAPH"] = graph
+    env.setdefault("HANDOFF_GRAPH", graph_for_workspace(workspace))
     _write_json(settings_path, settings)
 
     mcp_path = workspace / ".mcp.json"
@@ -89,4 +104,4 @@ def install(workspace: Path, *, bin_dir: Path, config: Config, falkordb_mcp: boo
     else:
         servers.pop("falkordb", None)
     _write_json(mcp_path, mcp)
-    return _instructions(workspace, falkordb_mcp)
+    return _instructions(workspace, env["HANDOFF_GRAPH"], falkordb_mcp)

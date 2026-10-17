@@ -73,3 +73,32 @@ def test_command_installs_into_a_folder(tmp_path: Path) -> None:
 
     assert main(["install", str(tmp_path)]) == 0
     assert (tmp_path / ".mcp.json").exists()
+
+
+def test_each_workspace_gets_its_own_graph(tmp_path: Path, config: Config) -> None:
+    first, second = tmp_path / "a" / "shop", tmp_path / "b" / "shop"
+    for workspace in (first, second):
+        workspace.mkdir(parents=True)
+        install(workspace, bin_dir=Path("/opt/h/bin"), config=config)
+    names = [
+        _read(w / ".claude" / "settings.local.json")["env"]["HANDOFF_GRAPH"]
+        for w in (first, second)
+    ]
+    assert names[0] != names[1]
+    assert all(name.startswith("handoff_shop_") for name in names)
+
+
+def test_a_graph_already_chosen_is_kept(tmp_path: Path, config: Config) -> None:
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.local.json").write_text(
+        json.dumps({"env": {"HANDOFF_GRAPH": "team", "OTHER": "1"}})
+    )
+    install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config)
+    env = _read(tmp_path / ".claude" / "settings.local.json")["env"]
+    assert env == {"HANDOFF_GRAPH": "team", "OTHER": "1"}
+
+
+def test_graph_can_be_named_explicitly(tmp_path: Path, config: Config) -> None:
+    text = install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config, graph="demo")
+    assert _read(tmp_path / ".claude" / "settings.local.json")["env"]["HANDOFF_GRAPH"] == "demo"
+    assert "demo" in text

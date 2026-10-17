@@ -21,6 +21,7 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="leave out FalkorDB's own (read-only) MCP server",
     )
+    setup.add_argument("--graph", help="graph name to use (default: one for this workspace)")
     args = parser.parse_args(argv)
     workspace = args.workspace.expanduser().resolve()
     if not workspace.is_dir():
@@ -32,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
             bin_dir=Path(sys.executable).parent,
             config=Config.from_env(),
             falkordb_mcp=not args.no_falkordb_mcp,
+            graph=args.graph,
         )
     )
     return 0
