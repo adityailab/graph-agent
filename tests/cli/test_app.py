@@ -7,7 +7,18 @@ import pytest
 from handoff.cli.app import main
 
 # Each task adds the commands it builds.
-BUILT = ("init", "install", "status", "log", "send", "ask", "insights", "knowledge", "doctor")
+BUILT = (
+    "init",
+    "install",
+    "status",
+    "log",
+    "send",
+    "ask",
+    "insights",
+    "watch",
+    "knowledge",
+    "doctor",
+)
 
 
 def test_every_built_command_is_listed(capsys: pytest.CaptureFixture[str]) -> None:

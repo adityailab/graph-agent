@@ -14,9 +14,21 @@ from handoff.cli import (
     log_cmd,
     send,
     status,
+    watch,
 )
 
-COMMANDS = (init_cmd, install_cmd, status, log_cmd, send, ask, insights_cmd, knowledge_cmd, doctor)
+COMMANDS = (
+    init_cmd,
+    install_cmd,
+    status,
+    log_cmd,
+    send,
+    ask,
+    insights_cmd,
+    watch,
+    knowledge_cmd,
+    doctor,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
