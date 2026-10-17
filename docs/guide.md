@@ -201,12 +201,13 @@ hook errors from the last hour, each with what to do. Prints "All good" otherwis
 ### Try it without a project
 
 ```bash
-handoff demo --live     # a tmux grid: three real sessions plus the live feed
-handoff demo            # the same collaboration headless, then a PASS/FAIL check
+handoff demo             # a tmux grid: three real sessions plus the live feed
+handoff demo --headless  # the same collaboration as plain text, then a PASS/FAIL check
 ```
 
+Without tmux, or when output is piped, plain `handoff demo` runs headless and says so.
 Both build a small shop called ShopLite in a scratch folder and graph `handoff_demo`. They
-use your Claude plan and run the sessions on Haiku. For `--live` you need tmux
+use your Claude plan and run the sessions on Haiku. For the grid you need tmux
 (`brew install tmux`): attach with `tmux attach -t handoff-demo` and accept Claude Code's
 "trust this folder" prompt in each of the three Claude panes; the rounds then start by
 themselves. Add `--manual` to type your own prompts instead. A pane may also ask permission

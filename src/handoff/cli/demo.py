@@ -33,13 +33,15 @@ def add_parser(commands: Any) -> None:
         "--graph", default=DEFAULT_GRAPH, help=f"graph to (re)create (default: {DEFAULT_GRAPH})"
     )
     p.add_argument("--workspace", type=Path, help="scratch folder (default: a temp folder)")
-    p.add_argument("--model", help="model for the sessions (default: haiku; sonnet with --live)")
+    p.add_argument("--model", help="model for the sessions (default: haiku, the cheapest)")
     p.add_argument("--no-knowledge", action="store_true", help="skip the knowledge graph")
     p.add_argument(
         "--live",
         action="store_true",
-        help="a tmux grid of three real Claude Code sessions and a live feed",
+        help="the tmux grid of three real sessions and a live feed (the default when tmux is "
+        "installed and you are at a terminal)",
     )
+    p.add_argument("--headless", action="store_true", help="run as plain text, without tmux")
     p.add_argument("--manual", action="store_true", help="with --live: type the prompts yourself")
     p.add_argument("--drive", action="store_true", help=argparse.SUPPRESS)  # background driver
     p.add_argument("--session", default=SESSION, help=argparse.SUPPRESS)
@@ -71,13 +73,6 @@ def _report(config: Config) -> int:
 
 
 def _live(args: argparse.Namespace, config: Config, workspace: Path) -> int:
-    if shutil.which("tmux") is None:
-        print(
-            "The live demo needs tmux: brew install tmux (macOS) or your package manager. "
-            "Or run handoff demo, the same collaboration headless, without tmux.",
-            file=sys.stderr,
-        )
-        return 1
     reset_graphs(config)
     print(
         launch(
@@ -85,7 +80,7 @@ def _live(args: argparse.Namespace, config: Config, workspace: Path) -> int:
             workspace,
             config,
             run_command,
-            model=args.model or "sonnet",
+            model=args.model or "haiku",
             manual=args.manual,
         ),
         flush=True,
@@ -96,39 +91,25 @@ def _live(args: argparse.Namespace, config: Config, workspace: Path) -> int:
     return 0
 
 
-def run(args: argparse.Namespace) -> int:
-    """Reset the demo graph, run the sessions, build the knowledge graph, check."""
-    if args.drive:
-        return drive(
-            SHOPLITE,
-            session=args.session,
-            runner=run_command,
-            sleep=time.sleep,
-            say=lambda line: print(line, flush=True),
-        )
-    if shutil.which("claude") is None:
-        print(
-            "The demo needs Claude Code (claude): see https://claude.com/claude-code.",
-            file=sys.stderr,
-        )
-        return 1
-    if args.live and shutil.which("tmux") is None:  # check before any folder is touched
-        print(
-            "The live demo needs tmux: brew install tmux (macOS) or your package manager. "
-            "Or run handoff demo, the same collaboration headless, without tmux.",
-            file=sys.stderr,
-        )
-        return 1
-    base = Config.from_env()
-    config = Config(base.host, base.port, args.graph, base.home)
-    workspace = (args.workspace or Path(tempfile.gettempdir()) / "handoff-demo").resolve()
-    try:
-        prepare_scratch(workspace)
-    except NotAScratchFolder as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+def _interactive() -> bool:
+    """True when output goes to a real terminal (the grid needs one to attach to)."""
+    return sys.stdout.isatty()
+
+
+def _wants_live(args: argparse.Namespace) -> bool:
+    """The grid is the default; --headless forces text, --live insists on the grid, and a
+    missing tmux or a piped output falls back to headless (saying so)."""
+    if args.headless:
+        return False
     if args.live:
-        return _live(args, config, workspace)
+        return True
+    if shutil.which("tmux") is None:
+        print("(tmux is not installed, so this runs headless; brew install tmux for the grid)")
+        return False
+    return _interactive()
+
+
+def _headless(args: argparse.Namespace, config: Config, workspace: Path) -> int:
     print(
         f"handoff demo in {workspace}, graph {config.graph_name}. "
         f"This runs {len(HEADLESS)} Claude Code sessions on your plan (a few minutes).",
@@ -149,3 +130,38 @@ def run(args: argparse.Namespace) -> int:
     if not args.no_knowledge:
         _knowledge(config)
     return _report(config)
+
+
+def run(args: argparse.Namespace) -> int:
+    """Run the demo: the tmux grid by default, or headless (see _wants_live)."""
+    if args.drive:
+        return drive(
+            SHOPLITE,
+            session=args.session,
+            runner=run_command,
+            sleep=time.sleep,
+            say=lambda line: print(line, flush=True),
+        )
+    if shutil.which("claude") is None:
+        print(
+            "The demo needs Claude Code (claude): see https://claude.com/claude-code.",
+            file=sys.stderr,
+        )
+        return 1
+    live = _wants_live(args)
+    if args.live and shutil.which("tmux") is None:  # check before any folder is touched
+        print(
+            "The live demo needs tmux: brew install tmux (macOS) or your package manager. "
+            "Or run handoff demo --headless, the same collaboration as text, without tmux.",
+            file=sys.stderr,
+        )
+        return 1
+    base = Config.from_env()
+    config = Config(base.host, base.port, args.graph, base.home)
+    workspace = (args.workspace or Path(tempfile.gettempdir()) / "handoff-demo").resolve()
+    try:
+        prepare_scratch(workspace)
+    except NotAScratchFolder as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    return _live(args, config, workspace) if live else _headless(args, config, workspace)
