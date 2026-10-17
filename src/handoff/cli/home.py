@@ -27,6 +27,7 @@ GROUPS = (
         "watch",
         (
             ("dashboard", "mission control in the browser"),
+            ("open", "jump to mission control, the graph or the guide"),
             ("watch", "a live feed in the terminal"),
             ("status", "who is active, what is open"),
             ("log", "what each role asked and decided"),
