@@ -8,35 +8,35 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="logo" aria-hidden="true">⇄</span> handoff <small>mission control</small></div>
-  <div class="meta">
-    <span id="graph-name" class="graph-name"></span>
-    <span id="status" class="status" role="status">connecting</span>
-    <button id="replay" type="button">Replay last events</button>
-  </div>
+  <span class="brand">handoff</span>
+  <span id="graph-name" class="dim"></span>
+  <span id="status" class="status" role="status">connecting</span>
+  <span id="clock" class="dim"></span>
+  <button id="replay" type="button">replay</button>
 </header>
 <nav class="tabs" aria-label="Views">
-  <button type="button" data-view="orchestration" aria-current="true">Orchestration</button>
-  <button type="button" data-view="handoff">Context handoff</button>
-  <button type="button" data-view="graph">Context graph</button>
-  <button type="button" data-view="tracks">Tracks</button>
+  <button type="button" data-view="orchestration" aria-current="true"><kbd>1</kbd> orchestration</button>
+  <button type="button" data-view="handoff"><kbd>2</kbd> handoff</button>
+  <button type="button" data-view="graph"><kbd>3</kbd> graph</button>
+  <button type="button" data-view="tracks"><kbd>4</kbd> tracks</button>
 </nav>
 <div class="layout">
   <main>
     <section id="view-orchestration" class="view">
-      <svg id="orch" viewBox="0 0 800 460" role="img" aria-label="Sessions and the messages, needs and reads between them"></svg>
-      <p class="hint">Each circle is a Claude Code session. Lines carry what moves between them:
-        <span class="key message">messages</span>, <span class="key read">reads of each other's work</span>,
-        <span class="key need">needs</span>. Moving dots are events happening now.</p>
+      <svg id="orch" viewBox="0 0 800 440" role="img" aria-label="Sessions and the messages, needs and reads between them"></svg>
+      <div id="flows" class="flows"></div>
+      <p class="hint">Each box is a Claude Code session. Lines carry what moves between them:
+        <span class="k-message">messages ──</span> <span class="k-read">reads of each other's work ── ──</span>
+        <span class="k-need">needs ·····</span> A square travelling along a line is an event happening now.</p>
     </section>
     <section id="view-handoff" class="view" hidden>
       <div id="handoff"></div>
     </section>
     <section id="view-graph" class="view" hidden>
       <div class="graph-bar">
-        <button type="button" data-mode="work" aria-pressed="true">Work graph</button>
-        <button type="button" data-mode="concepts" aria-pressed="false">Concept graph</button>
-        <span id="graph-count" class="graph-count"></span>
+        <button type="button" data-mode="work" aria-pressed="true">work graph</button>
+        <button type="button" data-mode="concepts" aria-pressed="false">concept graph</button>
+        <span id="graph-count" class="dim"></span>
       </div>
       <div class="canvas-wrap">
         <canvas id="graph" aria-label="The shared graph, drawn live"></canvas>
@@ -49,7 +49,7 @@
     </section>
   </main>
   <aside class="feed">
-    <h2>Live feed</h2>
+    <h2>log</h2>
     <ol id="ticker"></ol>
   </aside>
 </div>

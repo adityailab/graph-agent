@@ -33,9 +33,18 @@
     });
     var grew = Object.keys(next).length !== Object.keys(nodes).length;
     nodes = next; edges = view.edges.filter(function (e) { return next[e.source] && next[e.target]; });
+    markHubs();
     if (grew) alpha = Math.max(alpha, 0.6);
     count.textContent = Object.keys(nodes).length + " nodes · " + edges.length + " relationships";
     drawLegend();
+  }
+
+  // Only the best-connected nodes get a label, so names do not pile up; hovering shows any other.
+  function markHubs() {
+    var degree = {}, ids = Object.keys(nodes);
+    edges.forEach(function (e) { degree[e.source] = (degree[e.source] || 0) + 1; degree[e.target] = (degree[e.target] || 0) + 1; });
+    ids.sort(function (a, b) { return (degree[b] || 0) - (degree[a] || 0); });
+    ids.forEach(function (k, i) { nodes[k].hub = i < 9; });
   }
 
   function step() {
@@ -81,19 +90,21 @@
   function draw(now) {
     ctx.clearRect(0, 0, width, height);
     fit(); ctx.save(); ctx.translate(view.tx, view.ty); ctx.scale(view.s, view.s);
-    ctx.lineWidth = 1; ctx.strokeStyle = "rgba(138,160,178,0.35)";
+    ctx.lineWidth = 1; ctx.strokeStyle = MC.css("--line");
     edges.forEach(function (e) {
       var a = nodes[e.source], b = nodes[e.target];
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
     });
     Object.keys(nodes).forEach(function (k) {
       var n = nodes[k], age = now - n.born, grow = Math.min(1, age / 500), r = radius(n) * grow;
-      if (age < 1800) { ctx.strokeStyle = "rgba(251,191,36," + (1 - age / 1800) + ")"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(n.x, n.y, r + 4 + age / 100, 0, Math.PI * 2); ctx.stroke(); }
-      shape(n, r); ctx.fillStyle = MC.color(n.role); ctx.globalAlpha = n.kind === "Edit" ? 0.6 : 1; ctx.fill(); ctx.globalAlpha = 1;
-      if (n.kind === "Need") { ctx.strokeStyle = "#f87171"; ctx.lineWidth = 2; ctx.stroke(); }
-      if (n === hover) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); }
-      if (n.kind === "Session" || n.kind === "File" || mode === "concepts" || n === hover) {
-        ctx.fillStyle = "#e6edf3"; ctx.font = (11 / view.s) + "px system-ui"; ctx.textAlign = "center";
+      if (age < 1800) { ctx.strokeStyle = MC.css("--ink"); ctx.globalAlpha = 1 - age / 1800; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(n.x, n.y, r + 4 + age / 100, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+      shape(n, r); ctx.fillStyle = MC.color(n.role); ctx.fill(); ctx.strokeStyle = MC.css("--ink"); ctx.lineWidth = n.role === "shared" ? 2.5 : 1; ctx.stroke();
+      if (n.kind === "Need") { ctx.lineWidth = 2.5; ctx.stroke(); }
+      if (n === hover) { ctx.lineWidth = 3; ctx.stroke(); }
+      if (n.kind === "Session" || n === hover || (n.hub && n.kind !== "Edit")) {
+        ctx.fillStyle = MC.css("--ink"); ctx.font = (11 / view.s) + "px ui-monospace, Menlo, monospace"; ctx.textAlign = "center";
+        ctx.strokeStyle = MC.css("--bg"); ctx.lineWidth = 4 / view.s; ctx.lineJoin = "round";
+        ctx.strokeText(n.text.length > 22 ? n.text.slice(0, 21) + "…" : n.text, n.x, n.y - r - 5);
         ctx.fillText(n.text.length > 22 ? n.text.slice(0, 21) + "…" : n.text, n.x, n.y - r - 5);
       }
     });
@@ -110,10 +121,10 @@
     var seen = {};
     Object.keys(nodes).forEach(function (k) { seen[nodes[k].role || nodes[k].kind] = nodes[k].role; });
     Object.keys(seen).forEach(function (label) {
-      var s = MC.el("span", {}, label === "shared" ? "shared by two roles" : label);
+      var s = MC.el("span", {}, label === "shared" ? "shared by two roles (hollow)" : label);
       s.style.setProperty("--c", MC.color(seen[label])); legend.appendChild(s);
     });
-    if (mode === "work") legend.appendChild(MC.el("span", {}, "◆ decision · ■ file / need · ● session, request"));
+    if (mode === "work") legend.appendChild(MC.el("span", { "class": "plain" }, "◆ decision · ■ file / need (bold outline = need) · ● session, request · hover for any label"));
   }
 
   // The canvas has no size while its tab is hidden, so nodes are re-centred when it appears.

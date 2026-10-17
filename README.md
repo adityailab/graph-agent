@@ -69,7 +69,7 @@ the terminals. It reads the same graph the sessions write, every 1.5 seconds, an
 |---|---|
 | **Orchestration**: each session is a node; messages, reads and needs move between them as animated lines and dots | ![orchestration](docs/images/mission-orchestration.png) |
 | **Context handoff**: what each session learned from another's work, with the decision and its reason | ![context handoff](docs/images/mission-handoff.png) |
-| **Context graph**: the shared graph, drawn live, coloured by role (and the concept graph) | ![context graph](docs/images/mission-graph.png) |
+| **Context graph**: the shared graph, drawn live, shaded by role (and the concept graph) | ![context graph](docs/images/mission-graph.png) |
 | **Tracks**: how handoff answers each competition track, with live numbers | ![tracks](docs/images/mission-tracks.png) |
 
 Nothing leaves your machine: the page is served from `127.0.0.1` only.

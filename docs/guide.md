@@ -131,7 +131,7 @@ Mission control, the visual version of `watch`, with four views: **Orchestration
 nodes, messages, reads and needs moving between them), **Context handoff** (what each session
 learned from another's work, with the decision and its reason, and how much of each
 session's memory is its own or learned), **Context graph** (the shared graph drawn live,
-coloured by role; a toggle shows the concept graph) and **Tracks** (how handoff answers
+shaded by role; a toggle shows the concept graph) and **Tracks** (how handoff answers
 each competition track, with live numbers). A live feed runs down the right side, and
 **Replay last events** replays the newest ones as animation, which is handy when recording.
 The server listens on `127.0.0.1` only and shows the graph of the folder you run it in.
