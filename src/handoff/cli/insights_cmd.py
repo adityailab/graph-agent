@@ -11,6 +11,7 @@ from handoff.config import Config, knowledge_graph_name
 from handoff.graph.connection import connect, graph_exists
 from handoff.graph.insights import current_insights, refresh_insights
 from handoff.ids import now_ms
+from handoff.mcp.insights_view import RECENT_MS
 from handoff.workspace import workspace_config
 
 _NONE_YET = (
@@ -34,7 +35,8 @@ def run(args: argparse.Namespace) -> int:
     kg_config = Config(config.host, config.port, knowledge_graph_name(config), config.home)
     kg = connect(kg_config) if graph_exists(kg_config) else None
     graph = connect(config)
-    refresh_insights(graph, kg, at=now_ms())
+    now = now_ms()
+    refresh_insights(graph, kg, at=now, since=now - RECENT_MS)
     insights = current_insights(graph, limit=12)
     for i in insights:
         print(f"[{i.kind}] {i.text}")

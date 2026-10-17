@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from handoff.graph.edits import add_edit
 from handoff.graph.requests import add_request
 from handoff.mcp.context import ToolContext
@@ -118,3 +120,17 @@ def test_handoff_ends_with_what_matters_now(backend: ToolContext) -> None:
     text = handoff(backend)
     assert "What matters now:" in text
     assert "backend and frontend both changed Card.tsx" in text
+
+
+def test_a_failing_insight_refresh_does_not_break_the_handoff(
+    backend: ToolContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from redis.exceptions import ResponseError
+
+    def broken(*args: object, **kwargs: object) -> None:
+        raise ResponseError("unknown relationship-type RELATES")
+
+    monkeypatch.setattr("handoff.mcp.insights_view.refresh_insights", broken)
+    text = handoff(backend, role="frontend")
+    assert '"show avatar"' in text
+    assert "unreachable" not in text

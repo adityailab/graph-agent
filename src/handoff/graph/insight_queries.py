@@ -26,15 +26,16 @@ YIELD node, componentId
 WITH componentId, collect(node) AS members
 UNWIND members AS m
 MATCH (s:Session)-[:RECEIVED]->(:Request)-[:CAUSED]->(m)
+WHERE m.at >= $since
 WITH members, collect(DISTINCT s.role) AS roles WHERE size(roles) >= 2
 RETURN [n IN members WHERE n:File | n.path], roles, [n IN members WHERE n:File | ID(n)]
 ORDER BY size(roles) DESC, size(members) DESC LIMIT 5
 """
 
 
-def collisions(graph: Graph) -> list[Insight]:
-    """Files changed by more than one role (connected components of edits and files)."""
-    rows = graph.ro_query(_COLLISIONS).result_set
+def collisions(graph: Graph, *, since: int) -> list[Insight]:
+    """Files changed by more than one role since `since` (components of edits and files)."""
+    rows = graph.ro_query(_COLLISIONS, {"since": since}).result_set
     return [
         Insight(
             "collision",
@@ -69,7 +70,7 @@ _BRIDGES = """
 MATCH (src:Session)-[:RECEIVED]->(:Request)<-[:CONSULTED]-(node:Request)
       <-[:CONSULTED]-(:Request)<-[:RECEIVED]-(dst:Session),
       (me:Session)-[:RECEIVED]->(node)
-WHERE src.role <> me.role AND dst.role <> me.role
+WHERE src.role <> me.role AND dst.role <> me.role AND src.role <> dst.role
 WITH node, collect(DISTINCT src.role) AS read_from, collect(DISTINCT dst.role) AS read_by
 RETURN ID(node), node.name, read_from, read_by, size(read_from) * size(read_by) AS score
 ORDER BY score DESC LIMIT 3

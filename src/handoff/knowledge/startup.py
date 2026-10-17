@@ -84,7 +84,9 @@ def start_knowledge(
         home=config.home,
         lock_name=lock_name(config),
         max_per_hour=int(env.get("HANDOFF_KNOWLEDGE_MAX_PER_HOUR", "60")),
-        refresh=lambda: refresh_insights(graph, ingest.kg, at=now_ms()),
+        refresh=lambda: refresh_insights(
+            graph, ingest.kg, at=now_ms(), since=now_ms() - 7 * 24 * 60 * 60_000
+        ),
     )
     if background:
         worker.start()

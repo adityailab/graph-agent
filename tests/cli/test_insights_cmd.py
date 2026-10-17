@@ -14,6 +14,7 @@ from handoff.graph.edits import add_edit
 def in_workspace(tmp_path: Path, config: Config, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HANDOFF_GRAPH", config.graph_name)
+    monkeypatch.setattr("handoff.cli.insights_cmd.now_ms", lambda: 300)  # the fixture's era
     return tmp_path
 
 

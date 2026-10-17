@@ -4,7 +4,13 @@ from falkordb import Graph
 
 from handoff.graph.consultations import add_consultations
 from handoff.graph.edits import add_edit
-from handoff.graph.insights import compute_insights, current_insights, replace_insights
+from handoff.graph.insights import (
+    compute_insights,
+    current_insights,
+    refresh_insights,
+    replace_insights,
+)
+from handoff.graph.paths import connection_path
 from handoff.graph.requests import add_request
 from handoff.graph.schema import ensure_schema
 from handoff.graph.sessions import upsert_session
@@ -75,7 +81,7 @@ def test_concept_clusters_in_the_knowledge_graph_are_themes(graph: Graph, kg: Gr
     assert len(themes) == 1
     assert "avatarUrl" in themes[0].text
     replace_insights(graph, themes, at=70)
-    about = graph.query("MATCH (:Insight)-[:ABOUT]->(r:Request) RETURN r.id").result_set
+    about = graph.query("MATCH (:Insight)-[:CONCERNS]->(r:Request) RETURN r.id").result_set
     assert ["p9"] in about  # linked back to the work that mentions the concepts
 
 
@@ -99,3 +105,48 @@ def test_replacing_keeps_one_named_set(graph: Graph) -> None:
     views = current_insights(graph, limit=5)
     assert views[0].kind == "collision"
     assert "a.ts" in views[0].about
+
+
+def test_a_refresh_without_the_knowledge_graph_keeps_the_themes(graph: Graph, kg: Graph) -> None:
+    _three_roles(graph)
+    add_request(graph, session_id="be", request_id="p9", text="cdn avatars", at=60)
+    kg.query(
+        "MATCH (a:__Entity__ {name: 'avatarUrl'}), (u:__Entity__ {name: 'CDN_URL'}) "
+        "CREATE (c:__Entity__ {name: 'image CDN'}), (a)-[:RELATES]->(c), (c)-[:RELATES]->(u), "
+        "(u)-[:RELATES]->(a)"
+    )
+    refresh_insights(graph, kg, at=70)
+    refresh_insights(graph, None, at=80)  # e.g. a server with the knowledge layer off
+    kinds = [i.kind for i in current_insights(graph, limit=10)]
+    assert "theme" in kinds
+
+
+def test_insights_never_become_a_path_between_pieces_of_work(graph: Graph, kg: Graph) -> None:
+    _three_roles(graph)
+    add_request(graph, session_id="fe", request_id="fe2", text="avatars", at=60)
+    add_request(graph, session_id="be", request_id="be2", text="cdn", at=61)
+    kg.query(
+        "MATCH (a:__Entity__ {name: 'avatarUrl'}), (u:__Entity__ {name: 'CDN_URL'}) "
+        "CREATE (c:__Entity__ {name: 'image CDN'}), (a)-[:RELATES]->(c), (c)-[:RELATES]->(u), "
+        "(u)-[:RELATES]->(a), (:Document {id: 'fe2'})-[:PART_OF]->(:Chunk)<-[:MENTIONED_IN]-(a)"
+    )
+    kg.query("MATCH (c:Chunk)<-[:PART_OF]-(:Document {id: 'p9'}) RETURN c")  # unchanged fixture
+    refresh_insights(graph, kg, at=70)
+    assert graph.query("MATCH (:Insight)-[:ABOUT]->() RETURN count(*)").result_set == [[0]]
+    assert connection_path(graph, from_request="fe2", to_role="backend") is None
+
+
+def test_two_roles_reading_each_other_is_not_a_bridge(graph: Graph) -> None:
+    _three_roles(graph)
+    add_request(graph, session_id="be", request_id="r-be2", text="more api", at=40)
+    add_consultations(graph, request_id="r-fe", consulted_ids=["r-be"], at=50)
+    add_consultations(graph, request_id="r-be2", consulted_ids=["r-fe"], at=51)
+    assert "bridge" not in _kinds(graph)
+
+
+def test_old_collisions_fade(graph: Graph) -> None:
+    _three_roles(graph)
+    for rid, eid in (("r-fe", "e1"), ("r-be", "e2")):
+        add_edit(graph, request_id=rid, edit_id=eid, tool="Edit", path="a.ts", summary="x", at=40)
+    assert [i.kind for i in compute_insights(graph, None, since=100)] == []
+    assert [i.kind for i in compute_insights(graph, None, since=0)] == ["collision"]

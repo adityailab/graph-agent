@@ -40,6 +40,11 @@ WORK_MODEL: tuple[tuple[str, str], ...] = (
         "(:Request)-[:CONSULTED {at}]->(:Request)",
         "this request's session read that other session's request",
     ),
+    (
+        "(:Insight {kind, score, text})-[:CONCERNS]->()",
+        "what FalkorDB's algorithms found important now: kind is collision, load_bearing, "
+        "bridge or theme",
+    ),
 )
 
 KNOWLEDGE_MODEL: tuple[tuple[str, str], ...] = (
