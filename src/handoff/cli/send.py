@@ -10,14 +10,10 @@ from typing import Any
 
 from handoff.config import normalise_role
 from handoff.graph.connection import connect, server_reachable
-from handoff.graph.messages import add_message
 from handoff.graph.schema import ensure_schema
-from handoff.graph.sessions import active_sessions, upsert_session
-from handoff.ids import new_id, now_ms, person_session_id
-from handoff.redact import redact
+from handoff.ids import now_ms
+from handoff.person import send_message
 from handoff.workspace import workspace_config
-
-PERSON = "person"
 
 
 def add_parser(commands: Any) -> None:
@@ -40,19 +36,8 @@ def run(args: argparse.Namespace) -> int:
         return 1
     graph = connect(config)
     ensure_schema(graph)
-    role, now, me = normalise_role(args.role), now_ms(), person_session_id(str(folder))
-    upsert_session(graph, session_id=me, role=PERSON, cwd=str(folder), at=now)
-    add_message(
-        graph,
-        message_id=new_id(),
-        from_session_id=me,
-        to_role=role,
-        kind="message",
-        text=redact(args.text),
-        reply_to=None,
-        at=now,
-    )
-    known = any(s.role == role for s in active_sessions(graph, since=0, include_person=True))
+    role = normalise_role(args.role)
+    known = send_message(graph, folder, role, args.text, at=now_ms())
     later = f" No session has the role {role} yet; it will get this when one starts."
     print(f"Sent to {role}." + ("" if known else later))
     return 0

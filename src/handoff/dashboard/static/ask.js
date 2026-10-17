@@ -4,8 +4,7 @@
 (function () {
   "use strict";
   var MC = window.MC, el = MC.el;
-  var form = document.getElementById("ask-form"), input = document.getElementById("ask-input");
-  var send = document.getElementById("ask-send"), log = document.getElementById("ask-log");
+  var log = document.getElementById("ask-log"), working = false;
   var empty = document.getElementById("ask-empty"), chips = document.getElementById("ask-chips");
   var STARTERS = [
     "What is each session working on right now?",
@@ -96,7 +95,7 @@
     return pump();
   }
 
-  function busy(on) { send.disabled = on; input.disabled = on; if (!on) input.focus(); }
+  function busy(on) { working = on; }
 
   function ask(question) {
     empty.hidden = true; userTurn(question);
@@ -125,23 +124,19 @@
       .then(function () { busy(false); });
   }
 
-  form.addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    var q = input.value.trim();
-    if (!q || send.disabled) return;
-    input.value = ""; ask(q);
-  });
   document.getElementById("ask-new").addEventListener("click", function () {
-    if (send.disabled) return;
-    history = []; MC.clear(log); empty.hidden = false; input.focus();
+    if (working) return;
+    history = []; MC.clear(log); empty.hidden = false;
   });
   STARTERS.forEach(function (s) {
     var b = el("button", { type: "button" }, s);
-    b.addEventListener("click", function () { if (!send.disabled) ask(s); });
+    b.addEventListener("click", function () { if (!working) ask(s); });
     chips.appendChild(b);
   });
   var botHolder = document.getElementById("ask-empty-bot");
   if (botHolder) botHolder.appendChild(avatar(true));  // waiting for a question: alive, not asleep
 
+  // The command field (dock.js) asks through here: false when the last question is still being answered.
+  MC.ask = { start: function (q) { if (working) return false; ask(q); return true; } };
   MC.views.ask = { update: function () {} };
 })();

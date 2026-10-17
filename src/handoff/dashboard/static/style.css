@@ -280,9 +280,6 @@ a { color: var(--blue); }
 .ask-list { margin: 4px 0; padding-left: 1.3em; display: grid; gap: 4px; }
 .ask-list li { overflow-wrap: anywhere; }
 .ask-turn code, .ask-answer code { background: var(--soft); padding: 0 4px; }
-.ask-form { display: flex; gap: 8px; position: sticky; bottom: 8px; background: var(--bg); padding: 8px 0; border-top: 1px solid var(--line); }
-.ask-form input { flex: 1; min-width: 0; font: inherit; padding: 8px 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
-.ask-form input:focus-visible { outline: 1px solid var(--blue); border-color: var(--blue); }
 @keyframes ask-pulse { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .ask-steps li.now { animation: none; } }
 
@@ -364,3 +361,17 @@ details.card[open] > summary .peek { display: none; }
 .orch-label .k-message, .orch-label .k-nudge, .orch-label .k-digest { fill: var(--teal); }
 .orch-label .k-question, .orch-label .k-standin_answer { fill: var(--purple); }
 .orch-label .k-read { fill: var(--amber); } .orch-label .k-need { fill: var(--red); }
+
+/* the command field: one `$` input fixed at the bottom of every page */
+.dock { position: fixed; left: 50%; bottom: var(--s-5); transform: translateX(-50%); width: min(720px, calc(100% - 2 * var(--s-4)));
+  margin: 0; border: 1px solid var(--line); border-radius: 18px; background: var(--bg); z-index: 10;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--ink) 8%, transparent), 0 12px 32px color-mix(in srgb, var(--ink) 10%, transparent); }
+.dock:focus-within { border-color: var(--ink); }
+.dock-row { display: flex; align-items: center; gap: var(--s-3); padding: 0 var(--s-4); font-size: var(--fs-md); }
+.ps1 { color: var(--dim); font-weight: 400; }
+.dock input { flex: 1; min-width: 0; font: inherit; background: transparent; color: var(--ink); border: 0; outline: 0; padding: 16px 0; caret-color: var(--ink); }
+.dock input::placeholder { color: var(--dim); }
+.dock-reply { margin: 0; padding: var(--s-2) var(--s-4) 0; font-size: var(--fs-sm); color: var(--green); overflow-wrap: anywhere; }
+.dock-reply.bad { color: var(--red); }
+.dock-reply[hidden] { display: none; }
+@media (max-width: 600px) { .dock { bottom: var(--s-3); } .dock input::placeholder { font-size: var(--fs-sm); } }

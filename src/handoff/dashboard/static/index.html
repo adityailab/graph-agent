@@ -117,13 +117,15 @@
           shows what it is doing, and keeps the Cypher so you can check the answer.</p>
         <div id="ask-chips" class="ask-chips"></div>
       </div>
-      <form id="ask-form" class="ask-form">
-        <input id="ask-input" type="text" maxlength="500" autocomplete="off" placeholder="ask a question, or a follow-up…" aria-label="Question">
-        <button id="ask-send" type="submit">ask</button>
-      </form>
     </section>
   </main>
 </div>
+<form id="dock" class="dock" role="search" aria-label="Command line">
+  <p id="dock-reply" class="dock-reply" role="status" hidden></p>
+  <label class="dock-row"><span class="ps1" aria-hidden="true">$</span>
+    <input id="dock-input" type="text" name="cmd" autocomplete="off" spellcheck="false" maxlength="2000" aria-label="Command"
+      placeholder="ask …   msg &lt;session&gt; …   need &lt;session&gt; …   go &lt;page&gt;"></label>
+</form>
 <script src="/common.js"></script>
 <script src="/critter.js"></script>
 <script src="/orchestration.js"></script>
@@ -138,6 +140,8 @@
 <script src="/askmarkdown.js"></script>
 <script src="/logflow.js"></script>
 <script src="/ask.js"></script>
+<script src="/commands.js"></script>
+<script src="/dock.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
