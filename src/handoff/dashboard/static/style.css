@@ -92,8 +92,6 @@ h3 { font-size: var(--fs-sm); font-weight: 600; color: var(--dim); margin-bottom
 .link-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); margin-bottom: var(--s-1); }
 .link-head .rel { color: var(--amber); font-weight: 600; font-size: var(--fs-xs); }
 .link-head .connect { margin-left: auto; font-size: var(--fs-xs); padding: 0 var(--s-2); border-color: var(--blue); color: var(--blue); }
-.mem-full, .mem-items { list-style: none; padding: 0; margin: var(--s-1) 0 0; display: grid; gap: 0; }
-.mem-full li, .mem-items li { padding-left: var(--s-3); overflow-wrap: anywhere; }
 details.fold > summary, details.card > summary { cursor: pointer; color: var(--dim); list-style: none; }
 details.fold > summary::-webkit-details-marker, details.card > summary::-webkit-details-marker { display: none; }
 details.fold > summary::before, details.card > summary::before { content: "›"; display: inline-block; margin-right: 6px; transition: transform .15s; }
@@ -154,31 +152,6 @@ a { color: var(--blue); }
 
 
 /* memory page */
-.mem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; margin-bottom: 22px; }
-.mem-card { border: 1px solid var(--line); border-top: 3px solid var(--dim); padding: 10px 12px; }
-.mem-head { display: flex; justify-content: space-between; align-items: baseline; }
-.mem-name { font-weight: 700; text-transform: lowercase; }
-.mem-head b { font-size: 24px; }
-.mem-what { margin: 2px 0 6px; }
-.mem-card .dim { margin: 0; }
-.ctx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; margin-bottom: 22px; }
-.ctx { border: 1px solid var(--line); background: var(--soft); }
-.ctx-bar { color: var(--bg); font-weight: 700; padding: 4px 10px; }
-.ctx-body { padding: 8px 12px 12px; }
-.ctx-body h3 { margin-top: 8px; }
-.ctx-body .full { margin: 2px 0 0; overflow-wrap: anywhere; }
-.ctx-body ul { margin: 4px 0 0; padding-left: 1.2em; display: grid; gap: 4px; }
-.ctx-body li { overflow-wrap: anywhere; }
-.facts { margin: 10px 0 0; }
-.ctx-flows { display: grid; gap: 2px 24px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); color: var(--dim); }
-.ctx-flows b { font-weight: 700; }
-.mem-card { cursor: pointer; }
-.mem-card:hover, .mem-card:focus-visible { background: var(--soft); outline: none; }
-.mem-items { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
-.mem-items li { overflow-wrap: anywhere; border-left: 2px solid var(--line); padding-left: 8px; }
-.mem-list { margin-top: 12px; }
-.mem-full { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-.mem-full li { overflow-wrap: anywhere; border-left: 2px solid var(--line); padding-left: 8px; }
 .ask-bar { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
 .ask-bar h2 { margin: 0; }
 .ask-bar button { margin-left: auto; }
@@ -227,8 +200,6 @@ details.card[open] > summary .peek { display: none; }
 .link-head .rel { color: var(--amber); font-weight: 700; font-size: 11px; }
 .link-head .connect { margin-left: auto; font-size: 11px; padding: 0 8px; border-color: var(--blue); color: var(--blue); }
 .link-card .full, .item-card .full, .node-card .full { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.mem-full, .mem-items { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 0; }
-.mem-full li, .mem-items li { border-left: 0; padding-left: 10px; }
 
 /* the log as a swimlane */
 .flow-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }

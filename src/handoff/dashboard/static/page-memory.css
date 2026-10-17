@@ -1,0 +1,27 @@
+/* page-only CSS for 03-memory (shared styles are in shared.css) */
+.stats-line { font-size: var(--fs-sm); color: var(--dim); margin-bottom: var(--s-3); }
+
+#kinds { display: block; width: 100%; max-width: 900px; margin: 0 auto; height: auto; min-width: 640px; }
+.ah { fill: var(--dim); } .karrow { fill: none; stroke: var(--dim); stroke-width: 1.6; }
+.kbox { fill: var(--soft); stroke: var(--line); } .kcard { cursor: pointer; }
+.kcard:hover .kbox, .kcard:focus-visible .kbox { stroke: var(--ink); } .kcard:focus-visible { outline: none; } .kcard:focus-visible .kbox { stroke-width: 2.5; stroke: var(--blue); }
+.kname { fill: var(--ink); font-size: var(--fs-md); font-weight: 700; }
+.kcount { font-size: var(--fs-xl); font-weight: 700; }
+.kwhat { fill: var(--ink); font-size: var(--fs-xs); } .kdet { fill: var(--dim); font-size: var(--fs-xs); }
+.pill-box { fill: var(--bg); stroke: var(--line); } .kpill { fill: var(--dim); font-size: var(--fs-xs); font-weight: 700; }
+.mem-key { font-size: var(--fs-xs); color: var(--dim); margin: var(--s-2) 0 var(--s-5); }
+.ctx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--s-4); margin: var(--s-3) 0 var(--s-5); align-items: start; }
+.ctx { background: var(--soft); }
+.ctx-bar { display: flex; align-items: center; gap: var(--s-2); color: var(--ink); font-weight: 600; padding: var(--s-3) var(--s-4); font-size: var(--fs-md); border-bottom: 1px solid var(--line); border-top: 3px solid var(--c); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.ctx-bar svg { background: transparent; } .ctx-bar .inbox { margin-left: auto; font-size: var(--fs-xs); font-weight: 400; color: var(--dim); }
+.ctx-body { padding: var(--s-3); display: grid; gap: var(--s-2); }
+.facts { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); font-size: var(--fs-xs); color: var(--dim); }
+.facts b { color: var(--ink); font-size: var(--fs-md); } .facts .need b { color: var(--red); }
+.ctx-body details.fold { margin: 0; font-size: var(--fs-sm); }
+ul.plain { list-style: none; margin: var(--s-2) 0 0; padding: 0; display: grid; gap: var(--s-2); }
+ul.plain > li:not(.item-card) { overflow-wrap: anywhere; border-left: 2px solid var(--line); padding-left: var(--s-2); }
+.ctx-body .item-card { padding: var(--s-2); background: var(--bg); }
+#memory .lines-table { width: 100%; border-collapse: collapse; margin-top: var(--s-2); font-size: var(--fs-sm); }
+.lines-table td { padding: var(--s-1) var(--s-3) var(--s-1) 0; border-bottom: 1px dotted var(--line); } .lines-table b { margin-right: var(--s-3); white-space: nowrap; }
+
+.mem-list-note { color: var(--dim); }
