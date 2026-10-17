@@ -7,11 +7,13 @@ from typing import Any
 from falkordb import Graph
 from graphrag_sdk import GraphExtraction, GraphRAG, GraphRAGError
 
+from handoff.graph.knowledge import merge_same_name_entities
 from handoff.knowledge.adapters import ModelLLM
 from handoff.knowledge.runner import AsyncRunner
 from handoff.models.base import ModelUnavailable
 
 TIMEOUT_SECONDS = 300
+FUZZY_MATCH = 0.9  # cosine similarity of entity names that counts as the same thing
 
 
 class KnowledgeUnavailable(ModelUnavailable):
@@ -42,7 +44,11 @@ class KnowledgeClient:
             raise KnowledgeUnavailable("the model failed while extracting; will retry later")
 
     def finalize_sync(self) -> None:
+        """Run GraphRAG's post-ingest steps, then merge duplicate entities: by meaning
+        within a type (GraphRAG's fuzzy pass), then by name across types (ours)."""
         self._call(self.rag.finalize())
+        self._call(self.rag.deduplicate_entities(fuzzy=True, similarity_threshold=FUZZY_MATCH))
+        merge_same_name_entities(self.kg)
 
     def completion_sync(self, question: str, **kwargs: Any) -> Any:
         return self._call(self.rag.completion(question, **kwargs))

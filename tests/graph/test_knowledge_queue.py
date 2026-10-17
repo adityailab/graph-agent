@@ -21,10 +21,10 @@ def test_decisions_are_claimed_before_requests_oldest_first(ready: Graph) -> Non
     first = claim_next(ready, now=100, stale_ms=50)
     assert first is not None
     assert (first.id, first.role) == ("d1", "frontend")
-    assert first.text == "The frontend session decided: read avatarUrl. Reason: server owns urls."
+    assert first.text == "Decided: read avatarUrl. Reason: server owns urls."
     second = claim_next(ready, now=100, stale_ms=50)
     assert second is not None
-    assert (second.id, second.text) == ("p1", 'The frontend session was asked: "show avatar"')
+    assert (second.id, second.text) == ("p1", "show avatar")
     assert claim_next(ready, now=100, stale_ms=50) is None
 
 

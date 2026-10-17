@@ -52,3 +52,41 @@ def describe_items(graph: Graph, ids: list[str]) -> list[ItemRef]:
         for r in rows
     }
     return [found[i] for i in ids if i in found]
+
+
+# GraphRAG-SDK only merges entities with the same name AND type, so "frontend" as a
+# Concept and as a Technology stay apart and split the links between sessions. This
+# keeps the copy with the longest description and moves the others' links onto it.
+_MERGE_SAME_NAME = """
+MATCH (e:__Entity__)
+WITH toLower(trim(e.name)) AS key, e ORDER BY size(coalesce(e.description, '')) DESC
+WITH key, collect(e) AS same WHERE size(same) > 1
+WITH head(same) AS keep, tail(same) AS dups
+UNWIND dups AS dup
+CALL {
+  WITH keep, dup
+  MATCH (dup)-[r:RELATES]->(t) WHERE t <> keep
+  CREATE (keep)-[n:RELATES]->(t) SET n = properties(r)
+  RETURN count(*) AS moved_out
+}
+CALL {
+  WITH keep, dup
+  MATCH (s)-[r:RELATES]->(dup) WHERE s <> keep
+  CREATE (s)-[n:RELATES]->(keep) SET n = properties(r)
+  RETURN count(*) AS moved_in
+}
+CALL {
+  WITH keep, dup
+  MATCH (dup)-[:MENTIONED_IN]->(c)
+  MERGE (keep)-[:MENTIONED_IN]->(c)
+  RETURN count(*) AS mentions
+}
+DETACH DELETE dup
+RETURN count(dup)
+"""
+
+
+def merge_same_name_entities(kg: Graph) -> int:
+    """Merge knowledge-graph entities that share a name whatever their type; return how
+    many duplicates were removed."""
+    return int(kg.query(_MERGE_SAME_NAME).result_set[0][0])

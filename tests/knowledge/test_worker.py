@@ -40,7 +40,7 @@ def test_one_step_ingests_one_item_under_our_id(ready: Graph, tmp_path: Path) ->
     rag = FakeRag()
     worker = _worker(ready, rag, tmp_path)
     assert worker.step() is True
-    assert rag.ingested == [("p1", 'The frontend session was asked: "show avatar"')]
+    assert rag.ingested == [("p1", "show avatar")]
     assert worker.step() is False  # nothing left
 
 
