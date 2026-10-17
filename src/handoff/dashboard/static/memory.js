@@ -14,9 +14,7 @@
     card.appendChild(head); card.appendChild(el("p", { "class": "mem-what" }, t.what)); card.appendChild(el("p", { "class": "dim" }, t.detail));
     MC.countTo(n, t.count, "memory:" + t.key);
     card.setAttribute("role", "button"); card.tabIndex = 0;
-    card.setAttribute("aria-expanded", String(MC.memoryDetail.current() === t.key));
-    if (MC.memoryDetail.current() === t.key) card.classList.add("open");
-    var choose = function () { MC.memoryDetail.toggle(t.key); signature = ""; update(window.MC.lastState); };
+    var choose = function () { MC.memoryDetail.openGraph(t.key); };
     card.addEventListener("click", choose);
     card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(); } });
     return card;
@@ -56,7 +54,6 @@
 
   function update(state) {
     var memory = state.memory || { types: [], contexts: [] };  // an older server sends no memory
-    MC.lastState = state;
     var sig = JSON.stringify([memory, state.flows]);
     if (sig === signature) return;
     signature = sig; MC.clear(root);
@@ -65,9 +62,7 @@
     var grid = el("div", { "class": "mem-grid" });
     memory.types.forEach(function (t) { grid.appendChild(kindCard(t)); });
     root.appendChild(grid);
-    var panel = el("div", { "class": "mem-open" });
-    root.appendChild(panel); MC.memoryDetail.showKind(panel, MC.memoryDetail.current());
-    if (!MC.memoryDetail.current()) panel.appendChild(el("p", { "class": "dim" }, "click a kind of memory to open what is inside it"));
+    root.appendChild(el("p", { "class": "dim" }, "click a kind of memory to see it as a graph"));
     root.appendChild(el("h3", {}, "what each session holds right now"));
     var ctxs = el("div", { "class": "ctx-grid" });
     memory.contexts.forEach(function (c) { ctxs.appendChild(context(c)); });

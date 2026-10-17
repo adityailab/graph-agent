@@ -35,6 +35,7 @@ KINDS = ["Session", "Request", "Decision", "Need", "Edit", "File", "Message"]
 
 _EDGES = """
 MATCH (a)-[r]->(b) WHERE labels(a)[0] IN $kinds AND labels(b)[0] IN $kinds
+  AND (size($rels) = 0 OR type(r) IN $rels)
 RETURN id(a), labels(a)[0], coalesce(a.role, a.text, a.path, a.name),
        id(b), labels(b)[0], coalesce(b.role, b.text, b.path, b.name),
        type(r), coalesce(r.at, b.at, a.at, 0) AS ts
@@ -73,13 +74,20 @@ def _owners(graph: Graph) -> dict[int, str]:
     return owners
 
 
-def work_graph(graph: Graph, *, limit: int) -> GraphView:
-    """The newest `limit` relationships of the work graph and the nodes they join."""
+def work_graph(
+    graph: Graph,
+    *,
+    limit: int,
+    kinds: list[str] | None = None,
+    rels: list[str] | None = None,
+) -> GraphView:
+    """The newest `limit` relationships of the work graph and the nodes they join. `kinds` and
+    `rels` narrow it to some node labels and relationship types (all of them by default)."""
     owners = _owners(graph)
     nodes: dict[str, ViewNode] = {}
     edges: list[ViewEdge] = []
     for a, a_kind, a_text, b, b_kind, b_text, kind, _ts in graph.ro_query(
-        _EDGES, {"kinds": KINDS, "limit": limit}
+        _EDGES, {"kinds": kinds or KINDS, "rels": rels or [], "limit": limit}
     ).result_set:
         for node_id, node_kind, text in ((a, a_kind, a_text), (b, b_kind, b_text)):
             key = f"{node_kind}:{node_id}"

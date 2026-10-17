@@ -7,9 +7,9 @@
   var MC = window.MC;
   var holder = document.getElementById("graph"), tip = document.getElementById("tip");
   var count = document.getElementById("graph-count"), legend = document.getElementById("legend");
-  var SIZE = { Session: 6.5, Request: 3.6, Decision: 4, Need: 4, Edit: 2.6, File: 4, Message: 3 };
+  var SIZE = { Session: 6.5, Request: 3.6, Decision: 4, Need: 4, Edit: 2.6, File: 4, Message: 3, Convention: 4.5, Topic: 4 };
   var EDGE = ["#e11d48", "#0ea5e9", "#22c55e", "#a855f7", "#f59e0b", "#14b8a6", "#ec4899", "#84cc16", "#6366f1", "#f97316"], edgeSlots = {};
-  var mode = "work", visible = false, last = { work: null, concepts: null, sig: "" };
+  var mode = "work", visible = false, last = { work: null, concepts: null, memory: null, sig: "" };
   var nodes = {}, plain = [], hover = null, hoverLink = null, selected = null, pal = {}, typeSlots = {}, degree = {};
   var fg = ForceGraph()(holder).backgroundColor("rgba(0,0,0,0)").nodeId("id").cooldownTicks(220).onEngineStop(function () { if (visible && !selected) fg.zoomToFit(300, 60); })
     .linkDirectionalArrowLength(5).linkDirectionalArrowRelPos(1).linkWidth(function (l) { return lit(l) ? 2.2 : 1; })
@@ -41,7 +41,7 @@
   function shape(ctx, n, r) {
     ctx.beginPath();
     if (n.kind === "Decision") { ctx.moveTo(n.x, n.y - r * 1.3); ctx.lineTo(n.x + r * 1.3, n.y); ctx.lineTo(n.x, n.y + r * 1.3); ctx.lineTo(n.x - r * 1.3, n.y); ctx.closePath(); }
-    else if (n.kind === "File" || n.kind === "Need") ctx.rect(n.x - r, n.y - r, r * 2, r * 2);
+    else if (n.kind === "File" || n.kind === "Need" || n.kind === "Convention") ctx.rect(n.x - r, n.y - r, r * 2, r * 2);
     else ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
   }
 
@@ -141,12 +141,21 @@
   function update(state) {
     var sig = JSON.stringify([state.work, state.concepts]);
     if (sig === last.sig) return;
-    last = { work: state.work, concepts: state.concepts, sig: sig };
+    last = { work: state.work, concepts: state.concepts, memory: last.memory, sig: sig };
     var v = last[mode], first = !Object.keys(nodes).length;
     if (v && (v.nodes.length || mode === "work")) sync(v); else show();
     if (first && visible) setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
   }
 
-  MC.views.graph = { update: update, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
+  // Draw one kind of memory (from the memory page) as its own small graph, in its own mode.
+  function showMemory(kind, view) {
+    var button = document.getElementById("graph-memory");
+    last.memory = view; mode = "memory";
+    button.hidden = false; button.textContent = "memory · " + kind;
+    document.querySelectorAll("[data-mode]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === button)); });
+    show(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
+  }
+
+  MC.views.graph = { update: update, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
   resize();
 })();

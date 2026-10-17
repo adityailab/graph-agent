@@ -34,6 +34,6 @@ graph holds and what each live session has in hand.
 
 ## Opening a memory
 
-On the dashboard's memory page, click a kind to open what is inside it (newest first). Each
+On the dashboard's memory page, click a kind to see it drawn as a graph on the graph page (a `memory · kind` button); click a node there to read its full text. Each
 session's card also lists "relevant memories": decisions whose words match what that session is
-working on now. Both come from `/api/memory/<kind>` and `/api/memory/relevant/<role>`.
+working on now. They come from `/api/memory/<kind>/graph` (also `/api/memory/<kind>` as a list) and `/api/memory/relevant/<role>`.
