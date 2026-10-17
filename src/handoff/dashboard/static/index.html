@@ -80,6 +80,7 @@
       <div class="graph-layout">
         <div>
           <div class="canvas-wrap">
+            <div id="canvas-tools" class="canvas-tools" hidden></div>
             <div id="graph" role="img" aria-label="The shared graph, drawn live: decisions as diamonds, files and needs as squares"></div>
             <div id="tip" class="tip" hidden></div>
           </div>
@@ -132,8 +133,10 @@
 <aside id="dock-chat" class="chat-panel" aria-label="Answers about this page" hidden>
   <div id="chat-grip" class="chat-grip" role="separator" aria-orientation="vertical" aria-label="Drag to resize the answer panel" tabindex="0"></div>
   <div class="chat-head"><span>asking about this page</span><button type="button" id="dock-chat-close" aria-label="Close the answer panel">×</button></div>
+  <p id="chat-empty" class="chat-empty">Ask anything about this page or the project, in your own words. The answer and the Cypher behind it show here, and the whole conversation is kept on the Ask page.</p>
   <div id="dock-chat-log" class="ask-log" aria-live="polite"></div>
 </aside>
+<button type="button" id="bot-button" class="bot-fab" aria-label="Ask about this page" title="Ask about this page (press /)"><svg id="bot-icon" viewBox="0 0 44 36" width="40" height="34" aria-hidden="true"></svg></button>
 <form id="dock" class="dock" role="search" aria-label="Command line">
   <p id="dock-reply" class="dock-reply" role="status" hidden></p>
   <label class="dock-row"><span class="ps1" aria-hidden="true">$</span>

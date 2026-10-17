@@ -58,7 +58,7 @@
   // "/" jumps to the field from anywhere, as in a terminal's search.
   document.addEventListener("keydown", function (ev) {
     if (ev.key === "/" && !/^(INPUT|TEXTAREA)$/.test(ev.target.tagName) && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
-      ev.preventDefault(); input.focus();
+      ev.preventDefault(); if (MC.view() !== "ask") MC.chatPanel.open(); input.focus();
     }
   });
 

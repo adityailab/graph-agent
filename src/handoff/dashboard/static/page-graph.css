@@ -59,3 +59,14 @@ button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-c
 .path-bar[hidden] { display: none; }
 .path-bar .chip { font-size: var(--fs-xs); }
 .mem-list { margin-top: var(--s-3); }
+
+/* kind toggles each in their own colour: filled when shown, dashed outline when hidden */
+.toggle { border-color: var(--c); }
+button.toggle[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: var(--bg); }
+button.toggle[aria-pressed="false"] { color: var(--c); border-style: dashed; background: transparent; }
+button.toggle[aria-pressed="false"] i { color: var(--c); opacity: .8; }
+/* fit, pin and unpin sit on the canvas itself, top right */
+.canvas-tools { position: absolute; top: var(--s-2); right: var(--s-2); z-index: 4; display: flex; gap: var(--s-1); }
+.canvas-tools[hidden] { display: none; }
+.canvas-tools button { background: var(--bg); font-size: var(--fs-xs); padding: 3px var(--s-2); box-shadow: var(--lift); }
+.canvas-tools button[aria-pressed="true"] { background: var(--ink); }

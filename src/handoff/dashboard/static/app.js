@@ -7,7 +7,7 @@
   var status = document.getElementById("status");
 
   function setView(name) {
-    current = name;
+    current = name; document.body.setAttribute("data-view", name);
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-view") === name)); });
     VIEWS.forEach(function (v) { document.getElementById("view-" + v).hidden = v !== name; });
     MC.views.graph.setVisible(name === "graph");

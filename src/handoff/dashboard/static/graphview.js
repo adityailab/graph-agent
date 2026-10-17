@@ -179,6 +179,7 @@
   // Nodes float free by default; "pin on drag" makes a dragged node stay where it is put.
   fg.onNodeDragEnd(function (n) { if (pinning) { n.fx = n.x; n.fy = n.y; } });
   window.addEventListener("resize", resize);
+  window.addEventListener("handoff-layout", function () { if (visible) { resize(); setTimeout(function () { fit(300, 40); }, 200); } });
 
   function update(state) {
     var sig = JSON.stringify([state.work, state.concepts]);

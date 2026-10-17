@@ -2,6 +2,7 @@
 (function () {
   "use strict";
   var MC = window.MC, el = MC.el, M = MC.graphModel;
+  var TINT = { Decision: "--green", Need: "--red", Message: "--teal", Request: "--blue", File: "--amber" };
   var GLYPH = { Decision: "◆ decisions", Need: "■ needs", Message: "● messages", Request: "● requests", File: "▪ files" };
   var MODES = [["work", "work graph"], ["concepts", "concept graph"]];
 
@@ -27,16 +28,15 @@
     if (s.mode === "work") {
       var show = group("Show"); show.appendChild(el("span", { "class": "lbl" }, "show"));
       M.TOGGLES.forEach(function (k) {
-        var b = button(GLYPH[k] + " ", s.kinds[k]); b.className = "toggle"; b.appendChild(el("i", {}, String(counts[k] || 0)));
+        var b = button(GLYPH[k] + " ", s.kinds[k]); b.className = "toggle"; b.style.setProperty("--c", "var(" + TINT[k] + ")"); b.appendChild(el("i", {}, String(counts[k] || 0)));
         b.addEventListener("click", function () { on.toggle(k); }); show.appendChild(b);
       });
       box.appendChild(show);
     }
-    var right = el("span", { "class": "right" }), fit = button("fit", false, "graph-fit"), pin = button("pin on drag: " + (s.pinning ? "on" : "off"), s.pinning, "graph-pin"), un = button("unpin all", false, "graph-unpin");
+    var right = document.getElementById("canvas-tools"); MC.clear(right); right.hidden = false; var fit = button("fit", false, "graph-fit"), pin = button("pin on drag: " + (s.pinning ? "on" : "off"), s.pinning, "graph-pin"), un = button("unpin all", false, "graph-unpin");
     fit.addEventListener("click", on.fit); pin.addEventListener("click", on.pin); un.addEventListener("click", on.unpin);
     [fit, pin, un].forEach(function (b) { b.removeAttribute("aria-pressed"); right.appendChild(b); });
     pin.setAttribute("aria-pressed", String(!!s.pinning));
-    box.appendChild(right);
   }
 
   window.MC.graphBar = { render: render };

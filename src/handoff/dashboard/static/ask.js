@@ -29,6 +29,34 @@
     log.appendChild(row); toBottom();
   }
 
+  // The finished answer: its words, the Cypher it ran, and a copy button. Used live and when mirrored.
+  function finish(body, answer, queries) {
+    var text = el("div", { "class": "ask-answer" }); MC.markdown(text, answer); body.appendChild(text);
+    if (queries.length) {
+      var d = el("details", { "class": "ask-cypher" });
+      d.appendChild(el("summary", {}, "Cypher it ran (" + queries.length + ")"));
+      queries.forEach(function (q) { d.appendChild(el("pre", {}, q)); });
+      body.appendChild(d);
+    }
+    var copy = el("button", { type: "button", "class": "ask-copy" }, "copy answer");
+    copy.addEventListener("click", function () {
+      var ok = function () { copy.textContent = "copied"; setTimeout(function () { copy.textContent = "copy answer"; }, 1200); };
+      if (navigator.clipboard) navigator.clipboard.writeText(answer).then(ok, function () {});
+    });
+    body.appendChild(copy);
+  }
+
+  // Every question asked from another page is also written into the Ask page, so the whole
+  // conversation can be read in one place.
+  function mirror(question, answer, queries, page) {
+    empty.hidden = true;
+    var me = el("div", { "class": "ask-row me" }), bubble = el("div", { "class": "ask-me" }, question);
+    if (page && page !== "ask") bubble.appendChild(el("span", { "class": "from-page" }, "asked on the " + page + " page"));
+    me.appendChild(bubble); askLog.appendChild(me);
+    var row = el("div", { "class": "ask-row bot" }), body = el("div", { "class": "ask-body" });
+    row.appendChild(avatar(false)); row.appendChild(body); finish(body, answer, queries); askLog.appendChild(row);
+  }
+
   // One assistant turn: avatar, live steps, a notes line for the words as they arrive, the answer.
   function claudeTurn() {
     var row = el("div", { "class": "ask-row bot" }), body = el("div", { "class": "ask-body" });
@@ -59,19 +87,7 @@
         var how = el("details", { "class": "ask-how" });
         how.appendChild(el("summary", {}, "how it got there · " + count + " steps · " + secs + "s"));
         body.replaceChild(how, steps); how.appendChild(steps);
-        var text = el("div", { "class": "ask-answer" }); MC.markdown(text, answer); body.appendChild(text);
-        if (queries.length) {
-          var d = el("details", { "class": "ask-cypher" });
-          d.appendChild(el("summary", {}, "Cypher it ran (" + queries.length + ")"));
-          queries.forEach(function (q) { d.appendChild(el("pre", {}, q)); });
-          body.appendChild(d);
-        }
-        var copy = el("button", { type: "button", "class": "ask-copy" }, "copy answer");
-        copy.addEventListener("click", function () {
-          var ok = function () { copy.textContent = "copied"; setTimeout(function () { copy.textContent = "copy answer"; }, 1200); };
-          if (navigator.clipboard) navigator.clipboard.writeText(answer).then(ok, function () {});
-        });
-        body.appendChild(copy); bot.setAttribute("class", "ask-bot idle"); bot.replaceChild(avatar(false).firstChild, bot.firstChild); toBottom();
+        finish(body, answer, queries); bot.setAttribute("class", "ask-bot idle"); bot.replaceChild(avatar(false).firstChild, bot.firstChild); toBottom();
       },
       fail: function (message) {
         clearInterval(timer); tick(); live.remove(); clock.remove();
@@ -99,6 +115,7 @@
   // `target` is a container to draw into (the dock's answer panel); `context` says what the person is looking at.
   function ask(question, target, context) {
     log = target || askLog; if (!target) empty.hidden = true;
+    var page = MC.view();
     userTurn(question);
     var turn = claudeTurn(), finished = false;
     turn.step("sending the question"); busy(true);
@@ -118,7 +135,7 @@
           else if (line.text) turn.text(line.text);
           else if (line.thought) turn.thought(line.thought);
           else if (line.error) end(function () { turn.fail(line.error); });
-          else if (line.answer) end(function () { turn.done(line.answer, line.queries || []); history.push({ q: question, a: line.answer }); });
+          else if (line.answer) end(function () { turn.done(line.answer, line.queries || []); history.push({ q: question, a: line.answer }); if (target) mirror(question, line.answer, line.queries || [], page); });
         });
       })
       .catch(function (e) { end(function () { turn.fail("could not ask: " + e.message); }); })
@@ -127,7 +144,7 @@
 
   document.getElementById("ask-new").addEventListener("click", function () {
     if (working) return;
-    history = []; MC.clear(askLog); empty.hidden = false;
+    history = []; MC.clear(askLog); MC.clear(document.getElementById("dock-chat-log")); empty.hidden = false;
   });
   STARTERS.forEach(function (s) {
     var b = el("button", { type: "button" }, s);

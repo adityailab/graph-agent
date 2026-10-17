@@ -273,3 +273,14 @@ details.card[open] > summary .peek { display: none; }
   body.chat-open .dock:focus-within .dock-row { box-shadow: inset 0 -2px 0 var(--ink); }
 }
 @media (max-width: 999px) { .chat-panel { top: auto; left: var(--s-3); right: var(--s-3); width: auto; height: 55vh; bottom: 92px; } .chat-grip { display: none; } }
+.from-page { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--dim); }
+
+/* the bot: a small button until it is clicked; then the panel opens and the box lives in it */
+.bot-fab { position: fixed; right: var(--s-5); bottom: var(--s-5); z-index: 10; width: 60px; height: 60px; border-radius: 50%; padding: 0; display: grid; place-items: center;
+  background: var(--bg); border: 1px solid var(--line); box-shadow: 0 2px 6px color-mix(in srgb, var(--ink) 10%, transparent), 0 10px 28px color-mix(in srgb, var(--ink) 12%, transparent); }
+.bot-fab:hover { background: var(--soft); border-color: var(--ink); }
+body.chat-open .bot-fab, body[data-view="ask"] .bot-fab { display: none; }
+.dock { display: none; }
+body.chat-open .dock, body[data-view="ask"] .dock { display: block; }
+.chat-empty { margin: 0; padding: var(--s-4); color: var(--dim); font-size: var(--fs-sm); }
+.chat-panel.has-turns .chat-empty { display: none; }
