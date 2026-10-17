@@ -48,13 +48,14 @@ knowledge graph (it pulls a large dependency).
 ## See it work
 
 ```bash
-handoff demo --live
+handoff demo
 ```
 
 opens a tmux grid of three real Claude Code sessions plus a live feed, and runs a
 collaboration (a small shop, "ShopLite") round by round. Accept Claude Code's folder-trust
-prompt in each pane and it starts by itself. `handoff demo` does the same headless and
-checks the result (PASS or what is missing). Both use your plan.
+prompt in each pane and it starts by itself. Without tmux, or when output is not a
+terminal, it runs headless instead; `handoff demo --headless` forces that, as plain text
+ending in a PASS or what is missing. Both use your plan, on Haiku.
 
 Open **http://localhost:3000** (FalkorDB Browser), pick the demo graph and run
 `MATCH p=()-[]->() RETURN p`.
@@ -74,7 +75,7 @@ Full walkthrough: [docs/guide.md](docs/guide.md). How two sessions started at di
 | `handoff watch` | Live feed of the graph |
 | `handoff coordinator` | Always-on agent: reminds a role about a need open 30 min, tells two roles who changed the same file, sends you an hourly digest (`--once`, `--dry-run`) |
 | `handoff knowledge` | Build the knowledge graph (concepts the work is about) |
-| `handoff demo [--live]` | The proof |
+| `handoff demo [--headless]` | The proof |
 | `handoff doctor` | Diagnose hooks, servers, database |
 
 Inside a session the tools are: `handoff`, `why`, `sessions`, `record_decision`,

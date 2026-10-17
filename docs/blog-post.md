@@ -49,7 +49,7 @@ On top of the graph:
 
 ## What it looks like
 
-`handoff demo --live` opens a tmux grid with three real Claude Code sessions and a live
+`handoff demo` opens a tmux grid with three real Claude Code sessions and a live
 feed. In one rehearsal, building a small shop called ShopLite, the three sessions made
 31 edits across 19 files, recorded 15 decisions with reasons, resolved 3 of 4 needs
 between roles, and read each other's work 17 times. The deploy session summarised what
@@ -76,7 +76,7 @@ write the missing tests.
 ```bash
 uv tool install "handoff[knowledge] @ git+https://github.com/adityailab/graph-agent"
 cd your-project && handoff init
-handoff demo --live
+handoff demo
 ```
 
 Needs Docker, Claude Code and uv. FalkorDB runs in a container bound to localhost, and
