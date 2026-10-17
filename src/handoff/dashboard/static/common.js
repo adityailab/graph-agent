@@ -32,6 +32,36 @@
     return node;
   }
 
+  // Text from the graph with its paths, constants and role names in colour. Spans only ever get
+  // textContent, so nothing in the text can become markup.
+  var ROLE_WORDS = [];
+  function words(roles) { ROLE_WORDS = roles.slice(); }
+  function rich(parent, text) {
+    var roles = ROLE_WORDS.map(function (r) { return r.replace(/[^\w-]/g, ""); }).filter(Boolean).join("|");
+    var re = new RegExp("(\\bwhy:|[\\w.\\-]*\\/[\\w.\\-\\/]+|\\b[A-Z][A-Z0-9_]{3,}\\b" + (roles ? "|\\b(?:" + roles + ")\\b" : "") + ")", "g");
+    var last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
+      var w = m[0], cls = w === "why:" ? "t-why" : ROLE_WORDS.indexOf(w) >= 0 ? "t-role" : /^[A-Z0-9_]+$/.test(w) ? "t-const" : "t-path";
+      var span = el("span", { "class": cls }, w);
+      if (cls === "t-role") span.style.color = color(w);
+      parent.appendChild(span); last = m.index + w.length;
+    }
+    if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+    return parent;
+  }
+
+  // Word-wrap to at most `lines` lines of `width` characters; the last line ends with … only if cut.
+  function wrap(text, width, lines) {
+    var out = [], line = "";
+    text.split(/\s+/).forEach(function (w) {
+      if (line && (line + " " + w).length > width) { out.push(line); line = w; } else line = line ? line + " " + w : w;
+    });
+    if (line) out.push(line);
+    if (out.length > lines) { out = out.slice(0, lines); out[lines - 1] = out[lines - 1].slice(0, width - 1) + "…"; }
+    return out;
+  }
+
   function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
   // Who an event is aimed at, read from the feed text: {from, to} or null for events about one role.
@@ -59,5 +89,5 @@
     })(start);
   }
 
-  window.MC = { css: css, clock: clock, color: color, el: el, clear: clear, route: route, countTo: countTo, reduced: reduced, views: {} };
+  window.MC = { wrap: wrap, rich: rich, words: words, css: css, clock: clock, color: color, el: el, clear: clear, route: route, countTo: countTo, reduced: reduced, views: {} };
 })();

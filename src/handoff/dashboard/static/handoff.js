@@ -23,8 +23,9 @@
     state.roles.forEach(function (r) {
       var own = r.requests + r.decisions + r.edits, got = learned[r.role] || 0;
       var row = el("div", { "class": "mem-row" }), bar = el("div", { "class": "bar" });
-      row.appendChild(el("span", {}, r.role));
+      var name = el("span", { "class": "t-role" }, r.role); name.style.color = MC.color(r.role); row.appendChild(name);
       var a = el("i", { "class": "own" }), b = el("i", { "class": "got" });
+      a.style.background = MC.color(r.role);
       a.style.width = (own / top * 100) + "%";
       b.style.width = (got / top * 100) + "%";
       bar.appendChild(a); bar.appendChild(b); row.appendChild(bar);
@@ -37,13 +38,15 @@
   function card(h, fresh) {
     var c = el("div", { "class": "card" + (fresh ? " fresh" : "") });
     var route = el("div", { "class": "route" });
-    route.textContent = h.reader + " ← read the work of " + h.author; c.appendChild(route);
-    c.appendChild(el("p", { "class": "asked" }, "their request: " + h.request));
+    var rd = el("span", {}, h.reader), au = el("span", {}, h.author);
+    rd.style.color = MC.color(h.reader); au.style.color = MC.color(h.author);
+    route.appendChild(rd); route.appendChild(el("span", { "class": "arrow" }, " ← read the work of ")); route.appendChild(au); c.appendChild(route);
+    c.appendChild(MC.rich(el("p", { "class": "asked" }), "their request: " + h.request));
     if (!h.decisions.length) { c.appendChild(el("p", { "class": "none" }, "no decision was recorded for that work.")); return c; }
     var list = el("ul");
     h.decisions.forEach(function (d) {
-      var li = el("li", {}, d.text);
-      li.appendChild(el("div", { "class": "why" }, "why: " + d.reason));
+      var li = MC.rich(el("li"), d.text);
+      li.appendChild(MC.rich(el("div", { "class": "why" }), "why: " + d.reason));
       list.appendChild(li);
     });
     c.appendChild(list);

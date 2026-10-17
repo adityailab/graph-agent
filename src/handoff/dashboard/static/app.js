@@ -14,16 +14,19 @@
   }
 
   function addToTicker(ev, fresh) {
-    var li = MC.el("li", { "class": fresh ? "fresh" : "", title: ev.role + " " + ev.kind + ": " + ev.text });
-    li.appendChild(MC.el("span", { "class": "t" }, MC.clock(ev.at)));
-    li.appendChild(MC.el("span", { "class": "kind" }, ev.kind.toLowerCase()));
-    li.appendChild(MC.el("span", { "class": "who" }, ev.role));
-    li.appendChild(MC.el("span", {}, ev.text));
+    var li = MC.el("li", { "class": fresh ? "fresh" : "" });
+    var meta = MC.el("div", { "class": "meta" });
+    meta.appendChild(MC.el("span", { "class": "t" }, MC.clock(ev.at)));
+    meta.appendChild(MC.el("span", { "class": "kind k-" + ev.kind.toLowerCase() }, ev.kind.toLowerCase()));
+    var who = MC.el("span", { "class": "who" }, ev.role); who.style.color = MC.color(ev.role);
+    meta.appendChild(who); li.appendChild(meta);
+    li.appendChild(MC.rich(MC.el("span", { "class": "text" }), ev.text));
     ticker.insertBefore(li, ticker.firstChild);
     while (ticker.children.length > 60) ticker.removeChild(ticker.lastChild);
   }
 
   function apply(s) {
+    MC.words(s.roles.map(function (r) { return r.role; }));
     // The baseline is the first snapshot with events, so a graph that appears later is not replayed.
     var first = seenEvents === null && s.events.length > 0;
     if (first) seenEvents = {};
@@ -35,6 +38,7 @@
     var animate = first ? [] : fresh.slice(-8);
     Object.keys(MC.views).forEach(function (name) { MC.views[name].update(s, animate); });
     document.getElementById("graph-name").textContent = s.graph;
+    document.getElementById("graph-ref").textContent = s.graph;
     document.getElementById("clock").textContent = MC.clock(s.now);
     status.textContent = s.error ? s.error : "live"; status.className = "status " + (s.error ? "down" : "live");
     state = s;

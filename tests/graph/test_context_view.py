@@ -61,3 +61,10 @@ def test_an_edit_node_is_labelled_by_what_it_changed_not_none(two_sessions: Grap
     edits = [n.text for n in work_graph(two_sessions, limit=200).nodes if n.kind == "Edit"]
     assert edits
     assert all("None" not in text and text for text in edits)
+
+
+def test_a_long_request_is_kept_whole_so_the_page_can_show_all_of_it(two_sessions: Graph) -> None:
+    long_text = "read " + "the whole handoff before you start, " * 8
+    add_request(two_sessions, session_id="fe", request_id="p9", text=long_text, at=950)
+    texts = {n.text for n in work_graph(two_sessions, limit=200).nodes}
+    assert " ".join(long_text.split()) in texts
