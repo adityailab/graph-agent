@@ -149,7 +149,7 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .logo .d0 { color: var(--blue); } .logo .d1 { color: var(--purple); } .logo .d2 { color: var(--amber); }
 .logo .hand { stroke: var(--dim); }
 .logo .screen { fill: #f6f1e4; } .logo .led { fill: #3ddc84; }
-.detail { border: 1px solid var(--line); border-left: 3px solid var(--blue); padding: 8px 12px; margin-top: 10px; }
+.detail { margin-top: 10px; }
 .detail .full { margin: 2px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .detail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 .detail li { overflow-wrap: anywhere; }
@@ -243,3 +243,14 @@ details.card > summary .route { display: inline; }
 details.card > summary .peek { display: block; margin: 2px 0 0 1.2em; color: var(--dim); }
 details.card[open] > summary .peek { display: none; }
 .more { margin: 10px 0; }
+
+/* cards: the selected node, its connections and the items of a memory */
+.chip { display: inline-block; padding: 0 8px; border: 1px solid var(--c, var(--line)); color: var(--c, var(--ink)); border-radius: 10px; font-size: 11px; font-weight: 700; }
+.node-card, .link-card, .item-card { border: 1px solid var(--line); background: var(--soft); padding: 8px 10px; margin-bottom: 8px; border-radius: 3px; }
+.node-card { border-left: 3px solid var(--blue); }
+.link-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 4px; }
+.link-head .rel { color: var(--amber); font-weight: 700; font-size: 11px; }
+.link-head .connect { margin-left: auto; font-size: 11px; padding: 0 8px; border-color: var(--blue); color: var(--blue); }
+.link-card .full, .item-card .full, .node-card .full { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mem-full, .mem-items { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 0; }
+.mem-full li, .mem-items li { border-left: 0; padding-left: 10px; }
