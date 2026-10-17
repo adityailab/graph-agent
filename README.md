@@ -70,6 +70,7 @@ Open **http://localhost:3000** (FalkorDB Browser), pick the demo graph and run
 | `handoff ask "question"` | Claude answers from the graphs, writing read-only Cypher; prints the query |
 | `handoff insights` | Collisions, load-bearing work, bridges, themes |
 | `handoff watch` | Live feed of the graph |
+| `handoff coordinator` | Always-on agent: reminds a role about a need open 30 min, tells two roles who changed the same file, sends you an hourly digest (`--once`, `--dry-run`) |
 | `handoff knowledge` | Build the knowledge graph (concepts the work is about) |
 | `handoff demo [--live]` | The proof |
 | `handoff doctor` | Diagnose hooks, servers, database |
@@ -92,7 +93,9 @@ Graph (per project): `Session -RECEIVED-> Request -LED_TO-> Decision -ABOUT-> To
 `Session -SENT-> Message -DELIVERED_TO-> Session`, `Message -CITES-> …`,
 `Request -CONSULTED-> Request`, `Insight -CONCERNS-> …`. A second graph `<name>_kg` holds
 concepts extracted from the work by GraphRAG-SDK (entity types: Component, File, Function,
-API, DataField, Service, Library, Setting, Concept).
+API, DataField, Service, Library, Setting, Concept). The types grow from the data: every 10
+ingested items GraphRAG-SDK proposes kinds the text mentions that we lack (e.g. Pipeline, Job,
+DatabaseTable); sound ones are added for future extraction, up to 20, and saved per graph.
 
 ### FalkorDB features in use
 
@@ -122,7 +125,8 @@ API, DataField, Service, Library, Setting, Concept).
 
 - Roles are names you choose per terminal; two terminals with one role in one folder share
   an identity unless Claude Code's process id tells them apart.
-- Stand-in answers and the knowledge graph spend model calls on your plan.
+- Stand-in answers, the knowledge graph and growing entity types spend model calls on your
+  plan; the coordinator, insights and `watch` call no model.
 - FalkorDB 4.22's `betweenness` is a sampled estimate; handoff uses an exact pattern for
   bridges. The guide teaches sessions this and other 4.22 quirks.
 - The live demo reads Claude Code's screen to know when a turn ended, which may change
