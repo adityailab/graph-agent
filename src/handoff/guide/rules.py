@@ -12,6 +12,8 @@ RULES: tuple[str, ...] = (
     "No =~ regular expressions: use string.matchRegEx(text, pattern).",
     "No datetime(): times (at, last_seen_at, started_at) are integer milliseconds since the epoch.",
     "Labels cannot be alternated as (n:A|B): use WHERE n:A OR n:B.",
+    "Give each pattern comprehension in one clause its own variable names: a second "
+    "[(a)-->(f) | f.x] that reuses f silently returns [].",
     "algo.* procedures fail with 'unknown relationship-type' or 'unknown label' when the "
     "graph has none yet: check the counts above before calling one.",
     "algo.betweenness estimates by sampling: results vary between runs unless you pass "

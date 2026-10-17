@@ -62,6 +62,13 @@ RECIPES: tuple[Recipe, ...] = (
         "RETURN node.name, score ORDER BY score DESC LIMIT 5",
     ),
     Recipe(
+        "how much two requests' file changes overlap (handoff's own UDF, 0 to 1)",
+        "work",
+        "MATCH (a:Request)-[:CONSULTED]->(b:Request) "
+        "RETURN a.name, b.name, handoff.overlap([(a)-[:CAUSED]->()-[:TOUCHED]->(fa) | fa.path], "
+        "[(b)-[:CAUSED]->()-[:TOUCHED]->(fb) | fb.path]) AS overlap ORDER BY overlap DESC LIMIT 10",
+    ),
+    Recipe(
         "clusters of edits sharing files (connected components)",
         "work",
         "CALL algo.WCC({nodeLabels: ['Edit', 'File'], relationshipTypes: ['TOUCHED']}) "
