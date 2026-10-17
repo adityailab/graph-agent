@@ -1811,20 +1811,447 @@ Branch: `phase/8-ship`. (Was Phase 7.)
 
 - `scripts/e2e_scenario.sh`: three `claude -p` runs with different `HANDOFF_ROLE` values against a scratch workspace, then a Python check that the deploy handoff contains the frontend request, the resolved need and the backend request.
 
-### Task 8.3: README and licence
+### Tasks 8.3 and 8.4: moved
 
-- README: problem, how it works (graph diagram), setup in three commands, demo walkthrough, graph schema, design decisions, limits.
-- `LICENSE` (MIT).
+README, licence and submission moved to Phase 10, so they describe the product built in
+Phase 9 (`handoff init`, the CLI, the live demo). Phase 8 instead carried the fixes from
+the graph review (17 October): a graph per workspace, readable node names, CONSULTED
+edges, knowledge-graph quality, stand-in citations; see the ledger.
 
-### Task 8.4: Submission (you)
+### Phase 8 gate
 
-- Record the demo video, write the blog post, submit on the WeMakeDevs panel before 18 October 11:59 PM IST.
+`make check` green; `scripts/e2e_scenario.sh` PASS (deploy handoff complete, a delivered
+message, a cited stand-in answer, a CONSULTED edge); fresh opus review, fix pass; merge
+`--no-ff`, tag `phase-8`, notebook updated.
 
 ---
 
-## Phase 9 (stretch): The coordinator
 
-An always-on agent in the spirit of OpenAI's Dots, for a team of coding sessions: it
-watches the graph and acts within rules the person sets, e.g. a need left open for 30
-minutes, two roles changing the same file, an end-of-day digest. Planned only if Phase 8
-is done with time to spare.
+---
+
+# Product phases (from the 17 October product spec)
+
+**Goal:** handoff installed with one command, used from a CLI, visibly working (live
+tmux demo, live feed, FalkorDB Browser), with agents writing their own read-only Cypher
+and FalkorDB algorithms surfacing what matters.
+
+**Architecture:** a thin `handoff` dispatcher over one module per command in
+`handoff/cli/`; Docker and tmux calls go through one injectable runner; all new Cypher in
+`handoff.graph` (`introspect`, `insights`, `feed`, `udf`); the guide text as data in
+`handoff/guide/`. No custom dashboard and no text-to-Cypher engine of our own (spec §2).
+
+**Tech stack:** as before, plus tmux (optional, for `demo --live`). No new Python
+dependencies.
+
+**Spec:** `docs/superpowers/specs/2026-10-17-handoff-product-design.md`
+
+## Global constraints (product phases)
+
+- One-line install: `uv tool install git+https://github.com/adityailab/graph-agent && handoff init`.
+- FalkorDB image `falkordb/falkordb:v4.22.1`, container `handoff-falkordb`, volume
+  `handoff-data`, ports bound to `127.0.0.1` only (6379, 3000).
+- LLM-written Cypher runs only through FalkorDB's MCP server in strict read-only mode
+  (`FALKORDB_STRICT_READONLY=true`), under FalkorDB's 1 s default query timeout.
+- No API key required; `ask` and `demo` spend the person's plan and say so first; the
+  headless demo uses Haiku.
+- CLI failures from missing prerequisites: exit code 1, one plain sentence and a fix, no
+  traceback.
+- The CLAUDE.md rules: modules ≤ ~150 lines, functions ≤ ~40, Cypher only in
+  `handoff.graph`, `$params`, entry points thin, test first.
+
+## Review focus (product phases)
+
+1. `handoff init` where a FalkorDB is already listening on 6379 (e.g. this repo's compose
+   container): use it, never start a second container that fails on the port. Test in 9.2.
+2. `handoff ask` when `claude` is missing or the FalkorDB MCP server cannot start: a clear
+   message within the timeout, never a hang. Test in 9.6.
+3. Insights on an empty or tiny graph: no insights and no errors, even when an `algo.*`
+   procedure has no matching nodes. Test in 9.7.
+4. `handoff watch` when the database goes away mid-run: it shows "database unreachable"
+   and keeps retrying; Ctrl-C exits with code 0. Test in 9.11.
+5. `handoff send` to a role with no session yet: stored, says no live session has that
+   role, delivered when one starts. Test in 9.4.
+
+---
+
+## Phase 9: The product
+
+Branch: `phase/9-product`. Slices A–D are each mergeable; the gate is at the end.
+
+### Task 9.1: The `handoff` dispatcher and the workspace's graph
+
+**Files:**
+- Create: `src/handoff/cli/__init__.py`, `src/handoff/cli/app.py`, `src/handoff/workspace.py`
+- Modify: `src/handoff/main.py` (becomes `from handoff.cli.app import main`)
+- Test: `tests/cli/test_app.py`, `tests/test_workspace.py`
+
+**Interfaces:**
+- Produces: `workspace_graph(folder: Path, env: Mapping[str, str]) -> str` (settings
+  `env.HANDOFF_GRAPH`, else `env["HANDOFF_GRAPH"]`, else `graph_for_workspace(folder)`);
+  `workspace_config(folder: Path, env: Mapping[str, str]) -> Config` (Config.from_env with
+  that graph name); `cli.app.main(argv: list[str] | None = None) -> int`; each command
+  module exposes `add_parser(commands) -> None` and `run(args) -> int`.
+
+- [ ] Step 1: tests:
+```python
+def test_installed_folder_uses_the_graph_in_its_settings(tmp_path: Path) -> None:
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.local.json").write_text('{"env": {"HANDOFF_GRAPH": "shop"}}')
+    assert workspace_graph(tmp_path, {"HANDOFF_GRAPH": "other"}) == "shop"
+
+def test_environment_then_folder_default(tmp_path: Path) -> None:
+    assert workspace_graph(tmp_path, {"HANDOFF_GRAPH": "g"}) == "g"
+    assert workspace_graph(tmp_path, {}) == graph_for_workspace(tmp_path)
+
+def test_broken_settings_fall_back_to_the_default(tmp_path: Path) -> None:
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.local.json").write_text("{not json")
+    assert workspace_graph(tmp_path, {}) == graph_for_workspace(tmp_path)
+
+def test_every_command_is_listed(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit):
+        main(["--help"])
+    out = capsys.readouterr().out
+    for name in ("init", "install", "status", "log", "send", "ask", "insights", "watch",
+                 "knowledge", "demo", "doctor"):
+        assert name in out
+```
+- [ ] Step 2: run, expect ImportError.
+- [ ] Step 3: implement `workspace.py`; `cli/app.py` builds `argparse` subparsers from a
+  tuple of command modules (each `add_parser`, `set_defaults(run=module.run)`), then
+  `return args.run(args)`. Commands not built yet are added by their tasks; this task
+  wires `install` (moved from `main.py`) and `knowledge` (calls `knowledge.cli.main`).
+- [ ] Step 4: tests pass; `make check`.
+- [ ] Step 5: commit `feat(cli): add the handoff command dispatcher and per-folder graph lookup`.
+
+### Task 9.2: `handoff init`: prerequisites, database, install
+
+**Files:**
+- Create: `src/handoff/cli/runner.py`, `src/handoff/prereqs.py`, `src/handoff/database.py`,
+  `src/handoff/cli/init_cmd.py`
+- Test: `tests/test_prereqs.py`, `tests/test_database.py`, `tests/cli/test_init_cmd.py`
+
+**Interfaces:**
+- Produces: `Runner = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]`,
+  `run_command(args) -> CompletedProcess[str]` (no shell, text, 60 s timeout);
+  `Problem(name: str, fix: str)` frozen dataclass;
+  `check_prerequisites(runner: Runner, which: Callable[[str], str | None]) -> list[Problem]`
+  (docker info ok; `claude` and `npx` on PATH; `npx` missing is reported with
+  `optional=True` field);
+  `database_reachable(config: Config) -> bool` (ping);
+  `ensure_database(config: Config, runner: Runner, *, wait_seconds: float = 30) -> str`
+  returning one of "running", "started", "created"; raises `DatabaseUnavailable(str)`.
+- Consumes: `install(...)` from `handoff.install`, `ping` from `handoff.graph.connection`.
+
+- [ ] Step 1: tests (fake runner records argv and returns canned results):
+```python
+def test_a_reachable_database_is_used_as_is(config: Config) -> None:
+    calls: list[list[str]] = []
+    assert ensure_database(config, fake_runner(calls)) == "running"   # real FalkorDB is up
+    assert calls == []                      # review focus 1: no docker call at all
+
+def test_a_stopped_container_is_started(tmp_path: Path) -> None:
+    down = Config("localhost", 1, "g", tmp_path)       # nothing listens on port 1
+    calls: list[list[str]] = []
+    runner = fake_runner(calls, {("docker", "ps", "-a"): "handoff-falkordb\n"})
+    with pytest.raises(DatabaseUnavailable):           # still unreachable after start
+        ensure_database(down, runner, wait_seconds=0.2)
+    assert ["docker", "start", "handoff-falkordb"] in calls
+
+def test_no_container_runs_the_pinned_image_on_localhost(tmp_path: Path) -> None:
+    down = Config("localhost", 1, "g", tmp_path)
+    calls: list[list[str]] = []
+    with pytest.raises(DatabaseUnavailable):
+        ensure_database(down, fake_runner(calls, {("docker", "ps", "-a"): ""}), wait_seconds=0.2)
+    run = next(c for c in calls if c[:2] == ["docker", "run"])
+    assert run[2:] == ["-d", "--name", "handoff-falkordb",
+                       "-p", "127.0.0.1:6379:6379", "-p", "127.0.0.1:3000:3000",
+                       "-v", f"handoff-data:{DATA_DIR}", "falkordb/falkordb:v4.22.1"]
+
+def test_missing_docker_is_one_problem_with_a_fix() -> None:
+    problems = check_prerequisites(failing_runner(), which=lambda name: f"/bin/{name}")
+    assert [p.name for p in problems] == ["docker"]
+    assert "Docker" in problems[0].fix
+```
+  Data directory: run `docker inspect graph-agent-falkordb-1 --format '{{json .Mounts}}'`
+  and the image's `Config.Volumes` first; use the image's declared data path (ledger a
+  Ruling with what was found).
+- [ ] Step 2: run, expect failures.
+- [ ] Step 3: implement. `init_cmd.run`: prerequisites (hard ones stop with exit 1 and
+  each fix; npx missing → install with `falkordb_mcp=False` and a note), then
+  `ensure_database`, then `install(folder, ...)`, then print its instructions.
+- [ ] Step 4: tests pass; `make check`; live: `handoff init` in a scratch folder against
+  the running compose database prints "running" and installs.
+- [ ] Step 5: commit `feat(cli): add handoff init (prerequisites, database, install)`.
+
+### Task 9.3: `status`, `log`, `doctor`
+
+**Files:** Create `src/handoff/cli/status.py`, `log_cmd.py`, `doctor.py`; tests in `tests/cli/`.
+
+**Interfaces:**
+- Consumes: `active_sessions(graph, since=)`, `latest_request_id`, `request_text`,
+  `count_open_needs(graph, role)`, `handoff_requests(graph, role=, since=)`,
+  `select_requests`, `render_handoff`, `workspace_config`.
+- Produces: `knowledge_leader(config: Config) -> bool` in `knowledge/worker.py` (true when
+  the lead lock file is held, tried with a non-blocking lock and released at once), shown
+  by `status` as "knowledge worker: running / not running";
+  `doctor.findings(folder: Path, config: Config) -> list[str]` (empty = healthy):
+  hooks present in settings, `.mcp.json` has `handoff`, database reachable, the last 5
+  ERROR lines of `<home>/logs/hooks.log` from the last hour.
+
+- [ ] Step 1: tests: `status` on `two_sessions` lists frontend and backend with their
+  current request and "1 open need for backend"; `log frontend` prints the frontend block
+  of `render_handoff`; `doctor` on a fresh folder reports "hooks not installed — run
+  handoff init"; on an installed folder with an unreachable port reports the database.
+- [ ] Step 2–4: red, implement, green, `make check`.
+- [ ] Step 5: commit `feat(cli): add status, log and doctor`.
+
+### Task 9.4: `handoff send` (the person as a participant)
+
+**Files:** Create `src/handoff/cli/send.py`; Modify `src/handoff/graph/sessions.py`
+(`person_session_id(cwd: str) -> str`); test `tests/cli/test_send.py`.
+
+**Interfaces:**
+- Consumes: `upsert_session(graph, session_id=, role="person", cwd=, at=)`,
+  `add_message(graph, message_id=, from_session_id=, to_role=, kind="message", text=, reply_to=None, at=)`,
+  `normalise_role`.
+- Produces: `person_session_id(cwd) -> str` = `"person-" + sha256(f"{hostname}:{cwd}")[:12]`.
+
+- [ ] Step 1: tests: after `send backend "use paise"`, `claim_pending_messages` for a
+  backend session returns it from role `person`; sending to a role with no session prints
+  "No session has the role backend yet; it will get this message when one starts."
+  (review focus 5) and stores it; sending twice from one folder reuses one person session.
+- [ ] Steps 2–4; live: in the tmux demo, `handoff send frontend "..."` wakes the idle
+  frontend pane.
+- [ ] Step 5: commit `feat(cli): let a person message a session with handoff send`.
+
+### Task 9.5: `graph_guide`
+
+**Files:**
+- Create: `src/handoff/graph/introspect.py` (`label_counts(graph) -> dict[str, int]`,
+  `relationship_counts(graph) -> dict[str, int]`, `index_summary(graph) -> list[str]`),
+  `src/handoff/guide/__init__.py`, `guide/model.py` (MEANINGS: tuple of
+  `(pattern, meaning)`), `guide/rules.py` (RULES: tuple of str), `guide/recipes.py`
+  (RECIPES: tuple of `Recipe(name, cypher, params)`), `guide/build.py`
+  (`build_guide(graph: Graph, kg: Graph | None, *, graph_name: str, kg_name: str, falkordb_mcp: bool) -> str`),
+  `src/handoff/mcp/guide_tool.py` (`register(server, ctx)`)
+- Modify: `src/handoff/mcp/server.py` (register; one INSTRUCTIONS line), `install.py`
+  is unchanged.
+- Test: `tests/graph/test_introspect.py`, `tests/guide/test_build.py`,
+  `tests/guide/test_recipes.py`, `tests/mcp/test_guide_tool.py`
+
+**Interfaces:**
+- Consumes: `db.meta.stats()`; `CALL db.indexes()` (columns: label, properties, types,
+  options — as printed by the Phase 8 review queries).
+- Produces: `Recipe` frozen dataclass; the MCP tool `graph_guide()`.
+
+- [ ] Step 1: tests:
+```python
+def test_every_recipe_runs_read_only(two_sessions: Graph) -> None:
+    for recipe in RECIPES:
+        if recipe.graph == "kg":
+            continue
+        two_sessions.ro_query(recipe.cypher, recipe.params)   # raises if broken
+
+def test_the_guide_names_this_workspaces_graphs_and_live_counts(two_sessions: Graph) -> None:
+    text = build_guide(two_sessions, None, graph_name="shop", kg_name="shop_kg", falkordb_mcp=True)
+    assert "graph `shop`" in text and "`shop_kg`" in text
+    assert "Request: 3" in text
+    assert "EXISTS" in text            # the 4.22 rules are there
+    assert "query_graph_readonly" in text
+
+def test_without_falkordbs_server_the_guide_says_so(two_sessions: Graph) -> None:
+    text = build_guide(two_sessions, None, graph_name="g", kg_name="g_kg", falkordb_mcp=False)
+    assert "FalkorDB's MCP server is not installed" in text
+```
+  Recipes (each verified in Step 4 on the test graph): full-text with fuzzy/prefix terms
+  over Decision; vector `db.idx.vector.queryNodes('Decision','embedding',5,vecf32($v))`
+  (kg-free, skipped when no embedding); `algo.pageRank('Request','CONSULTED')`;
+  `algo.betweenness({nodeLabels:['Request','Edit','File'], relationshipTypes:['CAUSED','TOUCHED']})`;
+  `algo.WCC({nodeLabels:['Edit','File'], relationshipTypes:['TOUCHED']})`; who consulted
+  whose work; open needs per role; entity → documents in `_kg`.
+  First confirm each `algo.*` YIELD column name with `CALL dbms.procedures()` and record
+  them in the ledger.
+- [ ] Steps 2–4; `make check`.
+- [ ] Step 5: commit `feat(mcp): add graph_guide so sessions can write their own Cypher`.
+
+### Task 9.6: `handoff ask`
+
+**Files:** Create `src/handoff/cli/ask.py`, `src/handoff/cli/stream_json.py`
+(`ToolCall(name, input)`, `parse_stream(lines: Iterable[str]) -> tuple[str, list[ToolCall]]`);
+tests `tests/cli/test_ask.py`, `tests/cli/test_stream_json.py`, fixture
+`tests/cli/data/ask_stream.jsonl` (a trimmed real `claude -p --output-format stream-json
+--verbose` transcript captured in Step 4).
+
+**Interfaces:**
+- Consumes: `install`-style entries `handoff_server_entry`, `falkordb_server_entry`;
+  `Runner`.
+- Produces: `ask_command(question: str, *, folder: Path, config: Config, mcp_config: Path, model: str) -> list[str]`.
+
+- [ ] Step 1: tests: `parse_stream` returns the final result text and every
+  `mcp__falkordb__query_graph_readonly` call's `query`; `ask_command` contains
+  `--strict-mcp-config`, `--mcp-config <file>`, `--allowedTools` with exactly
+  `mcp__handoff__graph_guide mcp__handoff__handoff mcp__handoff__search mcp__falkordb__query_graph_readonly mcp__falkordb__get_graph_schema`,
+  `--no-session-persistence`, and no `--permission-mode`; `run` with a runner that raises
+  `FileNotFoundError` prints "Claude Code (claude) is not installed" and returns 1;
+  with a runner that times out prints "No answer within 180 s" (review focus 2).
+- [ ] Steps 2–4: implement (prompt: answer from the graph; call graph_guide first; query
+  read-only; say which queries you ran). Before running, print one line: "This runs
+  Claude Code on your plan (about one minute)." `demo` prints the same kind of line; live: `handoff ask "which decisions did deploy
+  read?"` against `live` prints an answer and at least one Cypher query.
+- [ ] Step 5: commit `feat(cli): add handoff ask (Claude writes read-only Cypher)`.
+
+### Task 9.7: Insight queries and `:Insight` nodes
+
+**Files:** Create `src/handoff/graph/insights.py`; Modify `graph/schema.py` (range index
+`Insight.kind`); test `tests/graph/test_insights.py`.
+
+**Interfaces:**
+- Produces: `InsightView(kind: str, score: float, text: str, about: tuple[str, ...])`
+  frozen dataclass in `records.py`; `compute_insights(graph) -> list[InsightView]`;
+  `replace_insights(graph, insights: list[InsightView], *, at: int) -> None`;
+  `current_insights(graph, *, limit: int) -> list[InsightView]`.
+- Kinds and queries (YIELD names confirmed in 9.5): `load_bearing` from
+  `algo.pageRank('Request','CONSULTED')` over requests read by 2+ other roles, text
+  "<role> #<seq> \"<text>\" was read by <roles>"; `bridge` from betweenness over
+  Request/Edit/File, files with score > 0 touched by 2+ roles; `collision` from WCC over
+  Edit/File, components with edits from 2+ roles; `theme` from
+  `algo.labelPropagation({nodeLabels:['Decision','Topic'], relationshipTypes:['ABOUT']})`,
+  communities with 2+ decisions.
+
+- [ ] Step 1: tests on a seeded graph whose answer is known: a file edited by frontend and
+  backend → one `collision` about that file; a request consulted by two roles →
+  `load_bearing`; an empty graph → `[]` and no error (review focus 3); replacing twice
+  leaves one set; insight nodes have a `name` caption.
+- [ ] Steps 2–4; `make check`.
+- [ ] Step 5: commit `feat(graph): compute insights with FalkorDB algorithms`.
+
+### Task 9.8: Insights where people and agents see them
+
+**Files:** Create `src/handoff/cli/insights_cmd.py`; Modify `mcp/read_tools.py` (handoff
+text gains "What matters now" with the top 3, refreshing when the newest insight is older
+than 5 minutes), `knowledge/worker.py` (refresh after each finalize), tests.
+
+- [ ] Step 1: tests: `handoff` tool output on a graph with a collision contains
+  "What matters now" and the file; `handoff insights` prints each kind; the worker calls
+  the refresh after finalize (fake rag).
+- [ ] Steps 2–4; `make check`.
+- [ ] Step 5: commit `feat: show insights in the handoff, the CLI and after ingestion`.
+
+### Task 9.9: Fuzzy and prefix full-text search
+
+**Files:** Modify `src/handoff/graph/search.py` (`fulltext_query`); test
+`tests/graph/test_search.py`.
+
+- [ ] Step 1: tests. The rule: words of 5+ letters become fuzzy `%word%` (edit distance
+  1, which also matches the exact word), words of 3–4 letters become prefix `word*`,
+  shorter words are dropped, all OR-ed:
+```python
+def test_long_words_are_fuzzy_and_short_words_are_prefixes() -> None:
+    assert fulltext_query("nginz api config ok") == "%nginz% | api* | %config%"
+
+def test_a_misspelling_still_finds_the_decision(ready: Graph) -> None:
+    add_request(ready, session_id="s1", request_id="r1", text="x", at=1)
+    add_decision(ready, request_id="r1", decision_id="d1", text="serve through nginx",
+                 reason="tls in one place", topic="proxy", at=2)
+    assert [d for d, _ in fulltext_decisions(ready, "nginz", k=5)] == ["d1"]
+```
+  The existing test that query syntax in the input cannot escape stays green.
+- [ ] Steps 2–4; commit `feat(graph): typo-tolerant full-text search`.
+
+### Task 9.10: FalkorDB UDF `handoff.fileOverlap`
+
+**Files:** Create `src/handoff/graph/udf.py` (`UDF_LIBRARY` JS source,
+`load_udfs(graph) -> bool`, `file_overlap(graph, a: str, b: str) -> float | None`);
+Modify `graph/schema.py` (`ensure_schema` calls `load_udfs`, ignoring failure), 
+`graph/insights.py` (collision text ranks pairs by overlap when available).
+
+- [ ] Step 1: probe the UDF syntax on a throwaway graph per docs.falkordb.com/udfs (register
+  call and `GRAPH.UDF LOAD REPLACE`), record it in the ledger, delete the probe graph.
+- [ ] Step 2: tests: two requests editing {a, b} and {b, c} → overlap 1/3; loading twice
+  is fine; `file_overlap` returns None when UDFs are unavailable (fake failing graph).
+- [ ] Steps 3–5; commit `feat(graph): add a FalkorDB UDF for file overlap`.
+
+### Task 9.11: `handoff watch`
+
+**Files:** Create `src/handoff/graph/feed.py` (`FeedEvent(at, role, kind, text)`,
+`recent_events(graph, *, limit) -> list[FeedEvent]`), `src/handoff/cli/watch.py`
+(`render_frame(sessions, events, insights, width) -> str`, `run`); tests.
+
+- [ ] Step 1: tests: `recent_events` on a seeded graph returns asked/DECIDED/NEEDS/edited/
+  MESSAGE/STANDIN_ANSWER/READ in time order (one UNION ALL, shared column names);
+  `render_frame` colours each role and cuts lines to the width; the loop shows
+  "database unreachable — retrying" when the graph raises a connection error and exits 0
+  on KeyboardInterrupt (review focus 4).
+- [ ] Steps 2–4; commit `feat(cli): add handoff watch, a live feed of the graph`.
+
+### Task 9.12: `handoff demo` (headless proof)
+
+**Files:** Create `src/handoff/demo/__init__.py`, `demo/script.py` (the ShopLite rounds:
+`ROUNDS: tuple[dict[str, str], ...]` and the short scenario used headless),
+`demo/check.py` (moved from `scripts/e2e_check.py`), `cli/demo.py`; Modify
+`scripts/e2e_scenario.sh` → one line `exec handoff demo "$@"`; delete `scripts/e2e_check.py`.
+
+- [ ] Step 1: tests: `check` passes on a seeded graph with every expected part and names
+  each missing part otherwise; `demo` refuses to start without `claude` (exit 1).
+- [ ] Steps 2–4; live: `handoff demo` PASS.
+- [ ] Step 5: commit `feat(cli): add handoff demo, the headless proof`.
+
+### Task 9.13: `handoff demo --live` (tmux grid)
+
+**Files:** Create `src/handoff/demo/tmux.py` (`layout_commands(session, folder, roles) -> list[list[str]]`,
+`done_line(screen: str) -> str`), `src/handoff/demo/drive.py` (sends a round, waits for each
+pane's done line to change, 8-minute cap per round); Modify `cli/demo.py` (`--live`,
+`--manual`).
+
+- [ ] Step 1: tests: `layout_commands` creates a 2×2 grid with frontend, deploy, backend
+  and `handoff watch`, each Claude started through `env -i` with HOME, USER, PATH, TERM,
+  LANG and its HANDOFF_ROLE only; `done_line` returns the latest "for 8s · done 12:29 PM"
+  line (the alternate screen keeps no scrollback, so "changed", not "count", is the
+  signal); without tmux, `--live` prints the install hint and exits 1.
+- [ ] Steps 2–4; live: `handoff demo --live` opens the grid; after the person accepts the
+  trust prompts, the rounds run and the feed fills.
+- [ ] Step 5: commit `feat(cli): add handoff demo --live, a tmux grid of real sessions`.
+
+### Phase 9 gate
+
+`make check`; live: `handoff init` in a fresh folder, `handoff demo` PASS,
+`handoff demo --live` watched end to end, `handoff ask` answered with Cypher shown,
+`handoff insights` non-empty on the demo graph; fresh opus review and fix pass; merge,
+tag `phase-9`, notebook.
+
+---
+
+## Phase 10: Ship
+
+Branch: `phase/10-ship`.
+
+### Task 10.1: README and licence
+
+- README around the one-line install; what handoff does in four sentences; a diagram of
+  the graph; the CLI table; `handoff demo --live` walkthrough with a screenshot; FalkorDB
+  features used and why (vector, full-text, algorithms, UDF, read-only MCP, Browser);
+  ready-made Browser queries; privacy (localhost only, redaction); limits.
+- `LICENSE` (MIT). `pyproject.toml` metadata (description, license, urls).
+- Check: a fresh clone in a scratch folder → `uv tool install <path> && handoff init` works.
+
+### Task 10.2: Final notebook and demo script
+
+- Notebook: Phases 9–10 done, decisions, change log. A two-minute video script in the
+  notebook (which panes to show, which Browser queries, which `handoff` commands).
+
+### Task 10.3: Submission (you)
+
+- Make the GitHub repository public (owner's decision; Claude does not change it).
+- Record the video, write the blog post, submit on WeMakeDevs before 18 October 2026,
+  11:59 PM IST.
+
+---
+
+## Phase 11 (stretch): The coordinator, and an ontology that grows
+
+- An always-on agent in the spirit of OpenAI's Dots: it watches the graph and acts within
+  rules the person sets (a need left open for 30 minutes, two roles changing one file, an
+  end-of-day digest).
+- Growing the knowledge graph's entity types from data with GraphRAG-SDK's
+  `suggest_schema_extensions` (needs our items written to files first).
