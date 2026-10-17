@@ -150,3 +150,46 @@ def test_a_claimed_action_always_comes_with_its_messages(two_sessions: Graph) ->
         "RETURN actions, count(m)"
     ).result_set
     assert rows == [[1, 2]]  # one collision, one message for each of the two roles
+
+
+def test_a_need_still_open_much_later_is_reminded_again(two_sessions: Graph) -> None:
+    t = Thresholds(stale_minutes=30, repeat_minutes=240)
+    assert len(run_rules(two_sessions, now=113 + 31 * MIN, thresholds=t)) == 1
+    assert run_rules(two_sessions, now=113 + 100 * MIN, thresholds=t) == []
+    assert len(run_rules(two_sessions, now=113 + 241 * MIN, thresholds=t)) == 1
+    assert len(_inbox(two_sessions, "be", "backend")) == 2
+
+
+def test_a_collision_that_recurs_on_another_day_is_announced_again(two_sessions: Graph) -> None:
+    day = 24 * 60 * MIN
+    add_edit(
+        two_sessions,
+        request_id="p3",
+        edit_id="e9",
+        tool="Edit",
+        path="Card.tsx",
+        summary="x",
+        at=215,
+    )
+    first = run_rules(two_sessions, now=220, thresholds=Thresholds(stale_minutes=10**9))
+    assert [a.rule for a in first] == ["collision"]
+    add_edit(
+        two_sessions,
+        request_id="p1",
+        edit_id="e20",
+        tool="Edit",
+        path="Card.tsx",
+        summary="y",
+        at=day + 1000,
+    )
+    add_edit(
+        two_sessions,
+        request_id="p3",
+        edit_id="e21",
+        tool="Edit",
+        path="Card.tsx",
+        summary="z",
+        at=day + 2000,
+    )
+    later = run_rules(two_sessions, now=day + 3000, thresholds=Thresholds(stale_minutes=10**9))
+    assert [a.rule for a in later] == ["collision"]

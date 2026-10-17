@@ -21,6 +21,7 @@ from handoff.graph.sessions import upsert_session
 from handoff.ids import new_id
 
 MINUTE_MS = 60_000
+DAY_MS = 24 * 60 * MINUTE_MS
 COORDINATOR = "coordinator"
 PERSON = "person"
 
@@ -30,6 +31,7 @@ class Thresholds:
     stale_minutes: int = 30
     collision_minutes: int = 60
     digest_minutes: int = 0  # 0 = no digest
+    repeat_minutes: int = 240  # remind again about a need still open this much later
 
 
 @dataclass(frozen=True)
@@ -62,7 +64,9 @@ def _stale(graph: Graph, now: int, t: Thresholds) -> list[tuple[str, Action]]:
             f"Reminder from the coordinator: need {need.id} from {need.raised_by} has been "
             f"open {minutes} min: {need.text} resolve_need closes it once it is met."
         )
-        found.append((f"stale_need:{need.id}", Action("stale_need", (need.for_role,), text)))
+        repeat = max(1, t.repeat_minutes) * MINUTE_MS
+        key = f"stale_need:{need.id}:{(now - need.at) // repeat}"  # again after each interval
+        found.append((key, Action("stale_need", (need.for_role,), text)))
     return found
 
 
@@ -73,7 +77,8 @@ def _collisions(graph: Graph, now: int, t: Thresholds) -> list[tuple[str, Action
             f"Heads-up from the coordinator: {c.first_role} and {c.second_role} have both "
             f"changed {c.path} recently. handoff shows what each did and why."
         )
-        key = f"collision:{c.path}:{c.first_role}:{c.second_role}"
+        # One announcement per pair and file per day: a collision that recurs later is news.
+        key = f"collision:{c.path}:{c.first_role}:{c.second_role}:{now // DAY_MS}"
         found.append((key, Action("collision", (c.first_role, c.second_role), text)))
     return found
 

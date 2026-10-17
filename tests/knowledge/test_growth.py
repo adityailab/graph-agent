@@ -51,8 +51,12 @@ def test_the_ontology_includes_learned_types() -> None:
 
 class FakeClient:
     def __init__(self) -> None:
+        self.labels: list[str] = []  # what the SDK's committed ontology holds
         self.asked: list[list[str]] = []
         self.added: list[tuple[str, str]] = []
+
+    def known_labels(self) -> list[str]:
+        return list(self.labels)
 
     def suggest_types(self, texts: list[str]) -> list[tuple[str, str]]:
         self.asked.append(texts)
@@ -98,3 +102,43 @@ def test_at_the_cap_the_model_is_not_asked(tmp_path: Path) -> None:
     grower.note("a")
     grower.note("b")
     assert client.asked == []
+
+
+def test_the_cap_counts_types_the_sdk_already_holds_even_without_the_saved_file(
+    tmp_path: Path,
+) -> None:
+    client = FakeClient()
+    client.labels = [
+        *HANDOFF_ENTITY_TYPES,
+        *[f"Kind{chr(65 + i)}{chr(97 + i)}x" for i in range(MAX_LEARNED)],
+    ]
+    grower = Grower(client, tmp_path, "g", every=2)
+    grower.note("a")
+    grower.note("b")
+    assert client.asked == []
+
+
+def test_a_type_the_sdk_already_holds_is_not_proposed_again(tmp_path: Path) -> None:
+    client = FakeClient()
+    client.labels = [*HANDOFF_ENTITY_TYPES, "Table"]
+    grower = Grower(client, tmp_path, "g", every=2)
+    grower.note("a")
+    grower.note("b")
+    assert client.added == []  # the only acceptable proposal, Table, is already there
+
+
+def test_saving_leaves_no_partial_file(tmp_path: Path) -> None:
+    save_learned(tmp_path, "g", [("Table", "x")])
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["ontology-g.json"]
+
+
+def test_items_waiting_for_the_next_ask_survive_a_restart(tmp_path: Path) -> None:
+    first = Grower(FakeClient(), tmp_path, "g", every=3)
+    first.note("text 0")
+    first.note("text 1")
+    client = FakeClient()
+    second = Grower(client, tmp_path, "g", every=3)  # a new process
+    second.note("text 2")
+    assert client.asked == [["text 0", "text 1", "text 2"]]
+    third = Grower(FakeClient(), tmp_path, "g", every=3)
+    assert third.pending == 0
