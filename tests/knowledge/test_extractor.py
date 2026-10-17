@@ -53,7 +53,7 @@ def test_graphrags_own_pipeline_sends_our_guidance() -> None:
     """GraphRAG-SDK batches prompts itself for LLMExtractor subclasses, skipping
     extract_entities; this drives its real extraction to prove the guidance arrives."""
     model = RecordingModel()
-    llm = ModelLLM(model, name="fake", max_concurrency=1)  # type: ignore[arg-type]
+    llm = ModelLLM(model, name="fake", max_concurrency=1)
     extraction = GraphExtraction(llm, entity_extractor=WorkExtractor(llm), max_concurrency=1)
     chunks = TextChunks(chunks=[TextChunk(text="Use the ask tool on Checkout.tsx", index=0)])
     asyncio.run(extraction.extract(chunks, handoff_ontology(), Context()))
