@@ -71,3 +71,12 @@ def request_needs_decision(graph: Graph, request_id: str) -> bool:
         {"rid": request_id},
     ).result_set
     return bool(rows) and int(rows[0][0]) > 0 and int(rows[0][1]) == 0
+
+
+def last_request_at(graph: Graph, session_id: str) -> int | None:
+    """When the session's newest request was made, or None if it has made none."""
+    rows = graph.ro_query(
+        "MATCH (:Session {id: $sid})-[:RECEIVED]->(r:Request) RETURN max(r.at)",
+        {"sid": session_id},
+    ).result_set
+    return int(rows[0][0]) if rows and rows[0][0] is not None else None

@@ -22,6 +22,7 @@ class HookInput:
     edit_summary: str = ""
     stop_hook_active: bool = False
     pid: int | None = None
+    source: str = ""  # why a session started: startup, resume, clear or compact
 
 
 def parse_hook_input(data: Mapping[str, Any]) -> HookInput:
@@ -43,4 +44,5 @@ def parse_hook_input(data: Mapping[str, Any]) -> HookInput:
         edit_summary=str(data.get("edit_summary", "")),
         stop_hook_active=bool(data.get("stop_hook_active", False)),
         pid=int(data["pid"]) if isinstance(data.get("pid"), int) else None,
+        source=str(data.get("source", "")),
     )

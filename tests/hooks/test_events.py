@@ -121,3 +121,76 @@ def test_the_first_prompt_of_a_session_carries_the_standing_rules_and_later_ones
         graph, _hook(hook_json("user_prompt") | {"prompt_id": "p-2"}), role="frontend", at=20
     )
     assert "Standing rules" not in later
+
+
+def _rule(graph: Graph, convention_id: str, text: str, at: int) -> None:
+    from handoff.graph.conventions import add_convention
+
+    add_convention(
+        graph,
+        convention_id=convention_id,
+        text=text,
+        reason="because",
+        scope="all",
+        author="person",
+        at=at,
+    )
+
+
+def test_a_rule_added_while_a_session_runs_reaches_its_next_prompt_once(
+    graph: Graph, hook_json: HookJson
+) -> None:
+    ensure_schema(graph)
+    on_user_prompt(graph, _hook(hook_json("user_prompt")), role="frontend", at=10)
+    _rule(graph, "c-new", "use tabs not spaces", at=15)  # added after the session's first prompt
+    second = on_user_prompt(
+        graph, _hook(hook_json("user_prompt") | {"prompt_id": "p-2"}), role="frontend", at=20
+    )
+    assert "use tabs not spaces" in second
+    third = on_user_prompt(
+        graph, _hook(hook_json("user_prompt") | {"prompt_id": "p-3"}), role="frontend", at=30
+    )
+    assert "use tabs not spaces" not in third
+
+
+def test_a_rule_that_was_already_known_is_not_repeated(graph: Graph, hook_json: HookJson) -> None:
+    ensure_schema(graph)
+    _rule(graph, "c-old", "money is integer paise", at=1)
+    on_user_prompt(graph, _hook(hook_json("user_prompt")), role="frontend", at=10)
+    second = on_user_prompt(
+        graph, _hook(hook_json("user_prompt") | {"prompt_id": "p-2"}), role="frontend", at=20
+    )
+    assert "money is integer paise" not in second
+
+
+def _start(graph: Graph, hook_json: HookJson, source: str, *, live: bool = True) -> str:
+    from handoff.hooks.events import on_session_start
+
+    raw = hook_json("user_prompt") | {"hook_event_name": "SessionStart", "source": source}
+    return on_session_start(graph, _hook(raw), role="frontend", at=50, live=live)
+
+
+def test_a_resumed_or_compacted_session_hears_the_rules_and_needs_again(
+    graph: Graph, hook_json: HookJson
+) -> None:
+    from handoff.graph.needs import add_need
+
+    ensure_schema(graph)
+    _rule(graph, "c1", "money is integer paise", at=1)
+    on_user_prompt(graph, _hook(hook_json("user_prompt")), role="backend", at=10)
+    add_need(
+        graph, request_id="p-test", need_id="n1", text="send /health", for_role="frontend", at=12
+    )
+    for source in ("compact", "resume"):
+        text = _start(graph, hook_json, source)
+        assert "money is integer paise" in text
+        assert "send /health" in text
+
+
+def test_a_fresh_start_adds_nothing_because_the_first_prompt_brings_the_rules(
+    graph: Graph, hook_json: HookJson
+) -> None:
+    ensure_schema(graph)
+    _rule(graph, "c1", "money is integer paise", at=1)
+    assert _start(graph, hook_json, "startup") == ""
+    assert _start(graph, hook_json, "compact", live=False) == ""  # a replay only records

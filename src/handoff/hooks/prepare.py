@@ -44,6 +44,7 @@ def prepare_hook_input(data: Mapping[str, Any], project_dir: str) -> dict[str, A
         "tool_name": tool_name,
         "tool_use_id": data.get("tool_use_id") or new_id(),
         "stop_hook_active": bool(data.get("stop_hook_active", False)),
+        "source": str(data.get("source", "")),
     }
     if prepared["hook_event_name"] == "UserPromptSubmit" and not prepared["prompt_id"]:
         prepared["prompt_id"] = new_id()
