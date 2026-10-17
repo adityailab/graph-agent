@@ -1,10 +1,11 @@
 // Shared helpers for every view. All text from the graph goes in with textContent, never innerHTML.
 (function () {
   "use strict";
-  var PALETTE = { frontend: "#38bdf8", backend: "#a78bfa", deploy: "#fbbf24", person: "#4ade80", shared: "#f87171" };
+  var PALETTE = Object.assign(Object.create(null), { frontend: "#38bdf8", backend: "#a78bfa", deploy: "#fbbf24", person: "#4ade80", shared: "#f87171" });
   var EXTRA = ["#f472b6", "#2dd4bf", "#fb923c", "#a3e635", "#e879f9"];
-  var assigned = {};
+  var assigned = Object.create(null);
   var SVG_TAGS = ["svg", "g", "circle", "line", "path", "text", "rect", "defs"];
+  var SENT = ["MESSAGE", "NUDGE", "DIGEST", "QUESTION", "STANDIN_ANSWER"];
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function color(role) {
@@ -28,15 +29,18 @@
   // Who an event is aimed at, read from the feed text: {from, to} or null for events about one role.
   function route(ev) {
     var m;
-    if ((m = /^to ([\w-]+):/.exec(ev.text)) && ev.kind !== "READ") return { from: ev.role, to: m[1] };
-    if ((m = /^from ([\w-]+):/.exec(ev.text)) && ev.kind === "NEEDS") return { from: ev.role, to: m[1] };
+    // Only these kinds are addressed; a prompt that merely starts with "to x:" must not fake a message.
+    if (SENT.indexOf(ev.kind) >= 0 && (m = /^to ([\w-]+):/.exec(ev.text))) return { from: ev.role, to: m[1] };
+    if (ev.kind === "NEEDS" && (m = /^from ([\w-]+):/.exec(ev.text))) return { from: ev.role, to: m[1] };
     if ((m = /^([\w-]+) work:/.exec(ev.text)) && ev.kind === "READ") return { from: m[1], to: ev.role };
     return null;
   }
 
   // Count a number up (or down) to its new value so changes are noticeable.
-  function countTo(node, value) {
-    var from = Number(node.getAttribute("data-v") || 0);
+  var shown = Object.create(null);
+  function countTo(node, value, key) {
+    var from = key !== undefined && key in shown ? shown[key] : Number(node.getAttribute("data-v") || 0);
+    if (key !== undefined) shown[key] = value;
     node.setAttribute("data-v", String(value));
     if (reduced || from === value) { node.textContent = String(value); return; }
     var start = performance.now();

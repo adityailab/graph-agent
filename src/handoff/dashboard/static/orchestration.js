@@ -8,10 +8,10 @@
   var svg = document.getElementById("orch");
   var layers = { edges: el("g"), nodes: el("g"), live: el("g") };
   svg.appendChild(layers.edges); svg.appendChild(layers.nodes); svg.appendChild(layers.live);
-  var positions = {}, signature = "", rings = {};
+  var positions = Object.create(null), lanes = Object.create(null), signature = "", rings = {};
 
   function place(roles) {
-    positions = {};
+    positions = Object.create(null);
     var order = roles.map(function (r) { return r.role; }).sort();
     order.forEach(function (role, i) {
       if (order.length === 1) { positions[role] = { x: CX, y: CY }; return; }
@@ -32,10 +32,12 @@
 
   function drawEdges(flows) {
     MC.clear(layers.edges);
-    var lanes = {};
+    var count = Object.create(null);
+    lanes = Object.create(null);
     flows.forEach(function (f) {
       if (!positions[f.source] || !positions[f.target] || f.source === f.target) return;
-      var key = f.source + ">" + f.target, lane = lanes[key] = (lanes[key] || 0) + 1;
+      var key = f.source + ">" + f.target, lane = count[key] = (count[key] || 0) + 1;
+      lanes[key + ":" + f.kind] = lane - 1;
       var c = curve(positions[f.source], positions[f.target], lane - 1);
       var colour = KIND_COLOUR[f.kind] || "#94a3b8";
       layers.edges.appendChild(el("path", { d: c.d, "class": "edge", stroke: colour,
@@ -81,10 +83,10 @@
     ring.classList.remove("pulse"); void ring.getBoundingClientRect(); ring.classList.add("pulse");
   }
 
-  function travel(from, to, colour, then) {
+  function travel(from, to, lane, colour, then) {
     var a = positions[from], b = positions[to];
     if (!a || !b || MC.reduced) { then(); return; }
-    var path = el("path", { d: curve(a, b, 0).d, fill: "none" });
+    var path = el("path", { d: curve(a, b, lane).d, fill: "none" });
     var dot = el("circle", { r: "6", fill: colour });
     layers.live.appendChild(dot);
     var len = path.getTotalLength(), start = performance.now(), ms = 1100;
@@ -100,14 +102,15 @@
     var colour = EVENT_COLOUR[ev.kind] || "#94a3b8", r = MC.route(ev);
     if (r && positions[r.from] && positions[r.to]) {
       floatLabel(r.from, ev.kind, colour);
-      travel(r.from, r.to, colour, function () { pulse(r.to); floatLabel(r.to, ev.kind, colour); });
+      var lane = lanes[r.from + ">" + r.to + ":" + ev.kind.toLowerCase()] || 0;  // ride the drawn line
+      travel(r.from, r.to, lane, colour, function () { pulse(r.to); floatLabel(r.to, ev.kind, colour); });
     } else {
       pulse(ev.role); floatLabel(ev.role, ev.kind, colour);
     }
   }
 
   function update(state, fresh) {
-    var sig = JSON.stringify([state.roles, state.flows, Math.floor(state.now / 30000)]);
+    var sig = JSON.stringify([state.roles.map(function (r) { return [r.role, r.requests, r.decisions, r.edits, r.open_needs]; }), state.flows, Math.floor(state.now / 30000)]);
     if (sig !== signature) {
       signature = sig; place(state.roles); drawEdges(state.flows); drawNodes(state.roles, state.now);
     }

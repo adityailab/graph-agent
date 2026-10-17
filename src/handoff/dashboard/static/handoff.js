@@ -14,12 +14,12 @@
   function stat(label, value) {
     var box = el("div", { "class": "stat" }), n = el("b", {}, "0");
     box.appendChild(n); box.appendChild(el("span", {}, label));
-    MC.countTo(n, value);
+    MC.countTo(n, value, "handoff:" + label);
     return box;
   }
 
   function memoryRows(state) {
-    var learned = {};
+    var learned = Object.create(null);
     state.handoffs.forEach(function (h) { learned[h.reader] = (learned[h.reader] || 0) + h.decisions.length; });
     var box = el("div", { "class": "memory" });
     box.appendChild(el("h3", {}, "Memory: own work vs learned from others"));
@@ -58,7 +58,7 @@
 
   function update(state) {
     var key = function (h) { return h.reader + ">" + h.author + "@" + h.at; };
-    var sig = JSON.stringify([state.handoffs, state.roles, state.flows]);
+    var sig = JSON.stringify([state.handoffs, state.roles.map(function (r) { return [r.role, r.requests, r.decisions, r.edits]; }), state.flows]);
     if (sig === signature) return;
     signature = sig;
     var firstDraw = seen === null; seen = seen || {};

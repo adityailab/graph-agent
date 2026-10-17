@@ -24,12 +24,15 @@
   }
 
   function apply(s) {
-    var first = seenEvents === null; seenEvents = seenEvents || {};
-    var fresh = s.events.filter(function (e) { return !seenEvents[e.key]; });
-    fresh.forEach(function (e) { seenEvents[e.key] = true; });
+    // The baseline is the first snapshot with events, so a graph that appears later is not replayed.
+    var first = seenEvents === null && s.events.length > 0;
+    if (first) seenEvents = {};
+    var seen = seenEvents || {};
+    var fresh = s.events.filter(function (e) { return !seen[e.key]; });
+    fresh.forEach(function (e) { seen[e.key] = true; });
     if (first) s.events.slice(-25).forEach(function (e) { addToTicker(e, false); });
     else fresh.forEach(function (e) { addToTicker(e, true); });
-    var animate = first ? [] : fresh;
+    var animate = first ? [] : fresh.slice(-8);
     Object.keys(MC.views).forEach(function (name) { MC.views[name].update(s, animate); });
     document.getElementById("graph-name").textContent = s.graph;
     status.textContent = s.error ? s.error : "live"; status.className = "status " + (s.error ? "down" : "live");
@@ -38,7 +41,7 @@
 
   function poll() {
     fetch("/api/state", { cache: "no-store" }).then(function (r) { return r.json(); }).then(apply)
-      .catch(function () { status.textContent = "dashboard stopped"; status.className = "status down"; })
+      .catch(function (e) { status.textContent = "dashboard error: " + e.message; status.className = "status down"; })
       .then(function () { setTimeout(poll, POLL_MS); });
   }
 

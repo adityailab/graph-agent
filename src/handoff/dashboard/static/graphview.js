@@ -121,7 +121,7 @@
     Object.keys(nodes).forEach(function (k) { var n = nodes[k]; n.x = width / 2 + (Math.random() - 0.5) * 120; n.y = height / 2 + (Math.random() - 0.5) * 120; n.vx = 0; n.vy = 0; });
   }
 
-  function show() { var v = last[mode]; if (v) { nodes = {}; sync(v); } else { nodes = {}; edges = []; count.textContent = mode === "concepts" ? "no concepts yet: run handoff knowledge" : ""; MC.clear(legend); } alpha = 1; }
+  function show() { var v = last[mode]; if (v && v.nodes.length) { nodes = {}; sync(v); } else { nodes = {}; edges = []; count.textContent = mode === "concepts" ? "no concepts yet: run handoff knowledge" : ""; MC.clear(legend); } alpha = 1; }
 
   canvas.addEventListener("mousemove", function (ev) {
     var box = canvas.getBoundingClientRect(), x = ev.clientX - box.left, y = ev.clientY - box.top, best = null, bd = 18;

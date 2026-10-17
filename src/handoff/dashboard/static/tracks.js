@@ -15,7 +15,7 @@
     t.evidence.forEach(function (e) {
       var cell = el("div"), n = el("b", {}, "0");
       cell.appendChild(n); cell.appendChild(el("span", {}, e.label));
-      MC.countTo(n, e.value); grid.appendChild(cell);
+      MC.countTo(n, e.value, t.id + ":" + e.label); grid.appendChild(cell);
     });
     box.appendChild(grid);
     return box;
