@@ -12,3 +12,6 @@
 .venv/
 __pycache__/
 dist/
+
+# local design snapshots, not part of the product
+design-export/
