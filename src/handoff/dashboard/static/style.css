@@ -280,3 +280,12 @@ details.card[open] > summary .peek { display: none; }
 .flow-detail .card { margin-bottom: 8px; }
 .flow-detail .card summary .peek { display: block; margin: 2px 0 0 0; color: var(--dim); }
 .flow-detail .card[open] summary .peek { display: none; }
+
+/* the orchestration workflow */
+.ah-message { fill: var(--teal); } .ah-read { fill: var(--amber); } .ah-need { fill: var(--red); }
+.orch-node { cursor: pointer; }
+.edge.read, .edge.need { animation: flow 1.4s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -14; } }
+.orch-detail, .orch-lines { max-width: 960px; margin: 10px auto 0; }
+.orch-detail .link-card { margin-bottom: 6px; }
+@media (prefers-reduced-motion: reduce) { .edge.read, .edge.need { animation: none; } }
