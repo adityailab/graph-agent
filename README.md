@@ -61,6 +61,8 @@ Open **http://localhost:3000** (FalkorDB Browser), pick the demo graph and run
 
 ## The commands
 
+Full walkthrough: [docs/guide.md](docs/guide.md).
+
 | Command | What it does |
 |---|---|
 | `handoff init` | Check prerequisites, make sure FalkorDB runs, install into this folder |
@@ -151,4 +153,4 @@ make db-up      # FalkorDB for the tests
 make check      # format, lint, mypy --strict, tests
 ```
 
-Design, plan and decision log: `docs/superpowers/`.
+User guide: [`docs/guide.md`](docs/guide.md). Design, plan and decision log: `docs/superpowers/`.
