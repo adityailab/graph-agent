@@ -65,6 +65,12 @@
     if (!typing && !ev.metaKey && !ev.ctrlKey && !ev.altKey && i >= 0 && i < names.length) setView(names[i]);
   });
 
+  // Back/forward and pasted #links change the hash without a reload: follow them.
+  window.addEventListener("hashchange", function () {
+    var name = location.hash.slice(1);
+    if (VIEWS.indexOf(name) >= 0 && name !== current) setView(name);
+  });
+
   setView(VIEWS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : current);
   poll();
 })();
