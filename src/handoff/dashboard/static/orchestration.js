@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   var MC = window.MC, el = MC.el;
-  var CX = 400, CY = 215, CARD_W = 280, CARD_H = 112;
+  var CX = 400, CY = 210, CARD_W = 280, CARD_H = 112;
   var svg = document.getElementById("orch"), flowsBox = document.getElementById("flows");
   var layers = { edges: el("g"), live: el("g"), nodes: el("g") };
   svg.appendChild(layers.edges); svg.appendChild(layers.live); svg.appendChild(layers.nodes);
