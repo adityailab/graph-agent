@@ -160,3 +160,16 @@ def test_doctor_shows_each_check_with_a_mark(
     out = capsys.readouterr().out
     assert "ok  hooks installed" in out
     assert "ok  FalkorDB answers" in out
+
+
+def test_log_is_coloured_on_a_terminal_and_plain_in_a_pipe(
+    two_sessions: Graph,
+    in_workspace: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    main(["log"])
+    assert "\x1b[" not in capsys.readouterr().out
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    main(["log"])
+    assert "\x1b[" in capsys.readouterr().out

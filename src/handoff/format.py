@@ -4,9 +4,15 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from handoff.graph.records import InsightView, MessageView, RequestView, WhyRow
+
+Paint = Callable[[str, str], str]  # (kind of text, text) -> text, e.g. with colour codes
+
+
+def _unpainted(kind: str, text: str) -> str:
+    return text
 
 
 def select_requests(requests: Sequence[RequestView], limit: int) -> list[RequestView]:
@@ -35,20 +41,23 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
 
-def _render_request(r: RequestView) -> list[str]:
+def _render_request(r: RequestView, paint: Paint) -> list[str]:
     lines = ["", f'Request {r.seq} (person): "{r.text}"']
     for d in r.decisions:
-        lines.append(f"  Decided: {d.text}")
-        lines.append(f"  Why: {d.reason}")
+        lines.append(f"  {paint('decided', 'Decided:')} {d.text}")
+        lines.append(f"  {paint('why', 'Why:')} {d.reason}")
     if r.files:
-        lines.append(f"  Changed: {', '.join(r.files)}")
+        lines.append(f"  {paint('changed', 'Changed:')} {', '.join(r.files)}")
     for n in r.needs:
-        lines.append(f"  Needs from {n.for_role}: {n.text} ({n.status}, id {n.id})")
+        label = paint("need", f"Needs from {n.for_role}:")
+        lines.append(f"  {label} {n.text} ({paint(n.status, n.status)}, id {n.id})")
     return lines
 
 
-def render_handoff(requests: Sequence[RequestView]) -> str:
-    """Render requests grouped by role, with what each decided, changed and needs."""
+def render_handoff(requests: Sequence[RequestView], paint: Paint = _unpainted) -> str:
+    """Render requests grouped by role, with what each decided, changed and needs.
+    `paint` marks the parts (role, decided, why, changed, need, a need's status) for colour; the
+    default leaves the text plain, which is what sessions read."""
     if not requests:
         return "No requests recorded in this period."
     by_role: dict[str, list[RequestView]] = defaultdict(list)
@@ -59,11 +68,11 @@ def render_handoff(requests: Sequence[RequestView]) -> str:
     for role, items in by_role.items():
         files = {f for r in items for f in r.files}
         lines = [
-            f"{role} session: {_plural(len(items), 'request')}, "
+            f"{paint('role', f'{role} session')}: {_plural(len(items), 'request')}, "
             f"{_plural(len(files), 'file')} changed"
         ]
         for r in items:
-            lines.extend(_render_request(r))
+            lines.extend(_render_request(r, paint))
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
 

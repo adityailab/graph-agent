@@ -97,3 +97,22 @@ def test_search_lines_do_not_double_their_full_stops() -> None:
         related_roles=(),
     )
     assert ".." not in render_search("q", [hit])
+
+
+def _tag(kind: str, text: str) -> str:
+    return f"<{kind}>{text}</{kind}>"
+
+
+def test_a_painter_marks_each_part_and_leaves_the_words_alone() -> None:
+    text = render_handoff([_request(1, need=True)], paint=_tag)
+    assert "<role>frontend session</role>: 1 request, 1 file changed" in text
+    assert "<decided>Decided:</decided> read avatarUrl" in text
+    assert "<why>Why:</why> server owns urls" in text
+    assert "<changed>Changed:</changed> Card.tsx" in text
+    assert "<need>Needs from backend:</need> return avatarUrl (<open>open</open>, id n1)" in text
+
+
+def test_without_a_painter_the_text_is_the_same_as_before() -> None:
+    plain = render_handoff([_request(1, need=True)])
+    painted = render_handoff([_request(1, need=True)], paint=lambda kind, text: text)
+    assert plain == painted
