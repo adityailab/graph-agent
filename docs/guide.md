@@ -96,7 +96,11 @@ have these tools:
 
 ## 6. The `handoff` command, in daily use
 
-Run these from the project folder.
+Run these from the project folder. Run `handoff` on its own for a home screen: whether the
+database is up, how many sessions and open needs there are, every command by group, and the
+next thing to run. A mistyped command is corrected (`handoff stat` suggests `status`). Output is
+coloured on a terminal and plain in pipes; `NO_COLOR=1` turns colour off. To get tab completion:
+`eval "$(handoff completion zsh)"` (or `bash`) in your shell profile.
 
 ### See what is going on
 
@@ -127,13 +131,15 @@ handoff dashboard            # opens http://127.0.0.1:8765/ in your browser
 handoff dashboard --port 9000 --no-open
 ```
 
-Mission control, the visual version of `watch`, with four views: **Orchestration** (sessions as
-nodes, messages, reads and needs moving between them), **Context handoff** (what each session
-learned from another's work, with the decision and its reason, and how much of each
-session's memory is its own or learned), **Context graph** (the shared graph drawn live,
-shaded by role; a toggle shows the concept graph) and **Tracks** (how handoff answers
-each competition track, with live numbers). A live feed runs down the right side, and
-**Replay last events** replays the newest ones as animation, which is handy when recording.
+Mission control, the visual version of `watch`, with five pages (keys 1 to 5): **Orchestration** (each session as a terminal-style card with
+a pixel bot and its latest action; messages, reads and needs travel between the cards),
+**Handoff** (what each session learned from another's work with the decision and its reason;
+the bars show each session's own work next to the decisions it learned from others), **Graph**
+(the shared graph drawn live: drag nodes, scroll to zoom, links coloured and named by
+relationship; click a node for all of it in the side panel; a toggle shows the concept graph),
+**Tracks** (how handoff answers each competition track, with live numbers) and **Log**
+(everything that lands in the graph, in full). **replay** replays the newest events as
+animation, which is handy when recording.
 The server listens on `127.0.0.1` only and shows the graph of the folder you run it in.
 `handoff demo` starts it for you.
 
@@ -210,8 +216,9 @@ Options: `--stale-minutes`, `--repeat-minutes`, `--collision-minutes`, `--digest
 handoff doctor
 ```
 
-Reports missing hooks, a missing handoff server in `.mcp.json`, an unreachable database, and
-hook errors from the last hour, each with what to do. Prints "All good" otherwise.
+Prints one line per check: hooks, the handoff server in `.mcp.json`, the database, and whether
+`claude` and `tmux` are installed (those two are advisory). Anything wrong comes with what to do,
+and so do hook errors from the last hour. Prints "All good" otherwise.
 
 ### Try it without a project
 

@@ -63,16 +63,16 @@ Open **http://localhost:3000** (FalkorDB Browser), pick the demo graph and run
 ## Mission control
 
 `handoff demo` (and `handoff dashboard` on any project) opens one browser window beside
-the terminals. It reads the same graph the sessions write, every 1.5 seconds, and shows:
+the terminals. It reads the same graph the sessions write, every 1.5 seconds, and shows five pages (number keys 1 to 5 switch between them):
 
 | | |
 |---|---|
-| **Orchestration**: each session is a node; messages, reads and needs move between them as animated lines and dots | ![orchestration](docs/images/mission-orchestration.png) |
+| **Orchestration**: each session is a terminal-style card with a pixel bot, its latest action and counts; messages, reads and needs move between the cards | ![orchestration](docs/images/mission-orchestration.png) |
 | **Context handoff**: what each session learned from another's work, with the decision and its reason | ![context handoff](docs/images/mission-handoff.png) |
-| **Context graph**: the shared graph, drawn live, shaded by role (and the concept graph) | ![context graph](docs/images/mission-graph.png) |
+| **Graph**: the shared graph drawn with force-graph (drag, zoom, pan), links coloured and named by relationship, with a side panel for the selected node (and the concept graph) | ![context graph](docs/images/mission-graph.png) |
 | **Tracks**: how handoff answers each competition track, with live numbers | ![tracks](docs/images/mission-tracks.png) |
 
-Nothing leaves your machine: the page is served from `127.0.0.1` only.
+The fifth page, **Log**, lists everything that lands in the graph with its full text. Nothing leaves your machine: the page is served from `127.0.0.1` only.
 
 ## The commands
 
@@ -80,6 +80,7 @@ Full walkthrough: [docs/guide.md](docs/guide.md). How two sessions started at di
 
 | Command | What it does |
 |---|---|
+| `handoff` | A home screen: database and sessions at a glance, every command, and the next step |
 | `handoff init` | Check prerequisites, make sure FalkorDB runs, install into this folder |
 | `handoff status` | Database, graph, active sessions and what each is on, open needs |
 | `handoff log [role]` | What each role asked, decided, changed and needs |
@@ -91,7 +92,11 @@ Full walkthrough: [docs/guide.md](docs/guide.md). How two sessions started at di
 | `handoff coordinator` | Always-on agent: reminds a role about a need open 30 min, tells two roles who changed the same file, sends you an hourly digest (`--once`, `--dry-run`) |
 | `handoff knowledge` | Build the knowledge graph (concepts the work is about) |
 | `handoff demo [--headless]` | The proof |
-| `handoff doctor` | Diagnose hooks, servers, database |
+| `handoff doctor` | One line per check (hooks, MCP server, database, `claude`, `tmux`) with what to fix |
+| `handoff completion zsh\|bash` | Tab completion: `eval "$(handoff completion zsh)"` |
+
+A mistyped command gets a suggestion (`handoff stat` → "Did you mean 'status'?"). Output is coloured on a
+terminal and plain in pipes; set `NO_COLOR=1` to turn colour off. `handoff --version` prints the version.
 
 Inside a session the tools are: `handoff`, `why`, `sessions`, `record_decision`,
 `record_need`, `resolve_need`, `send_message`, `ask`, `search`, `connection`, `ask_graph`,
