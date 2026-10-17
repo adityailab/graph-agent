@@ -173,4 +173,6 @@ a { color: var(--blue); }
 .mem-card:hover, .mem-card:focus-visible { background: var(--soft); outline: none; }
 .mem-items { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
 .mem-items li { overflow-wrap: anywhere; border-left: 2px solid var(--line); padding-left: 8px; }
-.mem-items li, .ctx-body li { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mem-list { margin-top: 12px; }
+.mem-full { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.mem-full li { overflow-wrap: anywhere; border-left: 2px solid var(--line); padding-left: 8px; }

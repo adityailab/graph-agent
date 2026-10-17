@@ -109,6 +109,7 @@
   function resize() { var box = holder.parentNode.getBoundingClientRect(); fg.width(Math.max(300, box.width)).height(box.height); }
 
   function show() {
+    document.getElementById("mem-list").hidden = mode !== "memory";
     var v = last[mode]; nodes = {}; plain = []; links = []; selected = null; MC.graphDetail.clear();
     fg.graphData({ nodes: [], links: [] });
     if (v && v.nodes.length) sync(v); else { count.textContent = mode === "concepts" ? "no concepts yet: run handoff knowledge" : ""; MC.clear(legend); }
@@ -153,7 +154,8 @@
     last.memory = view; mode = "memory";
     button.hidden = false; button.textContent = "memory · " + kind;
     document.querySelectorAll("[data-mode]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === button)); });
-    show(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
+    show(); MC.memoryDetail.listKind(kind, document.getElementById("mem-list"));
+    setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
   }
 
   MC.views.graph = { update: update, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };

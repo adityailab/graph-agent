@@ -32,6 +32,15 @@
       .catch(function () { /* the card stays as it is; the next poll tries again on click */ });
   }
 
+  // Every item of one kind with its whole text, beside the graph so nothing has to be hovered.
+  function listKind(kind, box) {
+    MC.clear(box); box.hidden = false;
+    box.appendChild(el("h3", {}, "everything in " + kind + " memory"));
+    var list = el("ul", { "class": "mem-full" });
+    box.appendChild(list);
+    fetchItems("/api/memory/" + kind, function (items) { fill(list, items, "nothing here yet"); });
+  }
+
   // A session's list of memories whose words match its current task.
   function relevantFor(role, box) {
     box.appendChild(el("h3", {}, "relevant memories"));
@@ -42,5 +51,5 @@
     });
   }
 
-  MC.memoryDetail = { openGraph: openGraph, relevantFor: relevantFor };
+  MC.memoryDetail = { openGraph: openGraph, listKind: listKind, relevantFor: relevantFor };
 })();
