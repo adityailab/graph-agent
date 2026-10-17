@@ -43,6 +43,7 @@ class ToolContext:
         # From Claude Code, when it provides them. The pid survives /clear; the id does not.
         self.session_id, self.pid = session_id, pid
         self._graph, self._connect = graph, connect
+        self.insights_checked_at: int | None = None  # when this server last refreshed them
 
     @classmethod
     def lazy(

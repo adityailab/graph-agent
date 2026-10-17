@@ -10,23 +10,20 @@ from falkordb import Graph
 from graphrag_sdk import ConnectionConfig, GraphExtraction, GraphRAG
 from redis.exceptions import RedisError
 
-from handoff.config import Config
+from handoff.config import Config, knowledge_graph_name
 from handoff.embed import Embedder
 from handoff.graph.connection import connect, ping
+from handoff.graph.insights import refresh_insights
 from handoff.graph.schema import EMBED_DIM
+from handoff.ids import now_ms
 from handoff.knowledge.adapters import EmbedderAdapter, ModelLLM
 from handoff.knowledge.client import KnowledgeClient
 from handoff.knowledge.extractor import WorkExtractor, handoff_ontology
+from handoff.knowledge.lead import lock_name
 from handoff.knowledge.worker import KnowledgeWorker
 from handoff.models.base import ModelClient
 
 log = logging.getLogger(__name__)
-
-
-def knowledge_graph_name(config: Config) -> str:
-    """The knowledge graph lives beside ours, never inside it: GraphRAG-SDK writes its own
-    node types and can delete its whole graph."""
-    return f"{config.graph_name}_kg"
 
 
 def build_knowledge_client(
@@ -85,8 +82,11 @@ def start_knowledge(
         graph=graph,
         rag=ingest,
         home=config.home,
-        lock_name=f"{config.host}-{config.port}-{config.graph_name}",
+        lock_name=lock_name(config),
         max_per_hour=int(env.get("HANDOFF_KNOWLEDGE_MAX_PER_HOUR", "60")),
+        refresh=lambda: refresh_insights(
+            graph, ingest.kg, at=now_ms(), since=now_ms() - 7 * 24 * 60 * 60_000
+        ),
     )
     if background:
         worker.start()

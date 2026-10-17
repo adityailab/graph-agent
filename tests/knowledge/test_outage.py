@@ -10,9 +10,9 @@ from falkordb import FalkorDB, Graph
 
 pytest.importorskip("graphrag_sdk")
 
-from handoff.config import Config
+from handoff.config import Config, knowledge_graph_name
 from handoff.graph.requests import add_request
-from handoff.knowledge.startup import build_knowledge_client, knowledge_graph_name
+from handoff.knowledge.startup import build_knowledge_client
 from handoff.knowledge.worker import KnowledgeWorker
 from handoff.models.base import ModelUnavailable
 

@@ -142,3 +142,13 @@ def test_a_failed_finalize_does_not_stop_the_worker(
     assert rag.finalized >= 2  # it finalized again after the failure, so it kept running
     assert [doc for doc, _ in rag.ingested] == ["p1", "p2"]
     assert KnowledgeWorker(graph=ready, rag=rag, home=tmp_path).try_lead()  # lock released
+
+
+def test_insights_are_refreshed_after_each_finalize(ready: Graph, tmp_path: Path) -> None:
+    add_request(ready, session_id="s1", request_id="p1", text="show the avatar on cards", at=10)
+    refreshed: list[int] = []
+    worker = KnowledgeWorker(
+        graph=ready, rag=FakeRag(), home=tmp_path, refresh=lambda: refreshed.append(1)
+    )
+    worker.drain()
+    assert refreshed == [1]

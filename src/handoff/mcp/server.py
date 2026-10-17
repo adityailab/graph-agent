@@ -16,6 +16,7 @@ from handoff.graph.connection import connect
 from handoff.mcp import (
     ask_tool,
     connection_tool,
+    guide_tool,
     knowledge_tools,
     message_tools,
     read_tools,
@@ -41,7 +42,8 @@ INSTRUCTIONS = (
     "role's recorded history and labelled as such; the real session also gets the question. "
     "search finds recorded decisions by their words and their meaning, from any role. "
     "connection shows the chain of shared files, decisions and needs linking this "
-    "session's work to another role's."
+    "session's work to another role's. For a question none of these answer, graph_guide "
+    "explains this project's graphs so you can query them yourself with read-only Cypher."
 )
 
 
@@ -49,6 +51,7 @@ def build_server(
     ctx: ToolContext,
     standin: ModelClient | None = None,
     knowledge_unavailable: str = knowledge_tools.NOT_RUNNING,
+    config: Config | None = None,
 ) -> MCPServer:
     """Create the server with every tool bound to `ctx`."""
     server = MCPServer("handoff", instructions=INSTRUCTIONS)
@@ -59,6 +62,7 @@ def build_server(
     search_tool.register(server, ctx)
     connection_tool.register(server, ctx)
     knowledge_tools.register(server, ctx, unavailable=knowledge_unavailable)
+    guide_tool.register(server, ctx, config or Config.from_env())
     return server
 
 
@@ -101,7 +105,7 @@ def main() -> None:
         embedder=embedder,
         knowledge=knowledge,
     )
-    build_server(ctx, standin=model, knowledge_unavailable=unavailable).run("stdio")
+    build_server(ctx, standin=model, knowledge_unavailable=unavailable, config=config).run("stdio")
 
 
 if __name__ == "__main__":

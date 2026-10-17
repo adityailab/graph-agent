@@ -37,6 +37,7 @@ class KnowledgeWorker:
         now: Callable[[], int] = now_ms,
         finalize_every: int = 10,
         max_per_hour: int = 60,
+        refresh: Callable[[], None] | None = None,
     ) -> None:
         self._graph, self._rag, self._now = graph, rag, now
         self._lock_path = home / "locks" / f"knowledge-{lock_name}.lock"
@@ -44,6 +45,7 @@ class KnowledgeWorker:
         self._pacer = Pacer(max_per_hour=max_per_hour)
         self._lock_file: IO[str] | None = None
         self._stop = threading.Event()
+        self._refresh = refresh  # e.g. recompute insights once new concepts are in
 
     def try_lead(self) -> bool:
         """Become this graph's worker on this machine, unless another one already is."""
@@ -94,6 +96,8 @@ class KnowledgeWorker:
         if self._since_finalize:
             self._rag.finalize_sync()
             self._since_finalize = 0
+            if self._refresh is not None:
+                self._refresh()
 
     def drain(self) -> int:
         """Handle everything pending (within the cap), finalize, and return the count."""

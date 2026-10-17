@@ -12,6 +12,7 @@ EXPECTED_TOOLS = {
     "sessions",
     "handoff",
     "why",
+    "graph_guide",
     "send_message",
     "ask",
     "search",

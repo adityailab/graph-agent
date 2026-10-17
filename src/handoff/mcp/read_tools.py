@@ -18,6 +18,7 @@ from handoff.graph.requests import latest_request_id, request_text
 from handoff.graph.sessions import active_sessions
 from handoff.mcp.context import ToolContext, guarded
 from handoff.mcp.current import current_request, current_session
+from handoff.mcp.insights_view import insights_section
 from handoff.paths import relative_path
 
 _MINUTE_MS = 60_000
@@ -66,7 +67,8 @@ def handoff(
     if shared:
         listed = "; ".join(f"{f.path} ({', '.join(f.roles)})" for f in shared)
         text += f"\n\nChanged by more than one role: {listed}"
-    return text
+    matters = insights_section(ctx)
+    return f"{text}\n\n{matters}" if matters else text
 
 
 @guarded

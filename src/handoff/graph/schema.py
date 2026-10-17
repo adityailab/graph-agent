@@ -9,6 +9,7 @@ from falkordb import Graph
 from redis.exceptions import ResponseError
 
 from handoff.graph.schema_check import log_failed_constraints
+from handoff.graph.udf import load_udfs
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ INDEXED: tuple[tuple[str, str], ...] = (
     ("Message", "id"),
     ("Message", "to_role"),
     ("Need", "for_role"),
+    ("Insight", "kind"),
 )
 
 # Each needs the matching range index above first.
@@ -78,3 +80,4 @@ def ensure_schema(graph: Graph) -> None:
         )
     # Constraints are built asynchronously, so a failure shows on the next call at the latest.
     log_failed_constraints(graph)
+    load_udfs(graph)  # handoff.overlap; never raises
