@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from handoff.cli.runner import run_command
-from handoff.database import DatabaseUnavailable, ensure_database
+from handoff.database import LOCAL_HOSTS, DatabaseUnavailable, ensure_database
 from handoff.graph.connection import server_reachable
 from handoff.install import InstallError, install
 from handoff.prereqs import check_prerequisites
@@ -40,7 +40,9 @@ def run(args: argparse.Namespace) -> int:
         return 1
     config = workspace_config(folder, os.environ)
     reachable = server_reachable(config)
-    problems = check_prerequisites(run_command, which=shutil.which, need_docker=not reachable)
+    problems = check_prerequisites(
+        run_command, which=shutil.which, need_docker=not reachable and config.host in LOCAL_HOSTS
+    )
     for problem in problems:
         print(f"{'note' if problem.optional else 'missing'}: {problem.fix}", file=sys.stderr)
     if any(not p.optional for p in problems):

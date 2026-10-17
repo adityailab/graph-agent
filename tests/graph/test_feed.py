@@ -32,3 +32,10 @@ def test_only_the_newest_events_are_kept(two_sessions: Graph) -> None:
     events = recent_events(two_sessions, limit=2)
     assert len(events) == 2
     assert events[-1].text == "pick up frontend"
+
+
+def test_events_older_than_the_window_are_left_out(two_sessions: Graph) -> None:
+    everything = recent_events(two_sessions, limit=50)
+    recent = recent_events(two_sessions, limit=50, since=200)
+    assert len(recent) < len(everything)
+    assert all(e.at >= 200 for e in recent)

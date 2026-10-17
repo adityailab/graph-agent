@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from handoff.cli.stream_json import parse_stream
+from handoff.cli.stream_json import ToolCall, parse_stream
 from handoff.config import Config
 from handoff.install import non_default_database
 from handoff.mcp_config import falkordb_server_entry, handoff_server_entry
@@ -109,6 +109,15 @@ def _answer(question: str, model: str, config: Config) -> subprocess.CompletedPr
         return _run_claude(ask_command(question, mcp_config=path, model=model))
 
 
+def cypher_run(calls: list[ToolCall]) -> list[str]:
+    """The Cypher the model ran: the query of each read-only call that had one."""
+    return [
+        str(c.input["query"])
+        for c in calls
+        if c.name.endswith("query_graph_readonly") and c.input.get("query")
+    ]
+
+
 def run(args: argparse.Namespace) -> int:
     """Ask, then print the answer and each Cypher query run."""
     config = workspace_config(Path.cwd().resolve(), os.environ)
@@ -130,7 +139,7 @@ def run(args: argparse.Namespace) -> int:
         print(reason[-1] if reason else "Claude Code gave no answer.", file=sys.stderr)
         return 1
     print(answer)
-    queries = [c.input.get("query") for c in calls if c.name.endswith("query_graph_readonly")]
+    queries = cypher_run(calls)
     if queries:
         print("\nCypher it ran:")
         print("\n".join(f"  {q}" for q in queries))

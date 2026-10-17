@@ -52,14 +52,17 @@ def session_env(role: str, config: Config, *, base: Mapping[str, str]) -> dict[s
 
 def run_session(role: str, prompt: str, workspace: Path, config: Config, *, model: str) -> str:
     """Run one session to completion and return its reply."""
-    done = subprocess.run(  # noqa: S603 - fixed argv, no shell
-        session_command(prompt, workspace, model=model),
-        cwd=workspace,
-        capture_output=True,
-        text=True,
-        timeout=SESSION_TIMEOUT,
-        check=False,
-        stdin=subprocess.DEVNULL,
-        env=session_env(role, config, base=child_environment()),
-    )
+    try:
+        done = subprocess.run(  # noqa: S603 - fixed argv, no shell
+            session_command(prompt, workspace, model=model),
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=SESSION_TIMEOUT,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            env=session_env(role, config, base=child_environment()),
+        )
+    except subprocess.TimeoutExpired:
+        return f"(the {role} session did not finish within {SESSION_TIMEOUT} s)"
     return (done.stdout or done.stderr).strip()

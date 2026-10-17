@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from handoff.config import Config
 from handoff.demo.headless import session_command, session_env
 
@@ -23,3 +25,18 @@ def test_the_graph_reaches_sessions_only_through_the_workspace(tmp_path: Path) -
     assert env["HANDOFF_KNOWLEDGE"] == "off"
     assert env["HANDOFF_HOME"] == str(tmp_path)
     assert env["PATH"] == "/bin"
+
+
+def test_a_session_that_runs_too_long_is_reported_not_a_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+
+    from handoff.demo.headless import run_session
+
+    def slow(*args: object, **kwargs: object) -> None:
+        raise subprocess.TimeoutExpired("claude", 300)
+
+    monkeypatch.setattr("handoff.demo.headless.subprocess.run", slow)
+    config = Config("localhost", 6379, "demo", tmp_path)
+    assert "did not finish" in run_session("backend", "x", tmp_path, config, model="haiku")

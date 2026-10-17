@@ -20,7 +20,9 @@ def test_live_demo_needs_tmux(
 ) -> None:
     monkeypatch.setattr("handoff.cli.demo.shutil.which", lambda n: None if n == "tmux" else "/b")
     assert main(["demo", "--live"]) == 1
-    assert "brew install tmux" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "brew install tmux" in err
+    assert "handoff demo" in err  # the headless demo needs no tmux
 
 
 def test_demo_refuses_a_real_folder(

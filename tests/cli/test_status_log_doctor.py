@@ -81,3 +81,26 @@ def test_doctor_reports_an_unreachable_database_and_recent_hook_errors(
     assert any("does not answer" in f for f in found)
     assert any("hook failed" in f for f in found)
     assert not any("old trouble" in f for f in found)
+
+
+def test_the_person_is_not_listed_as_a_session_but_their_messages_are_shown(
+    two_sessions: Graph, in_workspace: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from handoff.graph.messages import add_message
+    from handoff.graph.sessions import upsert_session
+
+    upsert_session(two_sessions, session_id="me", role="person", cwd="/w", at=250)
+    add_message(
+        two_sessions,
+        message_id="m1",
+        from_session_id="be",
+        to_role="person",
+        kind="message",
+        text="the endpoint is ready",
+        reply_to=None,
+        at=260,
+    )
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    assert "person" not in out.split("messages for you")[0]
+    assert "the endpoint is ready" in out

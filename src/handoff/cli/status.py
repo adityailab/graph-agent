@@ -8,9 +8,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from falkordb import Graph
+
 from handoff.config import Config
 from handoff.format import shorten
 from handoff.graph.connection import connect, graph_exists, server_reachable
+from handoff.graph.messages import role_messages
 from handoff.graph.needs import count_open_needs
 from handoff.graph.requests import latest_request_id, request_text
 from handoff.graph.sessions import active_sessions
@@ -42,6 +45,14 @@ def _sessions(config: Config) -> list[str]:
     return [*lines, "open needs: " + (" · ".join(needs) or "none")]
 
 
+def _print_messages_for_you(graph: Graph) -> None:
+    """What sessions sent to the person (role 'person'), newest few."""
+    mine = role_messages(graph, role="person", since=now_ms() - DAY_MS, limit=3)
+    if mine:
+        print("messages for you:")
+        print("\n".join(f"  {m.from_role}: {shorten(m.text, 100)}" for m in mine))
+
+
 def run(args: argparse.Namespace) -> int:
     """Print the state of this folder's handoff."""
     config = workspace_config(Path.cwd(), os.environ)
@@ -56,4 +67,5 @@ def run(args: argparse.Namespace) -> int:
         return 0
     print("sessions seen in the last 24 hours:")
     print("\n".join(_sessions(config)))
+    _print_messages_for_you(connect(config))
     return 0

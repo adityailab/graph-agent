@@ -69,3 +69,20 @@ def test_escape_sequences_in_event_text_are_not_passed_to_the_terminal() -> None
     assert "\x1b]0" not in line
     assert "\x1b[2J" not in line
     assert "\x07" not in line
+
+
+def test_a_database_error_is_shown_and_the_loop_continues() -> None:
+    from redis.exceptions import ResponseError
+
+    written: list[str] = []
+    calls: Iterator[Frame | Exception] = iter([ResponseError("unknown command"), _frame()])
+
+    def fetch() -> Frame:
+        item = next(calls)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+    assert watch_loop(fetch, written.append, sleep=lambda _: None, frames=2, width=80) == 0
+    assert "database error" in written[0]
+    assert "DECIDED" in written[1]

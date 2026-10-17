@@ -72,7 +72,8 @@ def _report(config: Config) -> int:
 def _live(args: argparse.Namespace, config: Config, workspace: Path) -> int:
     if shutil.which("tmux") is None:
         print(
-            "The live demo needs tmux: brew install tmux (macOS) or your package manager.",
+            "The live demo needs tmux: brew install tmux (macOS) or your package manager. "
+            "Or run handoff demo, the same collaboration headless, without tmux.",
             file=sys.stderr,
         )
         return 1

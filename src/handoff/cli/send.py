@@ -52,7 +52,7 @@ def run(args: argparse.Namespace) -> int:
         reply_to=None,
         at=now,
     )
-    known = any(s.role == role for s in active_sessions(graph, since=0))
+    known = any(s.role == role for s in active_sessions(graph, since=0, include_person=True))
     later = f" No session has the role {role} yet; it will get this when one starts."
     print(f"Sent to {role}." + ("" if known else later))
     return 0

@@ -47,12 +47,13 @@ def active_session(graph: Graph, *, role: str, cwd: str) -> SessionInfo | None:
     return _session(rows[0]) if rows else None
 
 
-def active_sessions(graph: Graph, *, since: int) -> list[SessionInfo]:
-    """Return sessions seen at or after `since`, ordered by role."""
+def active_sessions(graph: Graph, *, since: int, include_person: bool = False) -> list[SessionInfo]:
+    """Return sessions seen at or after `since`, ordered by role. The person using the CLI
+    (role 'person') is not a Claude session, so it is left out unless asked for."""
     rows = graph.ro_query(
-        f"MATCH (s:Session) WHERE s.last_seen_at >= $since RETURN {_SESSION_FIELDS} "
-        "ORDER BY s.role",
-        {"since": since},
+        f"MATCH (s:Session) WHERE s.last_seen_at >= $since AND ($person OR s.role <> 'person') "
+        f"RETURN {_SESSION_FIELDS} ORDER BY s.role",
+        {"since": since, "person": include_person},
     ).result_set
     return [_session(row) for row in rows]
 
