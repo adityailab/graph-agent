@@ -1,12 +1,13 @@
-// Each session is a small round "dot" character: a soft blob body, big eyes, a cheek each and an
-// antenna dot. While the session works its pupils look around and the antenna pings; when it is
-// idle the eyes close, it dims, and a small "z" floats up. The header logo is three of them
-// handing work along. (Original drawing; colours come from the session's role.)
+// Each session is a tiny compact Macintosh: a rounded body in the session's colour, a cream
+// screen with two tall oval eyes (a blob's face), a floppy slot and an LED. While the session
+// works the eyes glance about and blink, a mouse cursor roams the screen and the LED blinks, like
+// an agent using a computer. When idle the screen dims and everything holds still. The header
+// logo is three of them passing work along. (Original drawing, inspired by the first Macintosh.)
 (function () {
   "use strict";
   var MC = window.MC, el = MC.el, NS = "http://www.w3.org/2000/svg";
   var WIDTH = 44, HEIGHT = 32;
-  var BODY = "M3 29C1 29 1 24 2 19C3 9 11 6 22 6C33 6 41 9 42 19C43 24 43 29 41 29Z";
+  var INK = "#121826";
 
   function shape(tag, attrs, cls) {
     var n = document.createElementNS(NS, tag);
@@ -15,42 +16,39 @@
     return n;
   }
 
-  function eye(g, cx) {
-    var wrap = shape("g", {}, "eye");
-    wrap.appendChild(shape("ellipse", { cx: cx, cy: 19, rx: 4.6, ry: 5.2, fill: "#fff" }));
-    wrap.appendChild(shape("circle", { cx: cx + 0.6, cy: 19.6, r: 2.4, fill: "#121826" }, "pupil"));
-    g.appendChild(wrap);
+  // One Mac in a box `w` wide and `h` tall whose top-left is (x, y), appended to `into`.
+  function mac(into, x, y, w, h, colour) {
+    var g = shape("g", { transform: "translate(" + x + "," + y + ") scale(" + (w / 30) + "," + (h / 30) + ")" });
+    g.appendChild(shape("rect", { x: 0, y: 0, width: 30, height: 30, rx: 5, fill: colour }));
+    g.appendChild(shape("rect", { x: 0, y: 0, width: 30, height: 8, rx: 5, fill: "#fff", opacity: 0.16 }));
+    g.appendChild(shape("rect", { x: 4, y: 4, width: 22, height: 15, rx: 3, fill: INK, opacity: 0.22 }));
+    g.appendChild(shape("rect", { x: 4.8, y: 4.8, width: 20.4, height: 13.4, rx: 2.4 }, "screen"));
+    var eyes = shape("g", {}, "eyes");
+    [11, 19].forEach(function (cx) { eyes.appendChild(shape("ellipse", { cx: cx, cy: 11.5, rx: 1.7, ry: 3.3, fill: INK }, "eye")); });
+    g.appendChild(eyes);
+    g.appendChild(shape("rect", { x: 7, y: 23, width: 13, height: 1.8, rx: 0.9, fill: INK, opacity: 0.35 }));
+    g.appendChild(shape("circle", { cx: 23.5, cy: 23.9, r: 1.1 }, "led"));
+    return g;
   }
 
   // Returns a <g> at (x, y); `active` picks the working or the resting pose.
   function draw(x, y, colour, active) {
     var g = el("g", { transform: "translate(" + x + "," + y + ")" }), bot = el("g", { "class": "bot " + (active ? "work" : "idle") });
-    bot.appendChild(shape("path", { d: "M22 6V2.5", stroke: colour, "stroke-width": 1.8, "stroke-linecap": "round", fill: "none" }));
-    bot.appendChild(shape("circle", { cx: 22, cy: 2.4, r: 2.3, fill: colour }, "ping"));
-    bot.appendChild(shape("path", { d: BODY, fill: colour }));
-    bot.appendChild(shape("ellipse", { cx: 14, cy: 12, rx: 7, ry: 3, fill: "#fff", opacity: 0.18 }));
-    eye(bot, 15); eye(bot, 29);
-    bot.appendChild(shape("circle", { cx: 8.5, cy: 25, r: 2, fill: "#fff", opacity: 0.3 }));
-    bot.appendChild(shape("circle", { cx: 35.5, cy: 25, r: 2, fill: "#fff", opacity: 0.3 }));
-    bot.appendChild(shape("path", { d: "M19 26Q22 28.6 25 26", stroke: "#121826", "stroke-width": 1.3, "stroke-linecap": "round", fill: "none" }, "mouth"));
-    var z = shape("text", { x: 38, y: 8, "font-size": 8, "font-weight": 700, fill: colour }, "zz"); z.textContent = "z";
-    bot.appendChild(z);
-    g.appendChild(bot);
+    var m = mac(bot, 7, 1, 30, 30, colour);
+    var cur = shape("g", {}, "cur");
+    cur.appendChild(shape("polygon", { points: "0,0 0,7 1.9,5.4 3.2,8.4 4.4,7.9 3.1,5 5.6,5", fill: INK, stroke: "#fff", "stroke-width": 0.6, transform: "scale(0.9)" }));
+    m.appendChild(cur);
+    bot.appendChild(m); g.appendChild(bot);
     return g;
   }
 
-  // The header mark: three dots handing work along.
+  // The header mark: three Macs passing work along.
   function drawLogo(svg) {
-    [[10, "d0"], [32, "d1"], [54, "d2"]].forEach(function (d) {
-      svg.appendChild(shape("path", { d: "M" + d[0] + " 8V4", "stroke-width": 1.6, "stroke-linecap": "round", fill: "none" }, "stem " + d[1]));
-      svg.appendChild(shape("circle", { cx: d[0], cy: 3, r: 1.8 }, "dot " + d[1]));
-      svg.appendChild(shape("ellipse", { cx: d[0], cy: 16, rx: 9, ry: 8 }, "dot " + d[1]));
-      [-3, 3].forEach(function (dx) {
-        svg.appendChild(shape("circle", { cx: d[0] + dx, cy: 15, r: 2.4, fill: "#fff" }));
-        svg.appendChild(shape("circle", { cx: d[0] + dx + 0.6, cy: 15.3, r: 1.2, fill: "#121826" }));
-      });
+    [["d0", 1], ["d1", 23], ["d2", 45]].forEach(function (d) {
+      var m = mac(svg, d[1], 6, 18, 18, "currentColor");
+      m.setAttribute("class", d[0]); svg.appendChild(m);
     });
-    [19, 41].forEach(function (x) { svg.appendChild(shape("path", { d: "M" + x + " 15h6m-2-2 2 2-2 2", fill: "none", "stroke-width": 1.6, "stroke-linecap": "round" }, "hand")); });
+    [19.5, 41.5].forEach(function (x) { svg.appendChild(shape("path", { d: "M" + x + " 15h3m-1.2-1.4 1.2 1.4-1.2 1.4", fill: "none", "stroke-width": 1.3, "stroke-linecap": "round" }, "hand")); });
   }
 
   var logo = document.getElementById("logo");

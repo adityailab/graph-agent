@@ -22,16 +22,16 @@
   <button type="button" data-view="handoff"><kbd>2</kbd> handoff</button>
   <button type="button" data-view="memory"><kbd>3</kbd> memory</button>
   <button type="button" data-view="graph"><kbd>4</kbd> graph</button>
-  <button type="button" data-view="tracks"><kbd>5</kbd> tracks</button>
-  <button type="button" data-view="log"><kbd>6</kbd> log</button>
-  <button type="button" data-view="ask"><kbd>7</kbd> ask</button>
+  <button type="button" data-view="log"><kbd>5</kbd> log</button>
+  <button type="button" data-view="ask"><kbd>6</kbd> ask</button>
+  <button type="button" data-view="tracks"><kbd>7</kbd> tracks</button>
 </nav>
 <div class="layout">
   <main>
     <section id="view-orchestration" class="view">
       <svg id="orch" viewBox="0 0 800 430" role="img" aria-label="Sessions and the messages, needs and reads between them"></svg>
       <div id="flows" class="flows"></div>
-      <p class="hint">Each box is a Claude Code session; its bot's scanner sweeps while it is active. Lines carry what moves between them:
+      <p class="hint">Each box is a Claude Code session; its Mac's screen is lit while it is active. Lines carry what moves between them:
         <span class="k-message">messages ──</span> <span class="k-read">reads of each other's work ── ──</span>
         <span class="k-need">needs ·····</span> A square travelling along a line is an event happening now.</p>
     </section>

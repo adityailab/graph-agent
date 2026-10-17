@@ -140,7 +140,7 @@
     chips.appendChild(b);
   });
   var botHolder = document.getElementById("ask-empty-bot");
-  if (botHolder) botHolder.appendChild(avatar(false));
+  if (botHolder) botHolder.appendChild(avatar(true));  // waiting for a question: alive, not asleep
 
   MC.views.ask = { update: function () {} };
 })();
