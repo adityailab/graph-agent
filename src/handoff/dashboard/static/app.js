@@ -14,6 +14,8 @@
     history.replaceState(null, "", "#" + name);
   }
 
+  MC.setView = setView;
+
   function addToTicker(ev, fresh) {
     var li = MC.el("li", { "class": fresh ? "fresh" : "" });
     var meta = MC.el("div", { "class": "meta" });

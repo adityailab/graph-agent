@@ -76,3 +76,15 @@ def test_relevant_memories_come_for_a_role(base: str) -> None:
 
 def test_an_unknown_kind_of_memory_is_not_found(base: str) -> None:
     assert _get(base + "/api/memory/dreams")[0] == 404
+
+
+def test_a_kind_of_memory_can_be_fetched_as_a_graph(base: str) -> None:
+    status, body, _ = _get(base + "/api/memory/semantic/graph")
+    assert status == 200
+    graph = json.loads(body)
+    assert {"Decision", "Topic"} <= {n["kind"] for n in graph["nodes"]}
+    assert graph["edges"]
+
+
+def test_an_unknown_kind_has_no_graph(base: str) -> None:
+    assert _get(base + "/api/memory/dreams/graph")[0] == 404
