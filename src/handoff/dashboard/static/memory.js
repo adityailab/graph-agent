@@ -62,17 +62,17 @@
     if (sig === signature) return;
     signature = sig; MC.clear(root);
     if (!memory.types.length) { root.appendChild(el("p", { "class": "dim" }, "no memory yet: start a session in this folder (if sessions exist, restart `handoff dashboard`: this server may be older than the memory page)")); return; }
-    root.appendChild(el("h3", {}, "six kinds of memory the graph holds"));
+    root.appendChild(el("h3", {}, "six kinds of memory the graph holds · click one to see it as a graph"));
     var grid = el("div", { "class": "mem-grid" });
     memory.types.forEach(function (t) { grid.appendChild(kindCard(t)); });
     root.appendChild(grid);
-    root.appendChild(el("p", { "class": "dim" }, "click a kind of memory to see it as a graph"));
     root.appendChild(el("h3", {}, "what each session holds right now"));
     var ctxs = el("div", { "class": "ctx-grid" });
     memory.contexts.forEach(function (c) { ctxs.appendChild(context(c)); });
     root.appendChild(ctxs);
-    root.appendChild(el("h3", {}, "how context moves between sessions"));
-    root.appendChild(flows(state));
+    var moves = el("details", { "class": "fold" });
+    moves.appendChild(el("summary", {}, "how context moves between sessions (" + state.flows.length + " lines)"));
+    moves.appendChild(flows(state)); root.appendChild(moves);
   }
 
   MC.views.memory = { update: update };

@@ -80,7 +80,8 @@ def snapshot(config: Config, *, now: int, window_ms: int) -> dict[str, Any]:
         )
         events = recent_events(graph, limit=EVENTS)
         found = handoffs(graph, limit=20)
-        kinds = memory_types(graph, concepts=concept_total(config), since=now - window_ms)
+        concept_count = concept_total(config)  # one number for every page that shows it
+        kinds = memory_types(graph, concepts=concept_count, since=now - window_ms)
         contexts = role_contexts(graph, since=now - window_ms)
     except (RedisConnectionError, RedisTimeoutError, OSError) as exc:  # keep the page alive
         return {**_empty(f"database unreachable: {exc}"), "graph": config.graph_name, "now": now}
@@ -103,5 +104,5 @@ def snapshot(config: Config, *, now: int, window_ms: int) -> dict[str, Any]:
         "work": _view(work),
         "concepts": _view(concepts),
         "memory": {"types": [asdict(t) for t in kinds], "contexts": [asdict(c) for c in contexts]},
-        "tracks": track_summary(_counts(roles, flows, insights, work, len(concepts.nodes))),
+        "tracks": track_summary(_counts(roles, flows, insights, work, concept_count)),
     }

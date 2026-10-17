@@ -13,7 +13,7 @@
     if (open) c.open = true;
     head.appendChild(chip(h.reader)); head.appendChild(el("span", { "class": "arrow" }, " ← "));
     head.appendChild(chip(h.author));
-    head.appendChild(el("span", { "class": "dim" }, "  " + MC.clock(h.at) + " · " + h.decisions.length + (h.decisions.length === 1 ? " decision" : " decisions")));
+    head.appendChild(el("span", { "class": "dim nb" }, MC.clock(h.at) + " · " + h.decisions.length + (h.decisions.length === 1 ? " decision" : " decisions")));
     head.appendChild(el("span", { "class": "peek" }, h.request.length > 90 ? h.request.slice(0, 89) + "…" : h.request));
     c.appendChild(head);
     c.appendChild(MC.clamp(MC.rich(el("p", { "class": "asked" }), "their request: " + h.request)));

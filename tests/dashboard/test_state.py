@@ -75,3 +75,14 @@ def test_an_empty_snapshot_still_shows_both_tracks_with_zero_evidence(config: Co
     state = snapshot(config, now=1_000, window_ms=1_000)
     assert [t["id"] for t in state["tracks"]] == ["track-02", "track-01"]
     assert all(e["value"] == 0 for t in state["tracks"] for e in t["evidence"])
+
+
+def test_the_tracks_and_the_memory_page_count_the_same_concepts(
+    config: Config, two_sessions: Graph, kg: Graph
+) -> None:
+    state = snapshot(config, now=1_000, window_ms=10**9)
+    tracks = {e["label"]: e["value"] for t in state["tracks"] for e in t["evidence"]}
+    semantic = next(t for t in state["memory"]["types"] if t["key"] == "semantic")
+    total = int(kg.ro_query("MATCH (e:__Entity__) RETURN count(e)").result_set[0][0])
+    assert tracks["concepts extracted"] == total
+    assert f"{total} concepts" in semantic["detail"] or f"{total} concept " in semantic["detail"]

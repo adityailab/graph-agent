@@ -158,7 +158,7 @@ a { color: var(--blue); }
 .canvas-wrap { height: calc(100vh - 190px); min-height: 460px; }
 
 /* memory page */
-.mem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.mem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; margin-bottom: 22px; }
 .mem-card { border: 1px solid var(--line); border-top: 3px solid var(--dim); padding: 10px 12px; }
 .mem-head { display: flex; justify-content: space-between; align-items: baseline; }
 .mem-name { font-weight: 700; text-transform: lowercase; }
@@ -293,3 +293,20 @@ details.card[open] > summary .peek { display: none; }
 /* on a small screen the drawings keep a readable size and scroll sideways inside their own box */
 .svg-scroll { min-width: 0; overflow-x: auto; }
 @media (max-width: 760px) { #orch { min-width: 700px; } #hf-graph { min-width: 700px; } }
+
+/* handoff cards: the header never breaks in the middle of "2 decisions" */
+.flow-detail .card summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.flow-detail .card summary .nb { white-space: nowrap; }
+.flow-detail .card summary .peek { flex-basis: 100%; }
+/* graph: what the side panel says before anything is selected */
+.detail-hint { display: none; margin: 4px 0 8px; }
+#detail[hidden] + .detail-hint { display: block; }
+.edge.flow { stroke: var(--dim); opacity: .85; stroke-dasharray: 7 5; animation: flow 1.4s linear infinite; }
+.edge.flow.on, .orch-edge:hover .edge.flow { stroke: var(--ink); opacity: 1; }
+.orch-label { font-size: 10.5px; text-anchor: middle; }
+.orch-label tspan { font-weight: 700; }
+.ah-flow { fill: var(--dim); }
+.orch-label { paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; fill: var(--dim); }
+.orch-label .k-message, .orch-label .k-nudge, .orch-label .k-digest { fill: var(--teal); }
+.orch-label .k-question, .orch-label .k-standin_answer { fill: var(--purple); }
+.orch-label .k-read { fill: var(--amber); } .orch-label .k-need { fill: var(--red); }

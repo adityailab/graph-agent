@@ -4,7 +4,7 @@
   // Roles are told apart by shade (and by name), not hue: the page is black and white.
   var SLOT = Object.assign(Object.create(null), { frontend: 0, backend: 1, deploy: 2, person: 3 });
   var assigned = Object.create(null);
-  var SVG_TAGS = ["svg", "g", "circle", "line", "path", "text", "rect", "defs"];
+  var SVG_TAGS = ["svg", "g", "circle", "ellipse", "line", "path", "polygon", "text", "tspan", "rect", "defs", "marker"];
   var SENT = ["MESSAGE", "NUDGE", "DIGEST", "QUESTION", "STANDIN_ANSWER"];
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
