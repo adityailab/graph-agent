@@ -133,7 +133,9 @@ def test_a_failed_finalize_does_not_stop_the_worker(
     while rag.finalized < 1 and time.monotonic() < deadline:
         time.sleep(0.05)
     add_request(ready, session_id="s1", request_id="p2", text="add a price filter please", at=20)
-    while rag.finalized < 2 and time.monotonic() < deadline:
+    # The worker retries the failed finalize on its next idle pass, possibly before p2
+    # exists, so "finalized twice" alone proves nothing: wait until p2 is handled.
+    while len(rag.ingested) < 2 and time.monotonic() < deadline:
         time.sleep(0.05)
     worker.stop()
     thread.join(timeout=5)
