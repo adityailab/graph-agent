@@ -188,3 +188,6 @@ a { color: var(--blue); }
 .ask-cypher pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0; color: var(--ink); background: var(--soft); padding: 6px 8px; }
 .ask-form { display: flex; gap: 8px; position: sticky; bottom: 8px; background: var(--bg); padding: 6px 0; }
 .ask-form input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.ask-turn code { background: var(--soft); padding: 0 4px; }
+.ask-list { margin: 4px 0; padding-left: 1.3em; display: grid; gap: 4px; }
+.ask-list li { overflow-wrap: anywhere; }
