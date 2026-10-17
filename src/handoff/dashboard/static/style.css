@@ -36,23 +36,20 @@ kbd { font: inherit; color: var(--dim); margin-right: 4px; }
 .tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 14px 6px; white-space: nowrap; color: var(--dim); }
 .tabs button[aria-current="true"] { color: var(--ink); border-bottom-color: var(--blue); }
 .tabs button[aria-current="true"] kbd { color: var(--blue); }
-.layout { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 24px; align-items: start; }
-@media (max-width: 1000px) { .layout { grid-template-columns: minmax(0, 1fr); } }
 .view[hidden] { display: none; }
 .view { min-height: 480px; }
 .hint { color: var(--dim); margin: 10px 0 0; }
 #orch { width: 100%; height: auto; display: block; }
 h2, h3 { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
 h2::before, h3::before { content: "# "; color: var(--dim); }
-/* stays in view while the page scrolls, so the right side is never empty */
-.feed { border-left: 1px solid var(--line); padding-left: 16px; position: sticky; top: 8px; height: calc(100vh - 24px); overflow: auto; }
 #ticker { list-style: none; margin: 0; padding: 0; }
-#ticker li { padding: 6px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
-#ticker .meta { display: flex; gap: 10px; font-size: 12px; }
+#ticker li { padding: 7px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; display: grid; grid-template-columns: 9ch 11ch 10ch minmax(0, 1fr); gap: 0 14px; }
+#ticker .meta { display: contents; }
+@media (max-width: 800px) { #ticker li { grid-template-columns: 9ch 1fr; } #ticker .text { grid-column: 1 / -1; } }
 #ticker .t { color: var(--dim); }
 #ticker .kind { font-weight: 700; text-transform: lowercase; }
 #ticker .who { font-weight: 700; }
-#ticker .text { display: block; margin-top: 1px; white-space: pre-wrap; }
+#ticker .text { white-space: pre-wrap; }
 #ticker li.fresh { animation: blink 1.2s steps(2) 2; }
 @keyframes blink { 50% { background: var(--soft); } }
 /* orchestration */
@@ -144,3 +141,11 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .detail .rel { color: var(--amber); font-weight: 700; } .detail .kind { color: var(--dim); }
 a { color: var(--blue); }
 .legend span.line::before { width: 16px; height: 3px; border-radius: 0; vertical-align: middle; }
+
+/* graph: the canvas beside a panel of everything the graph is made of */
+.graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; align-items: start; }
+@media (max-width: 1000px) { .graph-layout { grid-template-columns: minmax(0, 1fr); } }
+.graph-side { position: sticky; top: 8px; max-height: calc(100vh - 24px); overflow: auto; border-left: 1px solid var(--line); padding-left: 16px; }
+.graph-side .legend { flex-direction: column; margin: 0 0 12px; gap: 3px; }
+.graph-side .detail { margin-top: 0; }
+.canvas-wrap { height: calc(100vh - 190px); min-height: 460px; }

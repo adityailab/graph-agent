@@ -2,13 +2,14 @@
 (function () {
   "use strict";
   var MC = window.MC, POLL_MS = 1500;
+  var VIEWS = ["orchestration", "handoff", "graph", "tracks", "log"];
   var seenEvents = null, state = null, current = "orchestration";
   var ticker = document.getElementById("ticker"), status = document.getElementById("status");
 
   function setView(name) {
     current = name;
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-view") === name)); });
-    ["orchestration", "handoff", "graph", "tracks"].forEach(function (v) { document.getElementById("view-" + v).hidden = v !== name; });
+    VIEWS.forEach(function (v) { document.getElementById("view-" + v).hidden = v !== name; });
     MC.views.graph.setVisible(name === "graph");
     history.replaceState(null, "", "#" + name);
   }
@@ -58,10 +59,10 @@
   });
 
   document.addEventListener("keydown", function (ev) {
-    var names = ["orchestration", "handoff", "graph", "tracks"], i = Number(ev.key) - 1;
+    var names = VIEWS, i = Number(ev.key) - 1;
     if (!ev.metaKey && !ev.ctrlKey && !ev.altKey && i >= 0 && i < names.length) setView(names[i]);
   });
 
-  setView(["orchestration", "handoff", "graph", "tracks"].indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : current);
+  setView(VIEWS.indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : current);
   poll();
 })();
