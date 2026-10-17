@@ -66,3 +66,25 @@ def test_every_kind_can_be_drawn(two_sessions: Graph) -> None:
 def test_an_unknown_kind_is_refused(two_sessions: Graph) -> None:
     with pytest.raises(ValueError, match="unknown kind"):
         memory_graph(two_sessions, "dreams", limit=5)
+
+
+def test_temporal_memory_draws_agreement_between_roles(two_sessions: Graph) -> None:
+    from handoff.graph.agreements import link_agreements
+    from handoff.graph.decisions import set_decision_embedding
+    from handoff.graph.schema import EMBED_DIM
+
+    vec = [1.0] + [0.0] * (EMBED_DIM - 1)
+    set_decision_embedding(two_sessions, "d1", vec)
+    add_decision(
+        two_sessions,
+        request_id="p3",
+        decision_id="d2",
+        text="same thing",
+        reason="r",
+        topic="profile",
+        at=300,
+    )
+    set_decision_embedding(two_sessions, "d2", vec)
+    link_agreements(two_sessions, "d2", vec, role="backend", at=310)
+    view = memory_graph(two_sessions, "temporal", limit=100)
+    assert "AGREES_WITH" in {e.kind for e in view.edges}

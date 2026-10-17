@@ -63,3 +63,19 @@ def test_merging_does_not_leave_parallel_edges_and_keeps_every_source(kg: Graph)
     ).result_set
     assert rows[0][0] == 1
     assert sorted(rows[0][1][0]) == ["c1", "c2"]
+
+
+def test_names_that_differ_only_in_case_spacing_or_punctuation_become_one(kg: Graph) -> None:
+    kg.query(
+        "CREATE (:__Entity__:Component {name: 'ProductList', description: 'the list'}), "
+        "(:__Entity__:Component {name: 'product list', description: 'x'}), "
+        "(:__Entity__:File {name: 'dist/', description: 'build output'}), "
+        "(:__Entity__:File {name: 'dist', description: 'x'}), "
+        "(:__Entity__:Concept {name: 'login', description: 'x'}), "
+        "(:__Entity__:Concept {name: 'logic', description: 'x'})"
+    )
+    assert merge_same_name_entities(kg) == 2
+    names = {r[0] for r in kg.query("MATCH (e:__Entity__) RETURN e.name").result_set}
+    assert {"login", "logic"} <= names  # near, but not the same name
+    assert ("ProductList" in names) != ("product list" in names)
+    assert ("dist/" in names) != ("dist" in names)

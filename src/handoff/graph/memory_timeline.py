@@ -27,6 +27,13 @@ _EVENTS: tuple[tuple[str, str], ...] = (
         "-[:SUPERSEDES]->(old:Decision) "
         "RETURN s.role, old.text + '  →  now: ' + new.text, new.at",
     ),
+    (
+        "agrees",
+        "MATCH (s:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(:Decision)"
+        "-[r:AGREES_WITH]->(other:Decision) "
+        "MATCH (o:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(other) "
+        "RETURN s.role, 'agrees with ' + o.role + ': ' + other.text, r.at",
+    ),
 )
 
 

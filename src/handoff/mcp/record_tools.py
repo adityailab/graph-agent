@@ -10,8 +10,9 @@ from pydantic import Field
 
 from handoff.config import normalise_role
 from handoff.embed import EmbedderUnavailable
-from handoff.format import render_earlier_decisions
+from handoff.format import render_agreements, render_earlier_decisions
 from handoff.graph import needs as graph_needs
+from handoff.graph.agreements import link_agreements
 from handoff.graph.decisions import add_decision, set_decision_embedding
 from handoff.graph.timeline import current_on_topic
 from handoff.ids import new_id
@@ -23,16 +24,18 @@ from handoff.redact import redact
 log = logging.getLogger(__name__)
 
 
-def _embed_decision(ctx: ToolContext, decision_id: str, text: str) -> None:
+def _embed_decision(ctx: ToolContext, decision_id: str, text: str) -> list[float] | None:
+    """Store the decision's vector and return it (None when there is no embedder or it is down)."""
     if ctx.embedder is None:
-        return
+        return None
     try:
         vector = ctx.embedder.embed([redact(text)])[0]
     except EmbedderUnavailable as exc:
         # The decision is already saved; search still finds it by its words.
         log.warning("no embedding for decision %s: %s", decision_id, exc)
-        return
+        return None
     set_decision_embedding(ctx.graph, decision_id, vector)
+    return vector
 
 
 @guarded
@@ -53,9 +56,15 @@ def record_decision(ctx: ToolContext, text: str, reason: str, topic: str) -> str
         topic=topic_name,
         at=ctx.now(),
     )
-    _embed_decision(ctx, decision_id, f"{text.strip()} {reason.strip()}")
+    vector = _embed_decision(ctx, decision_id, f"{text.strip()} {reason.strip()}")
+    agreed = (
+        link_agreements(ctx.graph, decision_id, vector, role=ctx.role, at=ctx.now())
+        if vector is not None
+        else []
+    )
     earlier = current_on_topic(ctx.graph, topic_name, excluding=decision_id)
     note = f"\n{render_earlier_decisions(earlier)}" if earlier else ""
+    note += f"\n{render_agreements(agreed)}" if agreed else ""
     return f'Recorded decision {decision_id} on request "{request.text}".{request.note}{note}'
 
 

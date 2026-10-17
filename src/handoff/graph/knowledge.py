@@ -55,11 +55,16 @@ def describe_items(graph: Graph, ids: list[str]) -> list[ItemRef]:
 
 
 # GraphRAG-SDK only merges entities with the same name AND type, so "frontend" as a
-# Concept and as a Technology stay apart and split the links between sessions. This
-# keeps the copy with the longest description and moves the others' links onto it.
+# Concept and as a Technology stay apart and split the links between sessions. Names that
+# differ only in case, spaces or the characters / . - _ ("ProductList" and "product list",
+# "dist/" and "dist") are one thing too. This keeps the copy with the longest description and
+# moves the others' links onto it.
 _MERGE_SAME_NAME = """
 MATCH (e:__Entity__)
-WITH toLower(trim(e.name)) AS key, e ORDER BY size(coalesce(e.description, '')) DESC
+WITH e, replace(replace(replace(replace(replace(trim(e.name), ' ', ''), '/', ''), '.', ''),
+  '-', ''), '_', '') AS folded
+WITH toLower(folded) AS key, e
+ORDER BY size(coalesce(e.description, '')) DESC
 WITH key, collect(e) AS same WHERE size(same) > 1
 WITH head(same) AS keep, tail(same) AS dups
 UNWIND dups AS dup
@@ -93,6 +98,6 @@ RETURN count(dup)
 
 
 def merge_same_name_entities(kg: Graph) -> int:
-    """Merge knowledge-graph entities that share a name whatever their type; return how
-    many duplicates were removed."""
+    """Merge knowledge-graph entities whose names match once case, spaces and / . - _ are
+    ignored, whatever their type; return how many duplicates were removed."""
     return int(kg.query(_MERGE_SAME_NAME).result_set[0][0])

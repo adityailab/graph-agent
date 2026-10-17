@@ -6,6 +6,7 @@ import time
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 
+from handoff.graph.agreements import Agreement
 from handoff.graph.conventions import Convention
 from handoff.graph.records import InsightView, MessageView, RequestView, WhyRow
 from handoff.graph.timeline import TimelineEntry
@@ -161,4 +162,11 @@ def render_earlier_decisions(entries: Sequence[TimelineEntry]) -> str:
     lines.append(
         "If this one replaces an earlier one, call supersede_decision(decision_id, replaces)."
     )
+    return "\n".join(lines)
+
+
+def render_agreements(agreed: Sequence[Agreement]) -> str:
+    """A note that other roles already decided the same thing, so the work can line up."""
+    lines = ["Other roles already decided something very close to this:"]
+    lines += [f"- {a.role} decided: {shorten(a.text, 160)}" for a in agreed]
     return "\n".join(lines)
