@@ -102,3 +102,13 @@ def test_graph_can_be_named_explicitly(tmp_path: Path, config: Config) -> None:
     text = install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config, graph="demo")
     assert _read(tmp_path / ".claude" / "settings.local.json")["env"]["HANDOFF_GRAPH"] == "demo"
     assert "demo" in text
+
+
+def test_our_server_gets_the_workspace_graph_literally(tmp_path: Path, config: Config) -> None:
+    """Claude Code expands ${VAR} in .mcp.json from the shell, not from settings env, so a
+    graph chosen in settings would otherwise never reach the MCP server."""
+    install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config)
+    graph = _read(tmp_path / ".claude" / "settings.local.json")["env"]["HANDOFF_GRAPH"]
+    server_env = _read(tmp_path / ".mcp.json")["mcpServers"]["handoff"]["env"]
+    assert server_env["HANDOFF_GRAPH"] == graph
+    assert server_env["HANDOFF_ROLE"] == "${HANDOFF_ROLE:-}"  # still per terminal

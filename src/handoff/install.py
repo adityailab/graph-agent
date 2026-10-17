@@ -98,7 +98,7 @@ def install(
     mcp_path = workspace / ".mcp.json"
     mcp = _read_json(mcp_path)
     servers = mcp.setdefault("mcpServers", {})
-    servers["handoff"] = handoff_server_entry(str(bin_dir / "handoff-mcp"))
+    servers["handoff"] = handoff_server_entry(str(bin_dir / "handoff-mcp"), env["HANDOFF_GRAPH"])
     if falkordb_mcp:
         servers["falkordb"] = falkordb_server_entry(config)
     else:

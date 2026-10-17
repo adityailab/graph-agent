@@ -9,14 +9,15 @@ from handoff.config import Config
 FALKORDB_MCP_PACKAGE = "@falkordb/mcpserver@1.3.0"  # pinned: the tool list was checked here
 
 
-def handoff_server_entry(command: str) -> dict[str, Any]:
-    """Our server. Claude Code expands ${VAR} in .mcp.json, so each terminal's
-    HANDOFF_ROLE reaches its own copy of the server."""
+def handoff_server_entry(command: str, graph: str) -> dict[str, Any]:
+    """Our server. Claude Code expands ${VAR} in .mcp.json from the shell, so each
+    terminal's HANDOFF_ROLE reaches its own copy; the graph is written literally because
+    a graph chosen in the workspace's settings never reaches that expansion."""
     return {
         "command": command,
         "env": {
             "HANDOFF_ROLE": "${HANDOFF_ROLE:-}",
-            "HANDOFF_GRAPH": "${HANDOFF_GRAPH:-handoff}",
+            "HANDOFF_GRAPH": graph,
             "HANDOFF_MODEL": "${HANDOFF_MODEL:-claude-code}",
         },
     }

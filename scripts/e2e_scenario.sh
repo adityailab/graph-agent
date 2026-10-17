@@ -16,7 +16,10 @@ WORKSPACE="${E2E_WORKSPACE:-${TMPDIR:-/tmp}/handoff-e2e}"
 KNOWLEDGE=1
 [[ "${1:-}" == "--no-knowledge" ]] && KNOWLEDGE=0
 
-export HANDOFF_GRAPH="${E2E_GRAPH:-demo}"
+# The graph reaches the sessions only through the workspace's settings, as it does for a
+# real user; it is passed explicitly to install, the knowledge worker and the check.
+GRAPH="${E2E_GRAPH:-demo}"
+unset HANDOFF_GRAPH
 export HANDOFF_HOME="${HANDOFF_HOME:-$REPO/.handoff}"
 export HANDOFF_MODEL_NAME="${E2E_MODEL:-haiku}"  # stand-in and knowledge model
 export HANDOFF_KNOWLEDGE=off                      # sessions skip it; one worker runs below
@@ -39,10 +42,10 @@ run_role() {  # run_role <role> <prompt>
     | tee "$WORKSPACE/$role.reply.txt")
 }
 
-step "fresh workspace $WORKSPACE and graph $HANDOFF_GRAPH"
+step "fresh workspace $WORKSPACE and graph $GRAPH"
 rm -rf "$WORKSPACE" && mkdir -p "$WORKSPACE"
-"$BIN/python" "$REPO/scripts/e2e_check.py" --reset
-"$BIN/handoff" install "$WORKSPACE" --no-falkordb-mcp --graph "$HANDOFF_GRAPH" > /dev/null
+"$BIN/python" "$REPO/scripts/e2e_check.py" --graph "$GRAPH" --reset
+"$BIN/handoff" install "$WORKSPACE" --no-falkordb-mcp --graph "$GRAPH" > /dev/null
 
 run_role frontend "Create Checkout.tsx that shows the order total from order.totalPaise \
 as rupees with two decimals. Record a decision: money stays in integer paise end to end, \
@@ -61,9 +64,9 @@ frontend role why amounts are kept in paise. Then tell me in three lines what th
 sessions changed, why, and whether anything is still open."
 
 if [[ "$KNOWLEDGE" == 1 ]]; then
-  step "knowledge graph ${HANDOFF_GRAPH}_kg (one model call per item, about 20 s each)"
-  HANDOFF_KNOWLEDGE=on "$BIN/handoff-knowledge" --once
+  step "knowledge graph ${GRAPH}_kg (one model call per item, about 20 s each)"
+  HANDOFF_GRAPH="$GRAPH" HANDOFF_KNOWLEDGE=on "$BIN/handoff-knowledge" --once
 fi
 
 step "check"
-"$BIN/python" "$REPO/scripts/e2e_check.py" --workspace "$WORKSPACE"
+"$BIN/python" "$REPO/scripts/e2e_check.py" --graph "$GRAPH" --workspace "$WORKSPACE"

@@ -1,6 +1,8 @@
 """Checks for scripts/e2e_scenario.sh: what the deploy session sees after the run.
 
---reset deletes the scenario's own graph and knowledge graph (and nothing else) first.
+--reset deletes the named graph, its knowledge graph and GraphRAG's ontology graph, and
+nothing else; the graph must always be named (--graph), so a default graph holding real
+history can never be deleted by accident.
 """
 
 from __future__ import annotations
@@ -11,11 +13,11 @@ import sys
 from falkordb import FalkorDB
 
 from handoff.config import Config
+from handoff.format import render_handoff, select_requests
 from handoff.graph.connection import connect
+from handoff.graph.history import handoff_requests
 from handoff.graph.schema import ensure_schema
 from handoff.knowledge.startup import knowledge_graph_name
-from handoff.mcp.context import ToolContext
-from handoff.mcp.read_tools import handoff
 
 # What the deploy session's handoff must contain for the run to count.
 EXPECTED = {
@@ -56,14 +58,16 @@ def check(config: Config, workspace: str) -> int:
         print(f"No graph named {config.graph_name}; run scripts/e2e_scenario.sh first.")
         return 1
     graph = connect(config)
-    text = handoff(ToolContext(role="deploy", cwd=workspace, graph=graph))
+    # Count what the sessions did before anything here touches the graph, and render the
+    # handoff without the tool, which would record CONSULTED edges of its own.
+    missing = [
+        name for name, query in EXPECTED_EDGES.items() if graph.query(query).result_set[0][0] == 0
+    ]
+    text = render_handoff(select_requests(handoff_requests(graph, role=None, since=0), 10))
     print(text)
     counts = graph.query("MATCH (n) RETURN labels(n)[0], count(n) ORDER BY labels(n)[0]")
     print("\nNodes:", ", ".join(f"{label} {n}" for label, n in counts.result_set))
-    missing = [name for name, needle in EXPECTED.items() if needle not in text]
-    missing += [
-        name for name, query in EXPECTED_EDGES.items() if graph.query(query).result_set[0][0] == 0
-    ]
+    missing += [name for name, needle in EXPECTED.items() if needle not in text]
     if missing:
         print(f"\nFAIL: missing {', '.join(missing)}.")
         return 1
@@ -76,10 +80,12 @@ def check(config: Config, workspace: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--graph", required=True, help="the scenario's graph name")
     parser.add_argument("--reset", action="store_true")
     parser.add_argument("--workspace", default=".")
     args = parser.parse_args()
-    config = Config.from_env()
+    env = Config.from_env()
+    config = Config(env.host, env.port, args.graph, env.home)
     if args.reset:
         reset(config)
         return 0
