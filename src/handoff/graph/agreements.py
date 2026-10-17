@@ -1,4 +1,5 @@
-"""Agreement between roles: two decisions that say the same thing, made by different sessions."""
+"""Agreement between roles: two decisions that say the same thing, made by different sessions.
+Agreement is mutual, so a pair has one edge (whichever decision was linked first)."""
 
 from __future__ import annotations
 
@@ -18,6 +19,8 @@ RETURN d.id, s.role, d.text
 """
 _LINK = """
 MATCH (new:Decision {id: $new}), (old:Decision {id: $old})
+OPTIONAL MATCH (old)-[back:AGREES_WITH]->(new)
+WITH new, old, back WHERE back IS NULL AND new.at >= old.at
 MERGE (new)-[r:AGREES_WITH]->(old)
 ON CREATE SET r.at = $at, r.distance = $distance
 """
@@ -50,3 +53,23 @@ def link_agreements(
             {"new": decision_id, "old": a.decision_id, "at": at, "distance": near[a.decision_id]},
         )
     return sorted(agreed, key=lambda a: near[a.decision_id])
+
+
+_ALL_DECISIONS = """
+MATCH (s:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(d:Decision) WHERE d.embedding IS NOT NULL
+RETURN d.id, s.role, d.embedding, d.at
+"""
+
+
+def link_all_agreements(graph: Graph) -> int:
+    """Link every pair of existing decisions that agree (see `link_agreements`); return how
+    many new links were made. Decisions made before this existed get their links this way."""
+
+    def count() -> int:
+        return int(graph.ro_query("MATCH ()-[r:AGREES_WITH]->() RETURN count(r)").result_set[0][0])
+
+    before = count()
+    for decision_id, role, vector, made_at in graph.ro_query(_ALL_DECISIONS).result_set:
+        vec = [float(x) for x in vector]
+        link_agreements(graph, str(decision_id), vec, role=str(role), at=int(made_at))
+    return count() - before

@@ -50,3 +50,19 @@ def test_linking_twice_keeps_one_edge(two_sessions: Graph) -> None:
         link_agreements(two_sessions, "d2", _vec(0.99, 0.12), role="backend", at=at)
     rows = two_sessions.query("MATCH ()-[r:AGREES_WITH]->() RETURN count(r)").result_set
     assert rows == [[1]]
+
+
+def test_existing_decisions_are_linked_later_to_earlier_at_the_later_time(
+    two_sessions: Graph,
+) -> None:
+    from handoff.graph.agreements import link_all_agreements
+
+    set_decision_embedding(two_sessions, "d1", _vec(1.0, 0.0))  # frontend, made at 112
+    _decide(two_sessions, "p3", "d2", "same thing", _vec(0.99, 0.12))  # backend, made at 500
+    _decide(two_sessions, "p3", "d3", "far away", _vec(0.0, 1.0))
+    assert link_all_agreements(two_sessions) == 1
+    assert link_all_agreements(two_sessions) == 0  # nothing new the second time
+    rows = two_sessions.query(
+        "MATCH (:Decision {id: 'd2'})-[r:AGREES_WITH]->(:Decision {id: 'd1'}) RETURN r.at"
+    ).result_set
+    assert rows == [[500]]
