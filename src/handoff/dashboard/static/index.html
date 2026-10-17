@@ -46,6 +46,7 @@
             <button type="button" data-mode="concepts" aria-pressed="false">concept graph</button>
             <button type="button" data-mode="memory" id="graph-memory" aria-pressed="false" hidden>memory</button>
             <button type="button" id="graph-fit">fit</button>
+            <button type="button" id="graph-pin" aria-pressed="false">pin on drag: off</button>
             <button type="button" id="graph-unpin">unpin all</button>
           </div>
           <div class="canvas-wrap">
@@ -74,13 +75,20 @@
       <ol id="ticker"></ol>
     </section>
     <section id="view-ask" class="view" hidden>
-      <h2>ask the graph</h2>
-      <p class="dim">Ask in plain words. Claude Code writes read-only Cypher against the graphs, answers from what it
-        finds, and shows the Cypher so you can check it. Each question uses your Claude plan.</p>
-      <div id="ask-chips" class="ask-chips"></div>
+      <div class="ask-bar">
+        <h2>ask the graph</h2>
+        <span class="dim">remembers this conversation · each question uses your Claude plan</span>
+        <button type="button" id="ask-new">new chat</button>
+      </div>
       <div id="ask-log" class="ask-log"></div>
+      <div id="ask-empty" class="ask-empty">
+        <div id="ask-empty-bot"></div>
+        <p>Ask about the work in plain words. Claude Code writes read-only Cypher against the graphs,
+          shows what it is doing, and keeps the Cypher so you can check the answer.</p>
+        <div id="ask-chips" class="ask-chips"></div>
+      </div>
       <form id="ask-form" class="ask-form">
-        <input id="ask-input" type="text" maxlength="500" autocomplete="off" placeholder="ask a question about the work…" aria-label="Question">
+        <input id="ask-input" type="text" maxlength="500" autocomplete="off" placeholder="ask a question, or a follow-up…" aria-label="Question">
         <button id="ask-send" type="submit">ask</button>
       </form>
     </section>
@@ -96,6 +104,7 @@
 <script src="/graphdetail.js"></script>
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>
+<script src="/askmarkdown.js"></script>
 <script src="/ask.js"></script>
 <script src="/app.js"></script>
 </body>

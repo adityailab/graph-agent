@@ -18,6 +18,12 @@
   fg.d3Force("charge").strength(-45).distanceMax(260);
   fg.d3Force("link").distance(26);
 
+  // The short name shown on hover: the first words only. The whole text opens in the side panel on click.
+  function name(n) {
+    var one = n.text.replace(/\s+/g, " ").trim();
+    return one.length > 48 ? one.slice(0, 47).replace(/\s+\S*$/, "") + "…" : one;
+  }
+
   function focus() { return selected || hover; }
   function lit(l) {
     var f = focus(), s = l.source.id || l.source, t = l.target.id || l.target;
@@ -118,7 +124,7 @@
   fg.onLinkHover(function (l) { hoverLink = l || null; holder.style.cursor = l ? "pointer" : "default"; });
   fg.onNodeHover(function (n) {
     hover = n || null; holder.style.cursor = n ? "pointer" : "default"; tip.hidden = !n;
-    if (n) tip.textContent = n.kind + (n.role ? " (" + n.role + ")" : "") + ": " + n.text;
+    if (n) tip.textContent = n.kind + (n.role ? " (" + n.role + ")" : "") + ": " + name(n);
   });
   holder.addEventListener("mousemove", function (ev) { var b = holder.getBoundingClientRect(); tip.style.left = Math.min(ev.clientX - b.left + 14, b.width - 340) + "px"; tip.style.top = (ev.clientY - b.top + 14) + "px"; });
   fg.onNodeClick(function (n) { selected = n; MC.graphDetail.show(n); });
@@ -127,7 +133,12 @@
   fg.onBackgroundClick(clearFocus).onLinkClick(clearFocus);
   holder.addEventListener("mouseleave", function () { hover = null; hoverLink = null; tip.hidden = true; });
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") clearFocus(); });
-  fg.onNodeDragEnd(function (n) { n.fx = n.x; n.fy = n.y; });  // a dragged node stays where it is put
+  // Nodes float free by default; "pin on drag" makes a dragged node stay where it is put.
+  var pinning = false;
+  fg.onNodeDragEnd(function (n) { if (pinning) { n.fx = n.x; n.fy = n.y; } });
+  document.getElementById("graph-pin").addEventListener("click", function () {
+    pinning = !pinning; this.setAttribute("aria-pressed", String(pinning)); this.textContent = pinning ? "pin on drag: on" : "pin on drag: off";
+  });
   document.getElementById("graph-fit").addEventListener("click", function () { fg.zoomToFit(400, 40); });
   document.getElementById("graph-unpin").addEventListener("click", function () { Object.keys(nodes).forEach(function (k) { nodes[k].fx = nodes[k].fy = undefined; }); fg.d3ReheatSimulation(); });
   document.querySelectorAll("[data-mode]").forEach(function (b) {

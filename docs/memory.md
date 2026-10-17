@@ -37,3 +37,10 @@ graph holds and what each live session has in hand.
 On the dashboard's memory page, click a kind to see it drawn as a graph on the graph page (a `memory · kind` button); click a node there to read its full text. Each
 session's card also lists "relevant memories": decisions whose words match what that session is
 working on now. They come from `/api/memory/<kind>/graph` (also `/api/memory/<kind>` as a list) and `/api/memory/relevant/<role>`.
+
+## Asking the graph
+
+The dashboard's **ask** tab is a chat with the graphs. It remembers the last six turns (so "and who
+replaced it?" works), shows what Claude Code is doing as it happens (reading the guide, each Cypher
+query, the answer being written) and keeps the Cypher it ran. Thinking text is not exposed by Claude
+Code, so the page shows steps and notes, not raw reasoning.
