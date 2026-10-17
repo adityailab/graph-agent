@@ -78,3 +78,30 @@ def test_empty_system_prompt_is_left_out() -> None:
 def test_cut_off_reply_is_reported_as_unavailable() -> None:
     with pytest.raises(ModelUnavailable):
         _client(FakeMessages(_response('{"answer": ', stop="max_tokens"))).complete("s", "u")
+
+
+def test_the_apis_own_explanation_is_in_the_error() -> None:
+    import anthropic
+    import httpx2 as httpx  # the SDK's own HTTP client library
+
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(400, request=request)
+    error = anthropic.BadRequestError(
+        "bad",
+        response=response,
+        body={
+            "type": "error",
+            "error": {"type": "invalid_request_error", "message": "this key needs a workspace id"},
+        },
+    )
+    with pytest.raises(ModelUnavailable, match="this key needs a workspace id"):
+        _client(FakeMessages(error=error)).complete("s", "u")
+
+
+def test_a_configured_workspace_is_sent_as_a_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    from handoff.models.anthropic_api import sdk_headers
+
+    monkeypatch.setenv("ANTHROPIC_WORKSPACE_ID", "wrkspc_123")
+    assert sdk_headers() == {"anthropic-workspace-id": "wrkspc_123"}
+    monkeypatch.delenv("ANTHROPIC_WORKSPACE_ID")
+    assert sdk_headers() == {}

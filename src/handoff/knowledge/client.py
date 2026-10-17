@@ -45,6 +45,10 @@ class KnowledgeClient:
             self._call(self.rag.delete_document(document_id, if_missing="ignore"))
             raise KnowledgeUnavailable("the model failed while extracting; will retry later")
 
+    def known_labels(self) -> list[str]:
+        """The entity types in the ontology GraphRAG-SDK has committed."""
+        return [e.label for e in self._call(self.rag.get_ontology()).entities]
+
     def suggest_types(self, texts: list[str]) -> list[tuple[str, str]]:
         """Entity types the given texts mention that the ontology lacks, as proposed by
         GraphRAG-SDK (it reads files, so the texts are written to a temporary folder)."""

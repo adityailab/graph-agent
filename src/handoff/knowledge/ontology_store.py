@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -22,7 +23,32 @@ def load_learned(home: Path, graph_name: str) -> list[tuple[str, str]]:
         return []
 
 
+def _write_atomically(path: Path, data: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data))
+    os.replace(tmp, path)  # readers see the old file or the new one, never half of one
+
+
 def save_learned(home: Path, graph_name: str, types: list[tuple[str, str]]) -> None:
     """Replace the saved learned types."""
-    home.mkdir(parents=True, exist_ok=True)
-    _path(home, graph_name).write_text(json.dumps(types))
+    _write_atomically(_path(home, graph_name), types)
+
+
+def _pending_path(home: Path, graph_name: str) -> Path:
+    return _path(home, graph_name).with_name(
+        _path(home, graph_name).name.replace("ontology-", "pending-")
+    )
+
+
+def load_pending(home: Path, graph_name: str) -> list[str]:
+    """Ingested texts still waiting for the next round of learning (none if unreadable)."""
+    try:
+        return [str(t) for t in json.loads(_pending_path(home, graph_name).read_text())]
+    except (OSError, ValueError, TypeError):
+        return []
+
+
+def save_pending(home: Path, graph_name: str, texts: list[str]) -> None:
+    """Keep the waiting texts, so a restart does not lose them."""
+    _write_atomically(_pending_path(home, graph_name), texts)

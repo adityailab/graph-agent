@@ -34,6 +34,12 @@ def add_parser(commands: Any) -> None:
         default=60,
         help="warn when two roles changed one file within this time",
     )
+    p.add_argument(
+        "--repeat-minutes",
+        type=int,
+        default=240,
+        help="remind again about a need still open this much later",
+    )
     p.add_argument("--digest-minutes", type=int, default=60, help="digest interval (0 = none)")
     p.set_defaults(run=run)
 
@@ -54,7 +60,9 @@ def run(args: argparse.Namespace) -> int:
         return 1
     graph = connect(config)
     ensure_schema(graph)
-    thresholds = Thresholds(args.stale_minutes, args.collision_minutes, args.digest_minutes)
+    thresholds = Thresholds(
+        args.stale_minutes, args.collision_minutes, args.digest_minutes, args.repeat_minutes
+    )
     if args.once:
         _show(
             run_rules(graph, now=now_ms(), thresholds=thresholds, dry_run=args.dry_run),
