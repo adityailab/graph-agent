@@ -1,18 +1,26 @@
 // Shared helpers for every view. All text from the graph goes in with textContent, never innerHTML.
 (function () {
   "use strict";
-  var PALETTE = Object.assign(Object.create(null), { frontend: "#38bdf8", backend: "#a78bfa", deploy: "#fbbf24", person: "#4ade80", shared: "#f87171" });
-  var EXTRA = ["#f472b6", "#2dd4bf", "#fb923c", "#a3e635", "#e879f9"];
+  // Roles are told apart by shade (and by name), not hue: the page is black and white.
+  var SLOT = Object.assign(Object.create(null), { frontend: 0, backend: 1, deploy: 2, person: 3 });
   var assigned = Object.create(null);
   var SVG_TAGS = ["svg", "g", "circle", "line", "path", "text", "rect", "defs"];
   var SENT = ["MESSAGE", "NUDGE", "DIGEST", "QUESTION", "STANDIN_ANSWER"];
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  // A role's shade, read from the theme each call so light and dark both work.
   function color(role) {
-    if (!role) return "#64748b";
-    if (PALETTE[role]) return PALETTE[role];
-    if (!assigned[role]) assigned[role] = EXTRA[Object.keys(assigned).length % EXTRA.length];
-    return assigned[role];
+    if (!role) return css("--dim");
+    if (role === "shared") return css("--bg");  // hollow: told apart from every role's shade
+    if (!(role in SLOT) && !(role in assigned)) assigned[role] = 4;
+    return css("--role-" + (role in SLOT ? SLOT[role] : assigned[role]));
+  }
+
+  function clock(ms) {
+    var d = new Date(ms), p2 = function (n) { return (n < 10 ? "0" : "") + n; };
+    return p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds());
   }
 
   function el(tag, attrs, text) {
@@ -51,5 +59,5 @@
     })(start);
   }
 
-  window.MC = { color: color, el: el, clear: clear, route: route, countTo: countTo, reduced: reduced, views: {} };
+  window.MC = { css: css, clock: clock, color: color, el: el, clear: clear, route: route, countTo: countTo, reduced: reduced, views: {} };
 })();

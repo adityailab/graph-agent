@@ -14,13 +14,13 @@
   }
 
   function addToTicker(ev, fresh) {
-    var li = MC.el("li", { "class": fresh ? "fresh" : "" });
-    li.style.borderLeftColor = MC.color(ev.role);
-    li.appendChild(MC.el("span", { "class": "kind" }, ev.kind));
-    var who = MC.el("span", { "class": "who" }, ev.role); who.style.color = MC.color(ev.role);
-    li.appendChild(who); li.appendChild(MC.el("span", {}, ev.text.length > 140 ? ev.text.slice(0, 139) + "…" : ev.text));
+    var li = MC.el("li", { "class": fresh ? "fresh" : "", title: ev.role + " " + ev.kind + ": " + ev.text });
+    li.appendChild(MC.el("span", { "class": "t" }, MC.clock(ev.at)));
+    li.appendChild(MC.el("span", { "class": "kind" }, ev.kind.toLowerCase()));
+    li.appendChild(MC.el("span", { "class": "who" }, ev.role));
+    li.appendChild(MC.el("span", {}, ev.text));
     ticker.insertBefore(li, ticker.firstChild);
-    while (ticker.children.length > 40) ticker.removeChild(ticker.lastChild);
+    while (ticker.children.length > 60) ticker.removeChild(ticker.lastChild);
   }
 
   function apply(s) {
@@ -35,6 +35,7 @@
     var animate = first ? [] : fresh.slice(-8);
     Object.keys(MC.views).forEach(function (name) { MC.views[name].update(s, animate); });
     document.getElementById("graph-name").textContent = s.graph;
+    document.getElementById("clock").textContent = MC.clock(s.now);
     status.textContent = s.error ? s.error : "live"; status.className = "status " + (s.error ? "down" : "live");
     state = s;
   }
@@ -50,6 +51,11 @@
     if (!state) return;
     setView("orchestration");
     state.events.slice(-12).forEach(function (e, i) { setTimeout(function () { MC.views.orchestration.play(e); addToTicker(e, true); }, i * 700); });
+  });
+
+  document.addEventListener("keydown", function (ev) {
+    var names = ["orchestration", "handoff", "graph", "tracks"], i = Number(ev.key) - 1;
+    if (!ev.metaKey && !ev.ctrlKey && !ev.altKey && i >= 0 && i < names.length) setView(names[i]);
   });
 
   setView(["orchestration", "handoff", "graph", "tracks"].indexOf(location.hash.slice(1)) >= 0 ? location.hash.slice(1) : current);

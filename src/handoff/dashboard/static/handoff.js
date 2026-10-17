@@ -5,11 +5,6 @@
   var root = document.getElementById("handoff");
   var seen = null, signature = "";
 
-  function chip(role) {
-    var c = el("span", { "class": "chip" }, role);
-    c.style.background = MC.color(role);
-    return c;
-  }
 
   function stat(label, value) {
     var box = el("div", { "class": "stat" }), n = el("b", {}, "0");
@@ -22,16 +17,16 @@
     var learned = Object.create(null);
     state.handoffs.forEach(function (h) { learned[h.reader] = (learned[h.reader] || 0) + h.decisions.length; });
     var box = el("div", { "class": "memory" });
-    box.appendChild(el("h3", {}, "Memory: own work vs learned from others"));
+    box.appendChild(el("h3", {}, "memory: own work (solid) vs learned from others (hatched)"));
     var top = 1;
     state.roles.forEach(function (r) { top = Math.max(top, r.requests + r.decisions + r.edits + (learned[r.role] || 0)); });
     state.roles.forEach(function (r) {
       var own = r.requests + r.decisions + r.edits, got = learned[r.role] || 0;
       var row = el("div", { "class": "mem-row" }), bar = el("div", { "class": "bar" });
-      row.appendChild(chip(r.role));
-      var a = el("i"), b = el("i");
-      a.style.width = (own / top * 100) + "%"; a.style.background = MC.color(r.role);
-      b.style.width = (got / top * 100) + "%"; b.style.background = "#fbbf24";
+      row.appendChild(el("span", {}, r.role));
+      var a = el("i", { "class": "own" }), b = el("i", { "class": "got" });
+      a.style.width = (own / top * 100) + "%";
+      b.style.width = (got / top * 100) + "%";
       bar.appendChild(a); bar.appendChild(b); row.appendChild(bar);
       row.appendChild(el("span", {}, own + " own · " + got + " learned"));
       box.appendChild(row);
@@ -42,10 +37,9 @@
   function card(h, fresh) {
     var c = el("div", { "class": "card" + (fresh ? " fresh" : "") });
     var route = el("div", { "class": "route" });
-    route.appendChild(chip(h.reader)); route.appendChild(el("span", { "class": "arrow" }, "◀ read the work of"));
-    route.appendChild(chip(h.author)); c.appendChild(route);
-    c.appendChild(el("p", { "class": "asked" }, "Their request: " + h.request));
-    if (!h.decisions.length) { c.appendChild(el("p", { "class": "none" }, "No decision was recorded for that work.")); return c; }
+    route.textContent = h.reader + " ← read the work of " + h.author; c.appendChild(route);
+    c.appendChild(el("p", { "class": "asked" }, "their request: " + h.request));
+    if (!h.decisions.length) { c.appendChild(el("p", { "class": "none" }, "no decision was recorded for that work.")); return c; }
     var list = el("ul");
     h.decisions.forEach(function (d) {
       var li = el("li", {}, d.text);
@@ -72,8 +66,8 @@
     root.appendChild(stats);
     root.appendChild(memoryRows(state));
     var cards = el("div", { "class": "cards" });
-    cards.appendChild(el("h3", {}, "Hand-offs, newest first"));
-    if (!state.handoffs.length) cards.appendChild(el("p", { "class": "none" }, "No session has read another's work yet."));
+    cards.appendChild(el("h3", {}, "hand-offs, newest first"));
+    if (!state.handoffs.length) cards.appendChild(el("p", { "class": "none" }, "no session has read another's work yet."));
     state.handoffs.forEach(function (h) {
       var fresh = !firstDraw && !seen[key(h)]; seen[key(h)] = true;
       cards.appendChild(card(h, fresh));
