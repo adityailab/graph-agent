@@ -17,6 +17,7 @@ from handoff.graph.schema import EMBED_DIM
 from handoff.knowledge.adapters import EmbedderAdapter, ModelLLM
 from handoff.knowledge.client import KnowledgeClient
 from handoff.knowledge.extractor import WorkExtractor, handoff_ontology
+from handoff.knowledge.lead import lock_name
 from handoff.knowledge.worker import KnowledgeWorker
 from handoff.models.base import ModelClient
 
@@ -85,7 +86,7 @@ def start_knowledge(
         graph=graph,
         rag=ingest,
         home=config.home,
-        lock_name=f"{config.host}-{config.port}-{config.graph_name}",
+        lock_name=lock_name(config),
         max_per_hour=int(env.get("HANDOFF_KNOWLEDGE_MAX_PER_HOUR", "60")),
     )
     if background:

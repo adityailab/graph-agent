@@ -38,3 +38,10 @@ def server_reachable(config: Config) -> bool:
         return bool(db.connection.ping())
     except (RedisConnectionError, RedisTimeoutError, OSError):
         return False
+
+
+def graph_exists(config: Config) -> bool:
+    """True if the configured graph exists. Reading a missing graph with GRAPH.QUERY would
+    create it, so commands that only look check this first."""
+    db = FalkorDB(host=config.host, port=config.port, socket_connect_timeout=1, socket_timeout=5)
+    return config.graph_name in db.list_graphs()
