@@ -112,6 +112,17 @@ DatabaseTable); sound ones are added for future extraction, up to 20, and saved 
 | GraphRAG-SDK | Knowledge graph and provenance back to requests |
 | FalkorDB Browser | Seeing it all |
 
+## Models
+
+By default every model job (stand-in answers, the knowledge graph, `handoff ask`) runs
+Claude Code headless on your login. Set `HANDOFF_MODEL_NAME` to pick the model (`haiku`
+is cheapest). Alternatives for the stand-in and knowledge jobs:
+
+- `HANDOFF_MODEL=anthropic` with `ANTHROPIC_API_KEY` (and `ANTHROPIC_WORKSPACE_ID` if the
+  key is not scoped to a workspace).
+- `HANDOFF_MODEL=ollama` with a local model, e.g. `HANDOFF_MODEL_NAME=qwen2.5:7b`.
+  Small local models answer from the graph but may not cite their sources.
+
 ## Privacy and safety
 
 - FalkorDB is bound to 127.0.0.1 and holds your prompts: no password, so keep it local.
