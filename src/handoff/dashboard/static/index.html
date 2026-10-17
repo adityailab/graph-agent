@@ -19,6 +19,7 @@
   <button type="button" data-view="handoff"><kbd>2</kbd> handoff</button>
   <button type="button" data-view="graph"><kbd>3</kbd> graph</button>
   <button type="button" data-view="tracks"><kbd>4</kbd> tracks</button>
+  <button type="button" data-view="log"><kbd>5</kbd> log</button>
 </nav>
 <div class="layout">
   <main>
@@ -33,30 +34,39 @@
       <div id="handoff"></div>
     </section>
     <section id="view-graph" class="view" hidden>
-      <div class="graph-bar">
-        <button type="button" data-mode="work" aria-pressed="true">work graph</button>
-        <button type="button" data-mode="concepts" aria-pressed="false">concept graph</button>
-        <button type="button" id="graph-fit">fit</button>
-        <button type="button" id="graph-unpin">unpin all</button>
-        <span id="graph-count" class="dim"></span>
+      <div class="graph-layout">
+        <div class="graph-main">
+          <div class="graph-bar">
+            <button type="button" data-mode="work" aria-pressed="true">work graph</button>
+            <button type="button" data-mode="concepts" aria-pressed="false">concept graph</button>
+            <button type="button" id="graph-fit">fit</button>
+            <button type="button" id="graph-unpin">unpin all</button>
+          </div>
+          <div class="canvas-wrap">
+            <div id="graph" role="img" aria-label="The shared graph, drawn live"></div>
+            <div id="tip" class="tip" hidden></div>
+          </div>
+        </div>
+        <aside class="graph-side">
+          <h2>graph</h2>
+          <p id="graph-count" class="dim"></p>
+          <div id="legend" class="legend"></div>
+          <div id="detail" class="detail" hidden></div>
+          <p class="hint">Drag a node to place it, scroll to zoom, drag the background to pan, click a node to read
+            all of it and its relationships, click empty space or press Esc to clear. The same graph opens in the
+            <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a>
+            (graph <span id="graph-ref"></span>).</p>
+        </aside>
       </div>
-      <div class="canvas-wrap">
-        <div id="graph" role="img" aria-label="The shared graph, drawn live"></div>
-        <div id="tip" class="tip" hidden></div>
-      </div>
-      <div id="legend" class="legend"></div>
-      <div id="detail" class="detail" hidden></div>
-      <p class="hint">Drag a node to place it, scroll to zoom, drag the background to pan. Click a node to read all of it and its relationships. The same graph opens in the
-        <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a> (graph <span id="graph-ref"></span>).</p>
     </section>
     <section id="view-tracks" class="view" hidden>
       <div id="tracks"></div>
     </section>
+    <section id="view-log" class="view" hidden>
+      <h2>everything that lands in the graph, newest first</h2>
+      <ol id="ticker"></ol>
+    </section>
   </main>
-  <aside class="feed">
-    <h2>log</h2>
-    <ol id="ticker"></ol>
-  </aside>
 </div>
 <script src="/common.js"></script>
 <script src="/critter.js"></script>

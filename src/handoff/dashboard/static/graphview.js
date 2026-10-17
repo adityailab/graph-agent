@@ -96,12 +96,13 @@
 
   function drawLegend() {
     MC.clear(legend); var seen = {};
-    Object.keys(nodes).forEach(function (k) { var n = nodes[k]; seen[n.role || n.kind] = fill(n); });
+    var total = {};
+    Object.keys(nodes).forEach(function (k) { var n = nodes[k], key = n.role || n.kind; seen[key] = fill(n); total[key] = (total[key] || 0) + 1; });
     Object.keys(seen).forEach(function (label) {
-      var s = MC.el("span", {}, label === "shared" ? "shared by two roles" : label); s.style.setProperty("--c", seen[label]); legend.appendChild(s);
+      var s = MC.el("span", {}, (label === "shared" ? "shared by two roles" : label) + " · " + total[label] + (mode === "work" ? " nodes" : "")); s.style.setProperty("--c", seen[label]); legend.appendChild(s);
     });
-    var kinds = {}; plain.forEach(function (e) { kinds[e.kind] = true; });
-    Object.keys(kinds).forEach(function (k) { var t = MC.el("span", { "class": "line" }, k.toLowerCase().replace("_", " ")); t.style.setProperty("--c", edgeColour(k)); legend.appendChild(t); });
+    var kinds = {}; plain.forEach(function (e) { kinds[e.kind] = (kinds[e.kind] || 0) + 1; });
+    Object.keys(kinds).forEach(function (k) { var t = MC.el("span", { "class": "line" }, k.toLowerCase().replace("_", " ") + " · " + kinds[k] + " links"); t.style.setProperty("--c", edgeColour(k)); legend.appendChild(t); });
     if (mode === "work") legend.appendChild(MC.el("span", { "class": "plain" }, "◆ decision · ■ file or need (red outline = need) · ● session, request, message · arrows read source → target"));
   }
 
