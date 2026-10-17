@@ -120,7 +120,11 @@
   });
   holder.addEventListener("mousemove", function (ev) { var b = holder.getBoundingClientRect(); tip.style.left = Math.min(ev.clientX - b.left + 14, b.width - 340) + "px"; tip.style.top = (ev.clientY - b.top + 14) + "px"; });
   fg.onNodeClick(function (n) { selected = n; MC.graphDetail.show(n); });
-  fg.onBackgroundClick(function () { selected = null; MC.graphDetail.clear(); });
+  // Anything that is not a node puts the graph back to normal: no selection, nothing faded.
+  function clearFocus() { selected = null; hover = null; hoverLink = null; tip.hidden = true; MC.graphDetail.clear(); }
+  fg.onBackgroundClick(clearFocus).onLinkClick(clearFocus);
+  holder.addEventListener("mouseleave", function () { hover = null; hoverLink = null; tip.hidden = true; });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") clearFocus(); });
   fg.onNodeDragEnd(function (n) { n.fx = n.x; n.fy = n.y; });  // a dragged node stays where it is put
   document.getElementById("graph-fit").addEventListener("click", function () { fg.zoomToFit(400, 40); });
   document.getElementById("graph-unpin").addEventListener("click", function () { Object.keys(nodes).forEach(function (k) { nodes[k].fx = nodes[k].fy = undefined; }); fg.d3ReheatSimulation(); });
