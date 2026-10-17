@@ -53,7 +53,8 @@ def _knowledge(config: Config) -> None:
         print("(knowledge graph skipped: install the 'knowledge' extra)")
         return
     os.environ["HANDOFF_GRAPH"] = config.graph_name
-    knowledge_main(["--once"])
+    print("\n== building the knowledge graph (one model call per item)", flush=True)
+    knowledge_main(["--once", "--quiet"])
 
 
 def _report(config: Config) -> int:
