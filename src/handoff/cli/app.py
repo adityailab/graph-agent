@@ -6,6 +6,7 @@ import argparse
 
 from handoff.cli import (
     ask,
+    demo,
     doctor,
     init_cmd,
     insights_cmd,
@@ -26,6 +27,7 @@ COMMANDS = (
     ask,
     insights_cmd,
     watch,
+    demo,
     knowledge_cmd,
     doctor,
 )
