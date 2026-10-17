@@ -42,6 +42,11 @@ handoff init
 4. Gives the project its own graph, named from the folder, for example `handoff_shop_1a2b3c`,
    so two projects never see each other's work.
 
+`init` writes two files with paths specific to your machine: `.claude/settings.local.json`
+and `.mcp.json`. Add both to the project's `.gitignore` so they are not committed.
+
+Run `init` in the project you want sessions to share, not in handoff's own source folder.
+
 Drop `[knowledge]` from the install line to skip the knowledge graph (it needs a large
 dependency).
 
