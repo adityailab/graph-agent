@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -21,6 +21,7 @@ class DecisionView:
     text: str
     reason: str
     superseded: bool = False  # a later decision replaced this one
+    at: int = field(default=0, compare=False)  # when it was decided, ms since the epoch
 
 
 @dataclass(frozen=True)
@@ -53,18 +54,20 @@ class WhyRow:
 
 
 def decision_views(raw: list[list[Any]]) -> tuple[DecisionView, ...]:
-    """Convert collected [id, text, reason, superseded] lists, sorted by id.
+    """Convert collected [id, text, reason, superseded, at] lists, oldest decision first.
 
     An OPTIONAL MATCH with no match collects one list of nulls; it is dropped.
     """
     return tuple(
         sorted(
             (
-                DecisionView(id=str(i), text=str(t), reason=str(why), superseded=bool(gone))
-                for i, t, why, gone in raw
+                DecisionView(
+                    id=str(i), text=str(t), reason=str(why), superseded=bool(gone), at=int(at or 0)
+                )
+                for i, t, why, gone, at in raw
                 if i is not None
             ),
-            key=lambda d: d.id,
+            key=lambda d: (d.at, d.id),  # ids are random, so only the time gives an order
         )
     )
 

@@ -23,7 +23,7 @@
     meta.appendChild(MC.el("span", { "class": "kind k-" + ev.kind.toLowerCase() }, ev.kind.toLowerCase()));
     var who = MC.el("span", { "class": "who" }, ev.role); who.style.color = MC.color(ev.role);
     meta.appendChild(who); li.appendChild(meta);
-    li.appendChild(MC.rich(MC.el("span", { "class": "text" }), ev.text));
+    li.appendChild(MC.clamp(MC.rich(MC.el("span", { "class": "text" }), ev.text)));
     ticker.insertBefore(li, ticker.firstChild);
     while (ticker.children.length > 60) ticker.removeChild(ticker.lastChild);
   }

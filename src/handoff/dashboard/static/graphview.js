@@ -11,15 +11,23 @@
   var EDGE = ["#e11d48", "#0ea5e9", "#22c55e", "#a855f7", "#f59e0b", "#14b8a6", "#ec4899", "#84cc16", "#6366f1", "#f97316"], edgeSlots = {};
   var mode = "work", visible = false, last = { work: null, concepts: null, memory: null, sig: "" };
   var nodes = {}, plain = [], hover = null, hoverLink = null, selected = null, pal = {}, typeSlots = {}, degree = {};
-  var fg = ForceGraph()(holder).backgroundColor("rgba(0,0,0,0)").nodeId("id").cooldownTicks(220).onEngineStop(function () { if (visible && !selected) fg.zoomToFit(300, 60); })
+  var fg = ForceGraph()(holder).backgroundColor("rgba(0,0,0,0)").nodeId("id").cooldownTicks(220).onEngineStop(function () { if (visible && !selected) fit(300, 60); })
     .linkDirectionalArrowLength(5).linkDirectionalArrowRelPos(1).linkWidth(function (l) { return lit(l) ? 2.2 : 1; })
     .linkColor(function (l) { return hexAlpha(edgeColour(l.kind), focus() && !lit(l) ? 0.12 : 0.85); })
     .linkCurvature("curve").nodeRelSize(1).nodeLabel(function () { return ""; });
-  fg.maxZoom(3);  // a graph of two nodes must not be zoomed until the nodes fill the canvas
-  fg.d3Force("charge").strength(-45).distanceMax(260);
-  fg.d3Force("link").distance(26);
+  // Zooming is free (a person reads crowded labels by zooming in); only the automatic fit is
+  // limited, so a graph of two nodes is not blown up until it fills the canvas.
+  fg.minZoom(0.05).maxZoom(40);
+  var FIT_MAX = 2.2;
+  function fit(ms, pad) {
+    fg.zoomToFit(ms, pad);
+    setTimeout(function () { if (fg.zoom() > FIT_MAX) fg.zoom(FIT_MAX, 250); }, ms + 60);
+  }
+  fg.d3Force("charge").strength(-90).distanceMax(400);
+  fg.d3Force("link").distance(40);
 
   // The short name shown on hover: the first words only. The whole text opens in the side panel on click.
+  function stamp(n) { return n.at ? MC.clock(n.at) + " " : ""; }
   function name(n) {
     var one = n.text.replace(/\s+/g, " ").trim();
     return one.length > 48 ? one.slice(0, 47).replace(/\s+\S*$/, "") + "…" : one;
@@ -70,7 +78,7 @@
     shape(ctx, n, r); ctx.fillStyle = fill(n); ctx.fill();
     ctx.strokeStyle = n === f ? pal.ink : n.kind === "Need" ? pal.red : pal.bg; ctx.lineWidth = (n === f ? 2.5 : 1.5) / scale; ctx.stroke();
     if (n.kind === "Session" || n === f || near || scale > 3.4 || small())
-      caption(ctx, MC.wrap(n.text, 28, n === f ? 5 : 2), n.x, n.y + r + 11 / scale, scale, pal.ink);
+      caption(ctx, MC.wrap(stamp(n) + n.text, 28, n === f ? 5 : 2), n.x, n.y + r + 11 / scale, scale, pal.ink);
     ctx.globalAlpha = 1;
   }).nodePointerAreaPaint(function (n, colour, ctx) { shape(ctx, n, (SIZE[n.kind] || 5) + 3); ctx.fillStyle = colour; ctx.fill(); });
 
@@ -88,7 +96,7 @@
     var fresh = {};
     next.nodes.forEach(function (n) {
       var old = nodes[n.id];
-      fresh[n.id] = old ? Object.assign(old, { role: n.role, text: n.text }) : { id: n.id, kind: n.kind, text: n.text, role: n.role };
+      fresh[n.id] = old ? Object.assign(old, { role: n.role, text: n.text, at: n.at }) : { id: n.id, kind: n.kind, text: n.text, role: n.role, at: n.at };
     });
     var pair = {}, seen = {};
     plain = next.edges.filter(function (e) { return fresh[e.source] && fresh[e.target]; });
@@ -99,8 +107,8 @@
       return { source: e.source, target: e.target, kind: e.kind, curve: i === 1 ? 0 : 0.22 * (i % 2 ? i : -i) / 1.5 };
     });
     nodes = fresh;
-    fg.d3Force("link").distance(small() ? 130 : 26);
-    fg.d3Force("charge").strength(small() ? -240 : -45);
+    fg.d3Force("link").distance(small() ? 130 : 40);
+    fg.d3Force("charge").strength(small() ? -240 : -90);
     fg.graphData({ nodes: Object.keys(fresh).map(function (k) { return fresh[k]; }), links: links });
     count.textContent = Object.keys(nodes).length + " nodes · " + plain.length + " relationships";
     MC.graphDetail.refresh(nodes, plain); drawLegend();
@@ -130,7 +138,7 @@
   fg.onLinkHover(function (l) { hoverLink = l || null; holder.style.cursor = l ? "pointer" : "default"; });
   fg.onNodeHover(function (n) {
     hover = n || null; holder.style.cursor = n ? "pointer" : "default"; tip.hidden = !n;
-    if (n) tip.textContent = n.kind + (n.role ? " (" + n.role + ")" : "") + ": " + name(n);
+    if (n) tip.textContent = n.kind + (n.role ? " (" + n.role + ")" : "") + ": " + stamp(n) + name(n);
   });
   holder.addEventListener("mousemove", function (ev) { var b = holder.getBoundingClientRect(); tip.style.left = Math.min(ev.clientX - b.left + 14, b.width - 340) + "px"; tip.style.top = (ev.clientY - b.top + 14) + "px"; });
   fg.onNodeClick(function (n) { selected = n; MC.graphDetail.show(n); });
@@ -145,13 +153,13 @@
   document.getElementById("graph-pin").addEventListener("click", function () {
     pinning = !pinning; this.setAttribute("aria-pressed", String(pinning)); this.textContent = pinning ? "pin on drag: on" : "pin on drag: off";
   });
-  document.getElementById("graph-fit").addEventListener("click", function () { fg.zoomToFit(400, 40); });
+  document.getElementById("graph-fit").addEventListener("click", function () { fit(400, 40); });
   document.getElementById("graph-unpin").addEventListener("click", function () { Object.keys(nodes).forEach(function (k) { nodes[k].fx = nodes[k].fy = undefined; }); fg.d3ReheatSimulation(); });
   document.querySelectorAll("[data-mode]").forEach(function (b) {
     b.addEventListener("click", function () {
       mode = b.getAttribute("data-mode");
       document.querySelectorAll("[data-mode]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
-      show(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
+      show(); setTimeout(function () { fit(400, 40); }, 900);
     });
   });
   window.addEventListener("resize", resize);
@@ -162,7 +170,7 @@
     last = { work: state.work, concepts: state.concepts, memory: last.memory, sig: sig };
     var v = last[mode], first = !Object.keys(nodes).length;
     if (v && (v.nodes.length || mode === "work")) sync(v); else show();
-    if (first && visible) setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
+    if (first && visible) setTimeout(function () { fit(400, 40); }, 900);
   }
 
   // Draw one kind of memory (from the memory page) as its own small graph, in its own mode.
@@ -172,9 +180,9 @@
     button.hidden = false; button.textContent = "memory · " + kind;
     document.querySelectorAll("[data-mode]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === button)); });
     show(); MC.memoryDetail.listKind(kind, document.getElementById("mem-list"));
-    setTimeout(function () { fg.zoomToFit(400, 40); }, 900);
+    setTimeout(function () { fit(400, 40); }, 900);
   }
 
-  MC.views.graph = { update: update, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fg.zoomToFit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
+  MC.views.graph = { update: update, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
   resize();
 })();

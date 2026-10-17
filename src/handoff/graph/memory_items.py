@@ -10,6 +10,7 @@ from typing import Any
 from falkordb import Graph
 
 from handoff.graph.conventions import all_conventions
+from handoff.graph.memory_timeline import timeline
 from handoff.graph.memory_view import role_contexts
 from handoff.graph.search import decision_hits, fulltext_decisions
 
@@ -64,12 +65,7 @@ def _procedural(graph: Graph, since: int) -> list[MemoryItem]:
 
 
 def _temporal(graph: Graph, since: int) -> list[MemoryItem]:
-    rows = _rows(
-        graph,
-        "MATCH (s:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(new:Decision)-[:SUPERSEDES]->"
-        "(old:Decision) RETURN s.role, old.text, new.text, new.at",
-    )
-    return [MemoryItem("replaced", f"{o}  →  now: {n}", str(r), int(a)) for r, o, n, a in rows]
+    return [MemoryItem(k, text, role, at) for k, text, role, at in timeline(graph)]
 
 
 def _social(graph: Graph, since: int) -> list[MemoryItem]:
@@ -97,17 +93,30 @@ _KINDS: dict[str, Callable[[Graph, int], list[MemoryItem]]] = {
 }
 
 
-def memory_items(graph: Graph, kind: str, *, since: int, limit: int) -> list[MemoryItem]:
-    """The newest `limit` items of one kind of memory. Raises ValueError for an unknown kind."""
+def memory_items(
+    graph: Graph, kind: str, *, since: int, limit: int, oldest_first: bool = False
+) -> list[MemoryItem]:
+    """`limit` items of one kind of memory, the newest ones (listed newest first, or oldest
+    first with `oldest_first`). Raises ValueError for an unknown kind."""
     if kind not in _KINDS:
         raise ValueError(f"unknown kind of memory: {kind}")
-    return sorted(_KINDS[kind](graph, since), key=lambda i: i.at, reverse=True)[:limit]
+    newest = sorted(_KINDS[kind](graph, since), key=lambda i: i.at, reverse=True)[:limit]
+    return newest[::-1] if oldest_first else newest
+
+
+_STILL_STANDING = (
+    "MATCH (d:Decision) WHERE d.id IN $ids AND d.superseded_at IS NULL RETURN d.id, d.at"
+)
 
 
 def relevant_memories(graph: Graph, text: str, *, k: int) -> list[MemoryItem]:
-    """Decisions whose words match `text` (what a role is working on), best match first."""
-    ids = [i for i, _ in fulltext_decisions(graph, text, k=k)]
+    """Decisions in force whose words match `text` (what a role is working on), best first.
+    A decision that a later one replaced is not relevant: it is no longer what the team does."""
+    ids = [i for i, _ in fulltext_decisions(graph, text, k=k * 2)]
+    standing = {
+        str(i): int(at or 0) for i, at in graph.ro_query(_STILL_STANDING, {"ids": ids}).result_set
+    }
     return [
-        MemoryItem(f"decision · {h.role}", f"{h.text}  (why: {h.reason})", h.role, 0)
-        for h in decision_hits(graph, ids)
+        MemoryItem(f"decision · {h.role}", f"{h.text}  (why: {h.reason})", h.role, standing[h.id])
+        for h in decision_hits(graph, [i for i in ids if i in standing])[:k]
     ]

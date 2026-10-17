@@ -3,7 +3,7 @@
   "use strict";
   var MC = window.MC, el = MC.el;
   var root = document.getElementById("handoff");
-  var seen = null, signature = "";
+  var seen = null, signature = "", showAll = false;
 
 
   function stat(label, value) {
@@ -38,12 +38,17 @@
     return box;
   }
 
-  function card(h, fresh) {
-    var c = el("div", { "class": "card" + (fresh ? " fresh" : "") });
-    var route = el("div", { "class": "route" });
+  // One hand-off: a line (who read whom, how many decisions travelled), the rest on a click.
+  function card(h, fresh, open) {
+    var c = el("details", { "class": "card" + (fresh ? " fresh" : "") }), head = el("summary");
+    if (open) c.open = true;
+    var route = el("span", { "class": "route" });
     var rd = el("span", {}, h.reader), au = el("span", {}, h.author);
     rd.style.color = MC.color(h.reader); au.style.color = MC.color(h.author);
-    route.appendChild(rd); route.appendChild(el("span", { "class": "arrow" }, " ← read the work of ")); route.appendChild(au); c.appendChild(route);
+    route.appendChild(rd); route.appendChild(el("span", { "class": "arrow" }, " ← read the work of ")); route.appendChild(au);
+    head.appendChild(route); head.appendChild(el("span", { "class": "dim" }, "  · " + h.decisions.length + (h.decisions.length === 1 ? " decision" : " decisions") + " travelled"));
+    head.appendChild(el("span", { "class": "peek" }, h.request.length > 110 ? h.request.slice(0, 109) + "…" : h.request));
+    c.appendChild(head);
     c.appendChild(MC.rich(el("p", { "class": "asked" }), "their request: " + h.request));
     if (!h.decisions.length) { c.appendChild(el("p", { "class": "none" }, "no decision was recorded for that work.")); return c; }
     var list = el("ul");
@@ -74,10 +79,18 @@
     var cards = el("div", { "class": "cards" });
     cards.appendChild(el("h3", {}, "hand-offs, newest first"));
     if (!state.handoffs.length) cards.appendChild(el("p", { "class": "none" }, "no session has read another's work yet."));
-    state.handoffs.forEach(function (h) {
+    var SHOWN = 5;  // the newest few; the rest behind one button
+    var more = el("button", { type: "button", "class": "more" }, "show " + Math.max(0, state.handoffs.length - SHOWN) + " older");
+    state.handoffs.forEach(function (h, i) {
       var fresh = !firstDraw && !seen[key(h)]; seen[key(h)] = true;
-      cards.appendChild(card(h, fresh));
+      var c = card(h, fresh, i === 0);
+      if (i >= SHOWN && !showAll) c.hidden = true;
+      cards.appendChild(c);
     });
+    if (state.handoffs.length > SHOWN && !showAll) {
+      more.addEventListener("click", function () { showAll = true; signature = ""; update(state); });
+      cards.appendChild(more);
+    }
     root.appendChild(cards);
   }
 

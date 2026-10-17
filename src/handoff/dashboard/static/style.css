@@ -28,7 +28,8 @@ kbd { font: inherit; color: var(--dim); margin-right: 4px; }
   border-bottom: 1px solid var(--ink); }
 .brand { font-weight: 700; color: var(--green); }
 .brand::before { content: "$ "; color: var(--dim); }
-.top button { margin-left: auto; }
+.top button { margin-left: 8px; }
+.top #theme { margin-left: auto; }
 .status::before { content: "● "; }
 .status.live { color: var(--green); }
 .status.down { text-decoration: underline; }
@@ -127,13 +128,23 @@ h2::before, h3::before { content: "# "; color: var(--dim); }
 .k-asked { color: var(--ink); } .k-decided { color: var(--green); } .k-needs, .k-need { color: var(--red); }
 .k-edited { color: var(--blue); } .k-read { color: var(--amber); }
 .k-message, .k-nudge, .k-digest { color: var(--teal); } .k-question, .k-standin_answer { color: var(--purple); }
-/* the pixel bot */
-.bot .scan { opacity: .35; }
-.bot.work .scan { animation: scan 1.2s steps(1) infinite; }
-.bot.work .ball { animation: ball .8s steps(1) infinite; }
-.bot.idle { opacity: .75; }
-@keyframes scan { 0%, 100% { transform: translateX(0); opacity: 1; } 33% { transform: translateX(6px); opacity: 1; } 66% { transform: translateX(12px); opacity: 1; } }
-@keyframes ball { 50% { opacity: .2; } }
+/* the session "dot" characters */
+.bot .eye, .bot .pupil, .bot .ping, .bot .zz { transform-box: fill-box; transform-origin: center; }
+.bot .zz { opacity: 0; }
+.bot.work .eye { animation: blinkeye 4.2s infinite; }
+.bot.work .pupil { animation: look 3.2s ease-in-out infinite; }
+.bot.work .ping { animation: ping 1.1s ease-out infinite; }
+.bot.idle { opacity: .72; }
+.bot.idle .eye { transform: scaleY(.18); }
+.bot.idle .pupil { opacity: 0; }
+.bot.idle .zz { animation: zzz 3.4s ease-in-out infinite; }
+@keyframes blinkeye { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+@keyframes look { 0%, 100% { transform: translateX(-1.1px); } 50% { transform: translateX(1.5px); } }
+@keyframes ping { 0% { transform: scale(1); opacity: 1; } 70%, 100% { transform: scale(1.7); opacity: .25; } }
+@keyframes zzz { 0% { opacity: 0; transform: translate(0, 2px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translate(2px, -5px); } }
+.logo { height: 28px; width: auto; vertical-align: -9px; margin-right: 8px; }
+.logo .d0 { fill: var(--blue); stroke: var(--blue); } .logo .d1 { fill: var(--purple); stroke: var(--purple); } .logo .d2 { fill: var(--amber); stroke: var(--amber); }
+.logo .stem { fill: none; } .logo .hand { stroke: var(--dim); }
 .detail { border: 1px solid var(--line); border-left: 3px solid var(--blue); padding: 8px 12px; margin-top: 10px; }
 .detail .full { margin: 2px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .detail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
@@ -214,3 +225,17 @@ a { color: var(--blue); }
 .ask-form input:focus-visible { outline: 1px solid var(--blue); border-color: var(--blue); }
 @keyframes ask-pulse { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .ask-steps li.now { animation: none; } }
+.when { color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* Progressive disclosure: a summary line, the whole text on a click. */
+.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.clamp.open { display: block; -webkit-line-clamp: unset; }
+details.fold > summary, details.card > summary { cursor: pointer; color: var(--dim); list-style: none; }
+details.fold > summary::before, details.card > summary::before { content: "▸ "; color: var(--dim); }
+details[open].fold > summary::before, details[open].card > summary::before { content: "▾ "; }
+details.fold > summary:hover, details.card > summary:hover { color: var(--ink); }
+details.fold { margin: 6px 0; }
+details.card > summary .route { display: inline; }
+details.card > summary .peek { display: block; margin: 2px 0 0 1.2em; color: var(--dim); }
+details.card[open] > summary .peek { display: none; }
+.more { margin: 10px 0; }

@@ -48,7 +48,9 @@ def test_procedural_memory_counts_rules_in_force(two_sessions: Graph) -> None:
     assert _by_key(two_sessions)["procedural"] == 1
 
 
-def test_temporal_memory_counts_replaced_decisions(two_sessions: Graph) -> None:
+def test_temporal_memory_counts_the_timeline_and_names_what_was_replaced(
+    two_sessions: Graph,
+) -> None:
     add_decision(
         two_sessions,
         request_id="p3",
@@ -59,7 +61,11 @@ def test_temporal_memory_counts_replaced_decisions(two_sessions: Graph) -> None:
         at=300,
     )
     supersede_decision(two_sessions, new_id="d2", old_id="d1", at=301)
-    assert _by_key(two_sessions)["temporal"] == 1
+    temporal = {t.key: t for t in memory_types(two_sessions, concepts=0, since=0)}["temporal"]
+    # everything on the timeline: 3 requests, 2 edits, 2 decisions, 0 messages, 1 replacement
+    assert temporal.count == 3 + 2 + 2 + 0 + 1
+    assert "1 decision replaced" in temporal.detail
+    assert "spanning" in temporal.detail
 
 
 def test_social_memory_counts_reads_and_messages(two_sessions: Graph) -> None:

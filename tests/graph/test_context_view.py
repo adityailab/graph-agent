@@ -68,3 +68,9 @@ def test_a_long_request_is_kept_whole_so_the_page_can_show_all_of_it(two_session
     add_request(two_sessions, session_id="fe", request_id="p9", text=long_text, at=950)
     texts = {n.text for n in work_graph(two_sessions, limit=200).nodes}
     assert " ".join(long_text.split()) in texts
+
+
+def test_nodes_carry_the_time_they_happened(two_sessions: Graph) -> None:
+    view = work_graph(two_sessions, limit=100)
+    decision = next(n for n in view.nodes if n.kind == "Decision")
+    assert decision.at == 112

@@ -89,5 +89,15 @@
     })(start);
   }
 
-  window.MC = { wrap: wrap, rich: rich, words: words, css: css, clock: clock, color: color, el: el, clear: clear, route: route, countTo: countTo, reduced: reduced, views: {} };
+  // Long text shows three lines; a click opens all of it (and a click again folds it back).
+  function clamp(node) {
+    node.classList.add("clamp"); node.title = "click to read all of it";
+    node.addEventListener("click", function (ev) {
+      if (ev.target.closest && ev.target.closest("a")) return;
+      node.classList.toggle("open");
+    });
+    return node;
+  }
+
+  window.MC = { clamp: clamp, wrap: wrap, rich: rich, words: words, css: css, clock: clock, color: color, el: el, clear: clear, route: route, countTo: countTo, reduced: reduced, views: {} };
 })();

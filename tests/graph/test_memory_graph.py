@@ -23,7 +23,9 @@ def test_semantic_memory_draws_decisions_with_their_topic(two_sessions: Graph) -
     assert "about" in {e.kind.lower() for e in view.edges}
 
 
-def test_temporal_memory_draws_only_decisions_joined_by_supersedes(two_sessions: Graph) -> None:
+def test_temporal_memory_draws_the_sequence_with_times_and_replacements(
+    two_sessions: Graph,
+) -> None:
     add_decision(
         two_sessions,
         request_id="p3",
@@ -35,8 +37,9 @@ def test_temporal_memory_draws_only_decisions_joined_by_supersedes(two_sessions:
     )
     supersede_decision(two_sessions, new_id="d2", old_id="d1", at=301)
     view = memory_graph(two_sessions, "temporal", limit=100)
-    assert {n.kind for n in view.nodes} == {"Decision"}
-    assert {e.kind for e in view.edges} == {"SUPERSEDES"}
+    assert {"Request", "Decision"} <= {n.kind for n in view.nodes}
+    assert {"NEXT", "LED_TO", "SUPERSEDES"} <= {e.kind for e in view.edges}
+    assert all(n.at > 0 for n in view.nodes)
 
 
 def test_procedural_memory_joins_each_rule_to_who_it_applies_to(two_sessions: Graph) -> None:

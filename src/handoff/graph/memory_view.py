@@ -9,6 +9,7 @@ from falkordb import Graph
 from handoff.config import Config, knowledge_graph_name
 from handoff.graph.connection import connect, graph_exists
 from handoff.graph.conventions import conventions_for
+from handoff.graph.memory_timeline import span_ms
 from handoff.graph.overview import handoffs, role_stats
 from handoff.graph.requests import latest_request_id, request_text
 from handoff.graph.sessions import active_sessions
@@ -44,6 +45,12 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}{'' if n == 1 else 's'}"
 
 
+def _span_text(graph: Graph) -> str:
+    first, last = span_ms(graph)
+    minutes = (last - first) // 60_000
+    return f"spanning {minutes} min" if minutes < 120 else f"spanning {minutes // 60} h"
+
+
 def memory_types(graph: Graph, *, concepts: int, since: int) -> list[MemoryType]:
     """The six kinds of memory with how much of each the graph holds. `concepts` is the size of
     the knowledge graph (0 when it has not been built); `since` bounds working memory."""
@@ -56,6 +63,7 @@ def memory_types(graph: Graph, *, concepts: int, since: int) -> list[MemoryType]
     rules = _count(graph, "MATCH (x:Convention) WHERE x.active = true RETURN count(x)")
     replaced = _count(graph, "MATCH (x:Decision) WHERE x.superseded_at IS NOT NULL RETURN count(x)")
     reads = _count(graph, "MATCH ()-[k:CONSULTED]->() RETURN count(k)")
+    events = requests + edits + decisions + messages + replaced  # all of the timeline
     return [
         MemoryType(
             "working",
@@ -90,8 +98,9 @@ def memory_types(graph: Graph, *, concepts: int, since: int) -> list[MemoryType]
         MemoryType(
             "temporal",
             "temporal",
-            "how decisions changed, and what replaced what",
-            replaced,
+            "when things happened, in order, and what replaced what",
+            events,
+            f"{_plural(events, 'event')} {_span_text(graph)} · "
             f"{_plural(replaced, 'decision')} replaced by a later one",
         ),
         MemoryType(
