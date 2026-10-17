@@ -7,7 +7,12 @@ from handoff.graph.decisions import add_decision, set_decision_embedding
 from handoff.graph.edits import add_edit
 from handoff.graph.requests import add_request
 from handoff.graph.schema import EMBED_DIM, ensure_schema
-from handoff.graph.search import decision_hits, fulltext_decisions, similar_decisions
+from handoff.graph.search import (
+    decision_hits,
+    fulltext_decisions,
+    fulltext_query,
+    similar_decisions,
+)
 from handoff.graph.sessions import upsert_session
 
 
@@ -67,3 +72,15 @@ def test_hits_are_expanded_through_shared_files(decided: Graph) -> None:
     (hit,) = decision_hits(decided, ["d1"])
     assert (hit.role, hit.request_text, hit.files) == ("frontend", "add login", ("Auth.tsx",))
     assert hit.related_roles == ("backend",)
+
+
+def test_long_words_are_fuzzy_short_words_prefixes_and_tiny_words_dropped() -> None:
+    assert fulltext_query("cookes api is ok") == "%cookes% | api*"
+
+
+def test_a_misspelling_still_finds_the_decision(decided: Graph) -> None:
+    assert [d for d, _ in fulltext_decisions(decided, "cookes", k=5)] == ["d1"]
+
+
+def test_a_prefix_finds_the_longer_word(decided: Graph) -> None:
+    assert [d for d, _ in fulltext_decisions(decided, "lay", k=5)] == ["d2"]

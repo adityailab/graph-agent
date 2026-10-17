@@ -8,11 +8,21 @@ from falkordb import Graph
 
 from handoff.graph.records import DecisionHit
 
+_FUZZY_FROM = 5  # letters; shorter words get too many fuzzy matches
+_PREFIX_FROM = 3
+
+
+def _term(word: str) -> str:
+    if len(word) >= _FUZZY_FROM:
+        return f"%{word}%"  # one typo tolerated (also matches the exact word)
+    return f"{word}*" if len(word) >= _PREFIX_FROM else ""
+
 
 def fulltext_query(text: str) -> str:
-    """Words only, OR-ed, so the person's text can never be read as query syntax."""
-    words = re.findall(r"\w+", text)
-    return " | ".join(words)
+    """Words only, OR-ed, so the person's text can never be read as query syntax. Long
+    words tolerate a typo, short ones match as prefixes, words under 3 letters are dropped."""
+    terms = (_term(w) for w in re.findall(r"\w+", text))
+    return " | ".join(t for t in terms if t)
 
 
 def fulltext_decisions(graph: Graph, query: str, *, k: int) -> list[tuple[str, float]]:
