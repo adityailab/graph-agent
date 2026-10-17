@@ -60,3 +60,19 @@ def test_only_reading_is_allowed(base: str) -> None:
     with pytest.raises(urllib.error.HTTPError) as caught:
         urllib.request.urlopen(request, timeout=5)
     assert caught.value.code == 501
+
+
+def test_a_kind_of_memory_opens_into_its_items(base: str) -> None:
+    status, body, _ = _get(base + "/api/memory/episodic")
+    assert status == 200
+    assert {"request", "edit"} <= {i["title"] for i in json.loads(body)["items"]}
+
+
+def test_relevant_memories_come_for_a_role(base: str) -> None:
+    status, body, _ = _get(base + "/api/memory/relevant/backend")
+    assert status == 200
+    assert "items" in json.loads(body)
+
+
+def test_an_unknown_kind_of_memory_is_not_found(base: str) -> None:
+    assert _get(base + "/api/memory/dreams")[0] == 404

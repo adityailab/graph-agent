@@ -13,6 +13,12 @@
     var head = el("div", { "class": "mem-head" }); head.appendChild(el("span", { "class": "mem-name" }, t.name)); head.appendChild(n);
     card.appendChild(head); card.appendChild(el("p", { "class": "mem-what" }, t.what)); card.appendChild(el("p", { "class": "dim" }, t.detail));
     MC.countTo(n, t.count, "memory:" + t.key);
+    card.setAttribute("role", "button"); card.tabIndex = 0;
+    card.setAttribute("aria-expanded", String(MC.memoryDetail.current() === t.key));
+    if (MC.memoryDetail.current() === t.key) card.classList.add("open");
+    var choose = function () { MC.memoryDetail.toggle(t.key); signature = ""; update(window.MC.lastState); };
+    card.addEventListener("click", choose);
+    card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(); } });
     return card;
   }
 
@@ -31,7 +37,7 @@
     if (c.learned.length > 8) list.appendChild(el("li", { "class": "dim" }, "… and " + (c.learned.length - 8) + " more"));
     body.appendChild(list);
     var facts = el("p", { "class": "dim facts" }, "inbox " + c.inbox + " delivered · open needs " + c.open_needs + " · rules in force " + c.rules);
-    body.appendChild(facts); box.appendChild(body);
+    body.appendChild(facts); MC.memoryDetail.relevantFor(c.role, body); box.appendChild(body);
     return box;
   }
 
@@ -50,6 +56,7 @@
 
   function update(state) {
     var memory = state.memory || { types: [], contexts: [] };  // an older server sends no memory
+    MC.lastState = state;
     var sig = JSON.stringify([memory, state.flows]);
     if (sig === signature) return;
     signature = sig; MC.clear(root);
@@ -58,6 +65,9 @@
     var grid = el("div", { "class": "mem-grid" });
     memory.types.forEach(function (t) { grid.appendChild(kindCard(t)); });
     root.appendChild(grid);
+    var panel = el("div", { "class": "mem-open" });
+    root.appendChild(panel); MC.memoryDetail.showKind(panel, MC.memoryDetail.current());
+    if (!MC.memoryDetail.current()) panel.appendChild(el("p", { "class": "dim" }, "click a kind of memory to open what is inside it"));
     root.appendChild(el("h3", {}, "what each session holds right now"));
     var ctxs = el("div", { "class": "ctx-grid" });
     memory.contexts.forEach(function (c) { ctxs.appendChild(context(c)); });

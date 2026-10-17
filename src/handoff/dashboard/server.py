@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from handoff.config import Config
+from handoff.dashboard.memory_api import PREFIX, memory_response
 from handoff.dashboard.state import snapshot
 from handoff.ids import now_ms
 
@@ -56,6 +57,12 @@ def make_server(
             elif self.path == "/api/state":
                 state: dict[str, Any] = snapshot(config, now=clock(), window_ms=WINDOW_MS)
                 self._send(200, json.dumps(state).encode(), "application/json")
+            elif self.path.startswith(PREFIX):
+                found = memory_response(config, self.path, now=clock(), window_ms=WINDOW_MS)
+                if found is None:
+                    self._send(404, b"not found", "text/plain")
+                else:
+                    self._send(200, json.dumps(found).encode(), "application/json")
             else:
                 name = self.path.split("?")[0].lstrip("/") or "index.html"
                 served = {f.name: f for f in STATIC.iterdir() if f.suffix in _TYPES}
