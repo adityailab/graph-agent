@@ -28,3 +28,12 @@ def test_the_logo_is_served_as_an_image(base: str) -> None:
 def test_the_page_names_the_logo_as_its_icon(base: str) -> None:
     with urllib.request.urlopen(base + "/", timeout=5) as response:
         assert b'rel="icon"' in response.read()
+
+
+def test_the_server_can_queue_a_page_load_worth_of_connections(config: Config) -> None:
+    # A page asks for about twenty files at once; the default queue of 5 resets the rest.
+    server = make_server(config, port=0)
+    try:
+        assert server.request_queue_size >= 64
+    finally:
+        server.server_close()

@@ -10,13 +10,14 @@
       .catch(function () { then(null); });
   }
 
+  // One memory as a small card: a header (kind, who, when) and the text in three lines, click for all.
   function itemRow(item) {
-    var li = el("li");
-    if (item.at) li.appendChild(el("span", { "class": "when" }, MC.clock(item.at) + "  "));
-    var tag = el("span", { "class": "t-role" }, item.title);
-    if (item.role) tag.style.color = MC.color(item.role);
-    li.appendChild(tag); li.appendChild(document.createTextNode("  "));
-    MC.rich(li, item.text);
+    var li = el("li", { "class": "item-card" }), head = el("div", { "class": "link-head" });
+    var tag = el("span", { "class": "chip" }, item.title);
+    if (item.role) tag.style.setProperty("--c", MC.color(item.role));
+    head.appendChild(tag);
+    if (item.at) head.appendChild(el("span", { "class": "when" }, MC.clock(item.at)));
+    li.appendChild(head); li.appendChild(MC.clamp(MC.rich(el("p", { "class": "full" }), item.text)));
     return li;
   }
 

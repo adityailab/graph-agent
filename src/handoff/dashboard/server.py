@@ -34,6 +34,12 @@ _SECURITY = {
 }
 
 
+class _Server(ThreadingHTTPServer):
+    """A page asks for about twenty files at once; the default queue of 5 resets the rest."""
+
+    request_queue_size = 128
+
+
 def make_server(
     config: Config,
     *,
@@ -113,6 +119,6 @@ def make_server(
         def log_message(self, format: str, *args: Any) -> None:
             log.debug(format, *args)
 
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = _Server(("127.0.0.1", port), Handler)
     allowed_hosts.update({f"127.0.0.1:{server.server_port}", f"localhost:{server.server_port}"})
     return server

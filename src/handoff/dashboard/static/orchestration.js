@@ -20,10 +20,17 @@
     });
   }
 
-  // A curve between two nodes; `lane` separates lines of different kinds and directions.
+  // Where the line from one card's centre toward another's leaves the card, so arrowheads show.
+  function edge(c, to) {
+    var dx = to.x - c.x, dy = to.y - c.y;
+    var t = Math.min((CARD_W / 2 + 3) / (Math.abs(dx) || 1e-6), (CARD_H / 2 + 3) / (Math.abs(dy) || 1e-6));
+    return { x: c.x + dx * t, y: c.y + dy * t };
+  }
+
+  // A curve between two cards; `lane` separates lines of different kinds and directions.
   function curve(a, b, lane) {
-    var dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1, off = 14 + lane * 18;
-    return "M" + a.x + "," + a.y + " Q" + ((a.x + b.x) / 2 - dy / len * off) + "," + ((a.y + b.y) / 2 + dx / len * off) + " " + b.x + "," + b.y;
+    var s = edge(a, b), e = edge(b, a), dx = e.x - s.x, dy = e.y - s.y, len = Math.hypot(dx, dy) || 1, off = 14 + lane * 18;
+    return "M" + s.x + "," + s.y + " Q" + ((s.x + e.x) / 2 - dy / len * off) + "," + ((s.y + e.y) / 2 + dx / len * off) + " " + e.x + "," + e.y;
   }
 
   function drawEdges(flows) {
@@ -35,7 +42,7 @@
       var key = f.source + ">" + f.target, lane = count[key] = (count[key] || 0) + 1;
       lanes[key + ":" + f.kind] = lane - 1;
       layers.edges.appendChild(el("path", { d: curve(positions[f.source], positions[f.target], lane - 1),
-        "class": "edge " + f.kind, "stroke-width": String(1 + Math.min(3, Math.log2(f.count + 1)) * 0.6) }));
+        "class": "edge " + f.kind, "marker-end": "url(#oa-" + f.kind + ")", "stroke-width": String(1 + Math.min(3, Math.log2(f.count + 1)) * 0.6) }));
       var row = el("div", {}, f.source + " → " + f.target + "  ");
       row.appendChild(el("b", { "class": f.kind }, f.kind + " ×" + f.count)); flowsBox.appendChild(row);
     });
@@ -68,7 +75,27 @@
       lines.forEach(function (l, i) { g.appendChild(el("text", { x: tx, y: y + 51 + i * 13, "class": "card-line" }, l)); });
       if (active) g.appendChild(el("rect", { x: tx + (lines[lines.length - 1].length) * 6.6 + 3, y: y + 42 + (lines.length - 1) * 13, width: 7, height: 11, "class": "cursor" }));
       g.appendChild(el("text", { x: x + 8, y: y + CARD_H - 7, "class": "card-line dim" }, r.requests + " asks · " + r.decisions + " decisions · " + r.edits + " edits"));
+      g.setAttribute("class", "orch-node"); g.addEventListener("click", function () { showDetail(r.role); });
       layers.nodes.appendChild(g);
+    });
+  }
+
+  // The chosen session as a card: its latest work in full, its counts, and its recent events.
+  var detailBox = document.getElementById("orch-detail"), current = null, chosen = null;
+  function showDetail(role) {
+    chosen = role; MC.clear(detailBox);
+    var r = current.roles.filter(function (x) { return x.role === role; })[0]; if (!r) return;
+    var mine = current.events.filter(function (e) { return e.role === role; }).slice(-5).reverse();
+    var card = el("div", { "class": "node-card" }), head = el("div", { "class": "link-head" });
+    var chip = el("span", { "class": "chip" }, role); chip.style.setProperty("--c", MC.color(role)); head.appendChild(chip);
+    head.appendChild(el("span", { "class": "when" }, (current.now - r.last_seen_at <= 120000 ? "active" : "idle") + " · " + r.requests + " asks · " + r.decisions + " decisions · " + r.edits + " edits" + (r.open_needs ? " · " + r.open_needs + " open need" + (r.open_needs > 1 ? "s" : "") : "")));
+    card.appendChild(head);
+    card.appendChild(mine.length ? MC.rich(el("p", { "class": "full" }), mine[0].text) : el("p", { "class": "dim" }, "nothing recorded yet"));
+    detailBox.appendChild(card);
+    mine.slice(1).forEach(function (e) {
+      var c = el("div", { "class": "link-card" }), h = el("div", { "class": "link-head" });
+      h.appendChild(el("span", { "class": "kind k-" + e.kind.toLowerCase() }, e.kind.toLowerCase())); h.appendChild(el("span", { "class": "when" }, MC.clock(e.at)));
+      c.appendChild(h); c.appendChild(MC.clamp(MC.rich(el("p", { "class": "full" }), e.text))); detailBox.appendChild(c);
     });
   }
 
@@ -111,9 +138,10 @@
   }
 
   function update(state, fresh) {
+    current = state;
     var mine = state.events.map(function (e) { return e.key; }).slice(-60);
     var sig = JSON.stringify([state.roles.map(function (r) { return [r.role, r.requests, r.decisions, r.edits, r.open_needs]; }), state.flows, Math.floor(state.now / 30000), mine]);
-    if (sig !== signature) { signature = sig; place(state.roles); drawEdges(state.flows); drawNodes(state); }
+    if (sig !== signature) { signature = sig; place(state.roles); drawEdges(state.flows); drawNodes(state); if (state.roles.length) showDetail(chosen && state.roles.some(function (r) { return r.role === chosen; }) ? chosen : state.roles[0].role); }
     fresh.forEach(function (ev, i) { setTimeout(function () { play(ev); }, i * 350); });
   }
 

@@ -22,21 +22,40 @@
   <button type="button" data-view="handoff"><kbd>2</kbd> handoff</button>
   <button type="button" data-view="memory"><kbd>3</kbd> memory</button>
   <button type="button" data-view="graph"><kbd>4</kbd> graph</button>
-  <button type="button" data-view="tracks"><kbd>5</kbd> tracks</button>
-  <button type="button" data-view="log"><kbd>6</kbd> log</button>
-  <button type="button" data-view="ask"><kbd>7</kbd> ask</button>
+  <button type="button" data-view="log"><kbd>5</kbd> log</button>
+  <button type="button" data-view="ask"><kbd>6</kbd> ask</button>
+  <button type="button" data-view="tracks"><kbd>7</kbd> tracks</button>
 </nav>
 <div class="layout">
   <main>
     <section id="view-orchestration" class="view">
-      <svg id="orch" viewBox="0 0 800 430" role="img" aria-label="Sessions and the messages, needs and reads between them"></svg>
-      <div id="flows" class="flows"></div>
-      <p class="hint">Each box is a Claude Code session; its bot's scanner sweeps while it is active. Lines carry what moves between them:
+      <svg id="orch" viewBox="0 0 800 350" role="img" aria-label="Sessions and the messages, needs and reads between them">
+        <defs>
+          <marker id="oa-message" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
+          <marker id="oa-read" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-read"/></marker>
+          <marker id="oa-need" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-need"/></marker>
+          <marker id="oa-question" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
+          <marker id="oa-standin_answer" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
+        </defs>
+      </svg>
+      <div id="orch-detail" class="orch-detail"></div>
+      <details class="fold orch-lines"><summary>all lines between sessions</summary><div id="flows" class="flows"></div></details>
+      <p class="hint">Each box is a Claude Code session; its Mac's screen is lit while it is active. Lines carry what moves between them:
         <span class="k-message">messages ──</span> <span class="k-read">reads of each other's work ── ──</span>
         <span class="k-need">needs ·····</span> A square travelling along a line is an event happening now.</p>
     </section>
     <section id="view-handoff" class="view" hidden>
-      <div id="handoff"></div>
+      <div class="ask-bar">
+        <h2>hand-offs</h2>
+        <span class="dim">each arrow is one session reading another's work and learning its decisions · click an arrow or a session</span>
+      </div>
+      <div id="hf-stats" class="stats"></div>
+      <div class="flow-layout">
+        <svg id="hf-graph" viewBox="0 0 760 400" role="img" aria-label="Who read whose work, as a workflow">
+          <defs><marker id="hf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
+        </svg>
+        <aside id="hf-detail" class="flow-detail"></aside>
+      </div>
     </section>
     <section id="view-memory" class="view" hidden>
       <div id="memory"></div>
@@ -74,8 +93,14 @@
       <div id="tracks"></div>
     </section>
     <section id="view-log" class="view" hidden>
-      <h2>everything that lands in the graph, newest first</h2>
-      <ol id="ticker"></ol>
+      <div class="ask-bar">
+        <h2>activity</h2>
+        <span class="dim">one column per session, newest on top · each dot is something that landed in the graph · click one to read it</span>
+      </div>
+      <div class="flow-layout">
+        <div class="flow-scroll"><div id="flow" class="flow"></div></div>
+        <aside id="flow-detail" class="flow-detail"></aside>
+      </div>
     </section>
     <section id="view-ask" class="view" hidden>
       <div class="ask-bar">
@@ -100,6 +125,7 @@
 <script src="/common.js"></script>
 <script src="/critter.js"></script>
 <script src="/orchestration.js"></script>
+<script src="/handoffcards.js"></script>
 <script src="/handoff.js"></script>
 <script src="/memorydetail.js"></script>
 <script src="/memory.js"></script>
@@ -108,6 +134,7 @@
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>
 <script src="/askmarkdown.js"></script>
+<script src="/logflow.js"></script>
 <script src="/ask.js"></script>
 <script src="/app.js"></script>
 </body>

@@ -63,17 +63,17 @@ Open **http://localhost:3000** (FalkorDB Browser), pick the demo graph and run
 ## Mission control
 
 `handoff demo` (and `handoff dashboard` on any project) opens one browser window beside
-the terminals. It reads the same graph the sessions write, every 1.5 seconds, and shows six pages (number keys 1 to 6 switch between them):
+the terminals. It reads the same graph the sessions write, every 1.5 seconds, and shows seven pages (number keys 1 to 7 switch between them; light and dark mode with the button in the header):
 
 | | |
 |---|---|
-| **Orchestration**: each session is a terminal-style card with a pixel bot, its latest action and counts; messages, reads and needs move between the cards | ![orchestration](docs/images/mission-orchestration.png) |
-| **Context handoff**: what each session learned from another's work, with the decision and its reason | ![context handoff](docs/images/mission-handoff.png) |
+| **Orchestration**: a workflow of sessions drawn as small old-Macintosh agents with arrows for messages, reads and needs; click a session for its work | ![orchestration](docs/images/mission-orchestration.png) |
+| **Handoff**: a workflow graph of who read whose work, an arrow per reader and author with how many decisions travelled; click an arrow for the hand-off cards | ![context handoff](docs/images/mission-handoff.png) |
 | **Memory**: the six kinds of memory with counts, and what each session holds right now: its task, what it learned from others, what reached it | ![memory](docs/images/mission-memory.png) |
-| **Graph**: the shared graph drawn with force-graph (drag, zoom, pan), links coloured and named by relationship, with a side panel for the selected node (and the concept graph) | ![context graph](docs/images/mission-graph.png) |
+| **Graph**: the shared graph drawn with force-graph (drag, zoom, pan), links coloured and named by relationship, with cards for the selected node and its connections (a connect button walks the graph), and the concept graph and each kind of memory | ![context graph](docs/images/mission-graph.png) |
 | **Tracks**: how handoff answers each competition track, with live numbers | ![tracks](docs/images/mission-tracks.png) |
 
-The sixth page, **Log**, lists everything that lands in the graph with its full text. Nothing leaves your machine: the page is served from `127.0.0.1` only.
+The **Log** is a swimlane, one column per session; click an event for its full text. **Ask** is a chat with the graphs (common questions answered instantly, the rest by Claude Code); **Tracks** comes last. Nothing leaves your machine: the page is served from `127.0.0.1` only.
 
 ## The commands
 

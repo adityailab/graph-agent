@@ -131,10 +131,10 @@ handoff dashboard            # opens http://127.0.0.1:8765/ in your browser
 handoff dashboard --port 9000 --no-open
 ```
 
-Mission control, the visual version of `watch`, with six pages (keys 1 to 6): **Orchestration** (each session as a terminal-style card with
-a pixel bot and its latest action; messages, reads and needs travel between the cards),
+Mission control, the visual version of `watch`, with seven pages (keys 1 to 7, light or dark): **Orchestration** (a workflow of sessions drawn as
+small old-Macintosh agents; arrows show messages, reads and needs; click a session for its work),
 **Handoff** (what each session learned from another's work with the decision and its reason;
-the bars show each session's own work next to the decisions it learned from others), **Graph**
+a workflow graph with an arrow from the author to the reader of each read; click one for the hand-off cards), **Graph**
 (the shared graph drawn live: drag nodes, scroll to zoom, links coloured and named by
 relationship; click a node for all of it in the side panel; a toggle shows the concept graph),
 **Memory** (the six kinds of memory with counts, and what each session holds right now and learned from others), **Tracks** (how handoff answers each competition track, with live numbers) and **Log**

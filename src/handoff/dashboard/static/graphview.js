@@ -183,6 +183,13 @@
     setTimeout(function () { fit(400, 40); }, 900);
   }
 
-  MC.views.graph = { update: update, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
+  // Jump to one node (from a connection card): select it, centre on it and zoom to read it.
+  function select(id) {
+    var n = nodes[id]; if (!n) return;
+    selected = n; MC.graphDetail.show(n);
+    fg.centerAt(n.x, n.y, 500); fg.zoom(Math.max(fg.zoom(), 2.4), 500);
+  }
+
+  MC.views.graph = { update: update, select: select, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
   resize();
 })();
