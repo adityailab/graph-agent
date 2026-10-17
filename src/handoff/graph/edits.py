@@ -25,9 +25,10 @@ def add_edit(
     rows = graph.query(
         "MATCH (r:Request {id: $rid}) "
         "MERGE (e:Edit {id: $eid}) "
-        "ON CREATE SET e.tool = $tool, e.summary = $summary, e.at = $at "
+        "ON CREATE SET e.tool = $tool, e.summary = $summary, e.at = $at, "
+        "e.name = $tool + ' ' + $path "
         "MERGE (r)-[:CAUSED]->(e) "
-        "MERGE (f:File {path: $path}) "
+        "MERGE (f:File {path: $path}) ON CREATE SET f.name = $path "
         "MERGE (e)-[:TOUCHED]->(f) "
         "RETURN e.id",
         {

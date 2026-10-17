@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from falkordb import Graph
 
+from handoff.graph.captions import caption
+
 
 def normalise_topic(topic: str) -> str:
     """Return the canonical form of a topic name, so 'Auth ' and 'auth' are one topic."""
@@ -24,7 +26,7 @@ def add_decision(
     rows = graph.query(
         "MATCH (r:Request {id: $rid}) "
         "MERGE (d:Decision {id: $did}) "
-        "ON CREATE SET d.text = $text, d.reason = $reason, d.at = $at "
+        "ON CREATE SET d.text = $text, d.reason = $reason, d.at = $at, d.name = $caption "
         "MERGE (r)-[:LED_TO]->(d) "
         "MERGE (t:Topic {name: $topic}) "
         "MERGE (d)-[:ABOUT]->(t) "
@@ -34,6 +36,7 @@ def add_decision(
             "did": decision_id,
             "text": text,
             "reason": reason,
+            "caption": caption(text),
             "topic": normalise_topic(topic),
             "at": at,
         },

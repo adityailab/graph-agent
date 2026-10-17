@@ -6,7 +6,8 @@ services:
       - "127.0.0.1:6379:6379"
       - "127.0.0.1:3000:3000"
     volumes:
-      - falkordb-data:/data
+      # The image keeps its data here (FALKORDB_DATA_PATH); /data is only a symlink to it.
+      - falkordb-data:/var/lib/falkordb/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s

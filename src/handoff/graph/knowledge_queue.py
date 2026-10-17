@@ -23,15 +23,14 @@ _CLAIM_DECISION = (
     "MATCH (s:Session)-[:RECEIVED]->(:Request)-[:LED_TO]->(n:Decision) WHERE "
     + _ELIGIBLE
     + _CLAIM
-    + "RETURN n.id, s.role, 'The ' + s.role + ' session decided: ' + n.text + "
-    "'. Reason: ' + n.reason + '.', 'Decision', size(n.text)"
+    + "RETURN n.id, s.role, 'Decided: ' + n.text + '. Reason: ' + n.reason + '.', "
+    "'Decision', size(n.text)"
 )
 _CLAIM_REQUEST = (
     "MATCH (s:Session)-[:RECEIVED]->(n:Request) WHERE "
     + _ELIGIBLE
     + _CLAIM
-    + "RETURN n.id, s.role, 'The ' + s.role + ' session was asked: \"' + n.text + '\"', "
-    "'Request', size(n.text)"
+    + "RETURN n.id, s.role, n.text, 'Request', size(n.text)"
 )
 
 
@@ -39,7 +38,9 @@ _CLAIM_REQUEST = (
 class KnowledgeItem:
     id: str
     role: str
-    text: str  # what the knowledge graph ingests, naming the role it came from
+    # What the knowledge graph ingests. No role framing: provenance (Document id ->
+    # Request -> Session) already says who, and the framing became entities itself.
+    text: str
     label: str  # "Request" or "Decision"
     size: int  # length of the original text
 
@@ -59,4 +60,7 @@ def claim_next(graph: Graph, *, now: int, stale_ms: int) -> KnowledgeItem | None
 def mark_ingested(graph: Graph, item: KnowledgeItem, *, at: int) -> None:
     """Record that an item is in the knowledge graph (or deliberately left out of it)."""
     label = "Decision" if item.label == "Decision" else "Request"
-    graph.query(f"MATCH (n:{label} {{id: $id}}) SET n.kg_at = $at", {"id": item.id, "at": at})
+    graph.query(
+        f"MATCH (n:{label} {{id: $id}}) SET n.kg_at = $at REMOVE n.kg_retry_at",
+        {"id": item.id, "at": at},
+    )

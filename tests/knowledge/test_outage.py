@@ -6,13 +6,13 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
-from falkordb import Graph
+from falkordb import FalkorDB, Graph
 
 pytest.importorskip("graphrag_sdk")
 
 from handoff.config import Config
 from handoff.graph.requests import add_request
-from handoff.knowledge.startup import build_knowledge_client
+from handoff.knowledge.startup import build_knowledge_client, knowledge_graph_name
 from handoff.knowledge.worker import KnowledgeWorker
 from handoff.models.base import ModelUnavailable
 
@@ -44,3 +44,7 @@ def test_outage_leaves_the_item_unmarked_and_the_document_removed(
     finally:
         client.close()
         client.kg.delete()
+        # GraphRAG-SDK keeps its ontology in a companion graph of its own.
+        FalkorDB(host=config.host, port=config.port).select_graph(
+            f"{knowledge_graph_name(config)}__ontology"
+        ).delete()

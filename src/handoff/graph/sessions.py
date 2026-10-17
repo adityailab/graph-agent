@@ -21,7 +21,8 @@ def upsert_session(
     graph.query(
         "MERGE (s:Session {id: $id}) "
         "ON CREATE SET s.started_at = $at "
-        "SET s.role = $role, s.cwd = $cwd, s.last_seen_at = $at, s.pid = coalesce($pid, s.pid)",
+        "SET s.role = $role, s.name = $role, "
+        "s.cwd = $cwd, s.last_seen_at = $at, s.pid = coalesce($pid, s.pid)",
         {"id": session_id, "role": role, "cwd": cwd, "at": at, "pid": pid},
     )
 

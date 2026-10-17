@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from handoff.config import Config, resolve_role
@@ -31,3 +32,12 @@ def test_role_falls_back_to_folder_name() -> None:
 
 def test_role_for_filesystem_root_is_unknown() -> None:
     assert resolve_role("/", {}) == "unknown"
+
+
+def test_workspace_graph_name_is_safe_and_stable(tmp_path: Path) -> None:
+    from handoff.config import graph_for_workspace
+
+    workspace = tmp_path / "My App (v2)"
+    name = graph_for_workspace(workspace)
+    assert name == graph_for_workspace(workspace)
+    assert re.fullmatch(r"handoff_my_app_v2_[0-9a-f]{6}", name)

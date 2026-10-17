@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +41,7 @@ def test_one_step_ingests_one_item_under_our_id(ready: Graph, tmp_path: Path) ->
     rag = FakeRag()
     worker = _worker(ready, rag, tmp_path)
     assert worker.step() is True
-    assert rag.ingested == [("p1", 'The frontend session was asked: "show avatar"')]
+    assert rag.ingested == [("p1", "show avatar")]
     assert worker.step() is False  # nothing left
 
 
@@ -110,3 +111,34 @@ def test_hourly_cap_stops_ingestion(ready: Graph, tmp_path: Path) -> None:
     worker = KnowledgeWorker(graph=ready, rag=rag, home=tmp_path, max_per_hour=2, now=lambda: 5_000)
     assert worker.drain() == 2
     assert len(rag.ingested) == 2
+
+
+class FinalizeFailsOnce(FakeRag):
+    def finalize_sync(self) -> None:
+        self.finalized += 1
+        if self.finalized == 1:
+            raise ModelUnavailable("database blip during finalize")
+
+
+def test_a_failed_finalize_does_not_stop_the_worker(
+    ready: Graph, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("handoff.knowledge.worker.IDLE_SECONDS", 0.01)
+    add_request(ready, session_id="s1", request_id="p1", text="show the avatar on cards", at=10)
+    rag = FinalizeFailsOnce()
+    # A large batch size means finalizing happens only when the queue runs dry (the idle path).
+    worker = KnowledgeWorker(graph=ready, rag=rag, home=tmp_path, finalize_every=100)
+    thread = worker.start()
+    deadline = time.monotonic() + 10
+    while rag.finalized < 1 and time.monotonic() < deadline:
+        time.sleep(0.05)
+    add_request(ready, session_id="s1", request_id="p2", text="add a price filter please", at=20)
+    # The worker retries the failed finalize on its next idle pass, possibly before p2
+    # exists, so "finalized twice" alone proves nothing: wait until p2 is handled.
+    while len(rag.ingested) < 2 and time.monotonic() < deadline:
+        time.sleep(0.05)
+    worker.stop()
+    thread.join(timeout=5)
+    assert rag.finalized >= 2  # it finalized again after the failure, so it kept running
+    assert [doc for doc, _ in rag.ingested] == ["p1", "p2"]
+    assert KnowledgeWorker(graph=ready, rag=rag, home=tmp_path).try_lead()  # lock released

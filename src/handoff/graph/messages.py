@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from falkordb import Graph
 
+from handoff.graph.captions import caption
 from handoff.graph.records import MessageView
 
 _ADD_MESSAGE = (
     "MATCH (s:Session {id: $sid}) "
     "MERGE (m:Message {id: $mid}) "
-    "ON CREATE SET m.kind = $kind, m.text = $text, m.to_role = $to_role, m.at = $at "
+    "ON CREATE SET m.kind = $kind, m.text = $text, m.to_role = $to_role, m.at = $at, "
+    "m.name = $kind + ': ' + $caption "
     "MERGE (s)-[:SENT]->(m) "
     "WITH m "
     "OPTIONAL MATCH (q:Message {id: $reply_to}) "
@@ -56,6 +58,7 @@ def add_message(
             "text": text,
             "to_role": to_role,
             "reply_to": reply_to,
+            "caption": caption(text),
             "at": at,
         },
     ).result_set

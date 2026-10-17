@@ -99,3 +99,33 @@ def test_live_stand_in_answers_from_history(history: Graph) -> None:
     )
     assert result.found
     assert "d1" in result.cited_ids
+
+
+def test_citations_written_with_their_kind_or_shortened_are_understood() -> None:
+    allowed = {"fa139a80553c4f649f5f9a573be54d61", "29c17f0c-8fa1-4c1a-b246-8b631110ffca"}
+    raw = json.dumps(
+        {
+            "answer": "Paise avoid rounding.",
+            "cited_ids": ["[decision fa139a80553c4f649f5f9a573be54d61]", "request 29c17f0c"],
+            "found": True,
+        }
+    )
+    result = parse_answer(raw, allowed=allowed)
+    assert result is not None
+    assert set(result.cited_ids) == allowed
+
+
+def test_a_short_or_ambiguous_prefix_is_not_a_citation() -> None:
+    allowed = {"aaaa1111bbbb", "aaaa1111cccc"}
+    raw = json.dumps({"answer": "x", "cited_ids": ["aaaa", "aaaa1111"], "found": True})
+    result = parse_answer(raw, allowed=allowed)
+    assert result is not None
+    assert result.cited_ids == ()
+
+
+def test_missing_or_null_citations_mean_none() -> None:
+    for cited in (None, "abc", 5):
+        raw = json.dumps({"answer": "x", "cited_ids": cited, "found": False})
+        result = parse_answer(raw, allowed={"abcdefgh12"})
+        assert result is not None
+        assert result.cited_ids == ()

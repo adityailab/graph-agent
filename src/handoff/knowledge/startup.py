@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from falkordb import Graph
-from graphrag_sdk import ConnectionConfig, GraphExtraction, GraphRAG, LLMExtractor
+from graphrag_sdk import ConnectionConfig, GraphExtraction, GraphRAG
 from redis.exceptions import RedisError
 
 from handoff.config import Config
@@ -16,6 +16,7 @@ from handoff.graph.connection import connect, ping
 from handoff.graph.schema import EMBED_DIM
 from handoff.knowledge.adapters import EmbedderAdapter, ModelLLM
 from handoff.knowledge.client import KnowledgeClient
+from handoff.knowledge.extractor import WorkExtractor, handoff_ontology
 from handoff.knowledge.worker import KnowledgeWorker
 from handoff.models.base import ModelClient
 
@@ -31,8 +32,8 @@ def knowledge_graph_name(config: Config) -> str:
 def build_knowledge_client(
     config: Config, model: ModelClient, embedder: Embedder
 ) -> KnowledgeClient:
-    """GraphRAG over `<graph>_kg` with our model and embedder, and no fixed ontology: the
-    model extracts whatever kinds of things the text is about."""
+    """GraphRAG over `<graph>_kg` with our model and embedder. Entity types are kinds of
+    software work (see extractor.py); relationship types are left to the model."""
     llm = ModelLLM(model, name=type(model).__name__, max_concurrency=2)
     kg_name = knowledge_graph_name(config)
     rag = GraphRAG(
@@ -40,9 +41,11 @@ def build_knowledge_client(
         llm=llm,
         embedder=EmbedderAdapter(embedder),
         embedding_dimension=EMBED_DIM,
+        ontology=handoff_ontology(),
     )
-    # The LLM extractor avoids GLiNER's separate model download.
-    extractor = GraphExtraction(llm, entity_extractor=LLMExtractor(llm))
+    # An LLM extractor avoids GLiNER's separate model download.
+    # Two at a time: each model call may start a `claude -p` process.
+    extractor = GraphExtraction(llm, entity_extractor=WorkExtractor(llm), max_concurrency=2)
     kg = connect(Config(config.host, config.port, kg_name, config.home))
     return KnowledgeClient(rag=rag, llm=llm, extractor=extractor, kg=kg)
 

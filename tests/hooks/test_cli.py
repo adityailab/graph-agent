@@ -14,6 +14,8 @@ from typing import Any
 from falkordb import Graph
 
 from handoff.config import Config
+from handoff.graph.connection import connect
+from handoff.spool import spool_dir
 
 HookJson = Callable[[str], dict[str, Any]]
 
@@ -58,7 +60,7 @@ def test_database_down_saves_the_event_and_exits_cleanly(
 ) -> None:
     result = _run_hook(config, json.dumps(hook_json("user_prompt")), port=1)
     assert result.returncode == 0
-    assert (config.home / "spool.jsonl").read_text().count("\n") == 1
+    assert (spool_dir(config.home, config.graph_name) / "spool.jsonl").read_text().count("\n") == 1
 
 
 def test_saved_events_are_replayed_once_the_database_is_back(
@@ -69,7 +71,7 @@ def test_saved_events_are_replayed_once_the_database_is_back(
     second = hook_json("user_prompt") | {"prompt": "after", "prompt_id": "p-up"}
     _run_hook(config, json.dumps(second))
     assert _request_texts(graph) == ["while down", "after"]
-    assert (config.home / "spool.jsonl").read_text() == ""
+    assert (spool_dir(config.home, config.graph_name) / "spool.jsonl").read_text() == ""
 
 
 def test_unreadable_input_is_logged_and_exits_cleanly(config: Config) -> None:
@@ -83,7 +85,7 @@ def test_saved_events_are_private_and_hold_no_raw_tool_output(
 ) -> None:
     raw = hook_json("post_edit") | {"tool_response": {"originalFile": "secret body"}}
     _run_hook(config, json.dumps(raw), port=1)
-    spool_file = config.home / "spool.jsonl"
+    spool_file = spool_dir(config.home, config.graph_name) / "spool.jsonl"
     assert stat.S_IMODE(spool_file.stat().st_mode) == 0o600
     assert "secret body" not in spool_file.read_text()
 
@@ -97,7 +99,7 @@ def test_live_event_queues_while_another_hook_replays(
         "HANDOFF_HOME": str(config.home),
         "HANDOFF_ROLE": "frontend",
     }
-    with (config.home / "spool.lock").open("a") as lock:
+    with (spool_dir(config.home, config.graph_name) / "spool.lock").open("a") as lock:
         # Another hook is mid-replay for 3 seconds.
         fcntl.flock(lock, fcntl.LOCK_EX)
         proc = subprocess.Popen(
@@ -110,7 +112,7 @@ def test_live_event_queues_while_another_hook_replays(
         fcntl.flock(lock, fcntl.LOCK_UN)
     assert proc.wait(timeout=30) == 0
     assert _request_texts(graph) == []
-    assert (config.home / "spool.jsonl").read_text().count("\n") == 2
+    assert (spool_dir(config.home, config.graph_name) / "spool.jsonl").read_text().count("\n") == 2
 
 
 def test_edit_reaches_the_graph_through_the_command(
@@ -189,7 +191,7 @@ def test_stop_is_allowed_and_not_saved_when_the_database_is_down(
 ) -> None:
     result = _run_hook(config, json.dumps(hook_json("stop")), port=1)
     assert (result.returncode, result.stdout) == (0, "")
-    assert not (config.home / "spool.jsonl").exists()
+    assert not (spool_dir(config.home, config.graph_name) / "spool.jsonl").exists()
 
 
 def test_tool_calls_without_edits_are_not_saved_during_an_outage(
@@ -197,9 +199,9 @@ def test_tool_calls_without_edits_are_not_saved_during_an_outage(
 ) -> None:
     read = hook_json("post_edit") | {"tool_name": "Read", "tool_input": {"file_path": "/x"}}
     _run_hook(config, json.dumps(read), port=1)
-    assert not (config.home / "spool.jsonl").exists()
+    assert not (spool_dir(config.home, config.graph_name) / "spool.jsonl").exists()
     _run_hook(config, json.dumps(hook_json("post_edit")), port=1)
-    assert (config.home / "spool.jsonl").read_text().count("\n") == 1
+    assert (spool_dir(config.home, config.graph_name) / "spool.jsonl").read_text().count("\n") == 1
 
 
 def test_hooks_store_the_claude_process_id(
@@ -221,3 +223,22 @@ def test_hooks_store_the_claude_process_id(
         check=True,
     )
     assert graph.query("MATCH (s:Session) RETURN s.pid").result_set == [[4242]]
+
+
+def test_saved_events_replay_only_into_their_own_graph(
+    config: Config, graph: Graph, hook_json: HookJson
+) -> None:
+    """Two workspaces share one home folder but have different graphs."""
+    other = Config(config.host, config.port, f"{config.graph_name}_b", config.home)
+    down = hook_json("user_prompt") | {"prompt": "A while down", "prompt_id": "p-a"}
+    _run_hook(config, json.dumps(down), port=1)
+    b_prompt = hook_json("user_prompt") | {"prompt": "B", "prompt_id": "p-b", "session_id": "s-b"}
+    _run_hook(other, json.dumps(b_prompt))
+    b_graph = connect(other)
+    try:
+        assert _request_texts(b_graph) == ["B"]
+    finally:
+        b_graph.delete()
+    up = hook_json("user_prompt") | {"prompt": "A back", "prompt_id": "p-a2"}
+    _run_hook(config, json.dumps(up))
+    assert _request_texts(graph) == ["A while down", "A back"]

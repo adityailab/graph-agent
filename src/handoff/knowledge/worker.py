@@ -105,20 +105,26 @@ class KnowledgeWorker:
 
     def run(self) -> None:
         """Loop until stopped: lead if possible, ingest, rest when there is nothing to do."""
-        while not self._stop.is_set():
-            if self._lock_file is None and not self.try_lead():
-                self._stop.wait(60)
-                continue
-            try:
-                worked = self.step()
-            except Exception:
-                log.exception("knowledge worker step failed")  # e.g. database down
-                self._pacer.failed()
-                worked = False
-            if not worked:
-                self._finalize()
-                self._stop.wait(self._pacer.pause_seconds(IDLE_SECONDS))
-        self.stand_down()
+        try:
+            while not self._stop.is_set():
+                if self._lock_file is None and not self.try_lead():
+                    self._stop.wait(60)
+                    continue
+                if not self._guarded(self.step):
+                    self._guarded(self._finalize)
+                    self._stop.wait(self._pacer.pause_seconds(IDLE_SECONDS))
+        finally:
+            self.stand_down()
+
+    def _guarded(self, work: Callable[[], object]) -> bool:
+        """Run one piece of the loop. A failure of any kind (database down, model or
+        query error) is logged and paced, never allowed to end the worker's thread."""
+        try:
+            return bool(work())
+        except Exception:
+            log.exception("knowledge worker: %s failed", getattr(work, "__name__", "work"))
+            self._pacer.failed()
+            return False
 
     def start(self) -> threading.Thread:
         thread = threading.Thread(target=self.run, name="knowledge-worker", daemon=True)

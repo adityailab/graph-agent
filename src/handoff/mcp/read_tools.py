@@ -10,13 +10,14 @@ from pydantic import Field
 
 from handoff.config import normalise_role
 from handoff.format import render_handoff, render_why, select_requests, shorten
+from handoff.graph.consultations import add_consultations
 from handoff.graph.edits import why_file
 from handoff.graph.history import handoff_requests
 from handoff.graph.overlaps import shared_files
 from handoff.graph.requests import latest_request_id, request_text
 from handoff.graph.sessions import active_sessions
 from handoff.mcp.context import ToolContext, guarded
-from handoff.mcp.current import current_session
+from handoff.mcp.current import current_request, current_session
 from handoff.paths import relative_path
 
 _MINUTE_MS = 60_000
@@ -54,7 +55,13 @@ def handoff(
     requests = handoff_requests(
         ctx.graph, role=normalise_role(role) if role and role.strip() else None, since=since
     )
-    text = render_handoff(select_requests(requests, _clamp(limit, 1, 50)))
+    selected = select_requests(requests, _clamp(limit, 1, 50))
+    text = render_handoff(selected)
+    reader = current_request(ctx)
+    if reader is not None and selected:
+        add_consultations(
+            ctx.graph, request_id=reader.id, consulted_ids=[r.id for r in selected], at=ctx.now()
+        )
     shared = shared_files(ctx.graph, since=since)
     if shared:
         listed = "; ".join(f"{f.path} ({', '.join(f.roles)})" for f in shared)

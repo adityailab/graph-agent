@@ -94,3 +94,11 @@ def test_handoff_lists_files_changed_by_more_than_one_role(backend: ToolContext)
         at=1_600,
     )
     assert "Changed by more than one role: Card.tsx (backend, frontend)" in handoff(backend)
+
+
+def test_reading_a_handoff_records_what_was_consulted(backend: ToolContext) -> None:
+    handoff(backend, role="frontend")
+    rows = backend.graph.query(
+        "MATCH (:Request {id: 'p9'})-[:CONSULTED]->(c:Request) RETURN c.id"
+    ).result_set
+    assert rows == [["p1"]]

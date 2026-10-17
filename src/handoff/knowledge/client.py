@@ -7,6 +7,7 @@ from typing import Any
 from falkordb import Graph
 from graphrag_sdk import GraphExtraction, GraphRAG, GraphRAGError
 
+from handoff.graph.knowledge import merge_same_name_entities
 from handoff.knowledge.adapters import ModelLLM
 from handoff.knowledge.runner import AsyncRunner
 from handoff.models.base import ModelUnavailable
@@ -42,7 +43,11 @@ class KnowledgeClient:
             raise KnowledgeUnavailable("the model failed while extracting; will retry later")
 
     def finalize_sync(self) -> None:
+        """Run GraphRAG's post-ingest steps (including its exact same-name, same-type merge),
+        then merge same-named entities across types (ours). No fuzzy merge: similar names
+        are often different things (Checkout.tsx and Checkout.test.tsx)."""
         self._call(self.rag.finalize())
+        merge_same_name_entities(self.kg)
 
     def completion_sync(self, question: str, **kwargs: Any) -> Any:
         return self._call(self.rag.completion(question, **kwargs))

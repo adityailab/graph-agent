@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from falkordb import Graph
 
+from handoff.graph.captions import caption
+
 # One query, so a replay or a second session writing at the same moment can never
 # create a duplicate request or a half-linked one. FalkorDB runs writes to a graph
 # one at a time. The NEXT link is added only when the request is new: its seq is
@@ -13,7 +15,8 @@ _ADD_REQUEST = (
     "OPTIONAL MATCH (s)-[:RECEIVED]->(p:Request) "
     "WITH s, p ORDER BY p.at DESC LIMIT 1 "
     "MERGE (r:Request {id: $rid}) "
-    "ON CREATE SET r.seq = coalesce(p.seq, 0) + 1, r.text = $text, r.at = $at "
+    "ON CREATE SET r.seq = coalesce(p.seq, 0) + 1, r.text = $text, r.at = $at, "
+    "r.name = s.role + ' #' + toString(coalesce(p.seq, 0) + 1) + ': ' + $caption "
     "MERGE (s)-[:RECEIVED]->(r) "
     "FOREACH (_ IN CASE WHEN p IS NOT NULL AND r.seq = p.seq + 1 THEN [1] ELSE [] END | "
     "MERGE (p)-[:NEXT]->(r)) "
@@ -28,7 +31,8 @@ def add_request(graph: Graph, *, session_id: str, request_id: str, text: str, at
     Raises LookupError if the session is unknown.
     """
     rows = graph.query(
-        _ADD_REQUEST, {"sid": session_id, "rid": request_id, "text": text, "at": at}
+        _ADD_REQUEST,
+        {"sid": session_id, "rid": request_id, "text": text, "at": at, "caption": caption(text)},
     ).result_set
     if not rows:
         raise LookupError(f"no session with id {session_id}")

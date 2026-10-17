@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from falkordb import Graph
 
+from handoff.graph.captions import caption
+
 
 def add_need(
     graph: Graph, *, request_id: str, need_id: str, text: str, for_role: str, at: int
@@ -12,10 +14,18 @@ def add_need(
     rows = graph.query(
         "MATCH (r:Request {id: $rid}) "
         "MERGE (n:Need {id: $nid}) "
-        "ON CREATE SET n.text = $text, n.for_role = $for_role, n.status = 'open', n.at = $at "
+        "ON CREATE SET n.text = $text, n.for_role = $for_role, n.status = 'open', n.at = $at, "
+        "n.name = 'needs from ' + $for_role + ': ' + $caption "
         "MERGE (r)-[:RAISED]->(n) "
         "RETURN n.id",
-        {"rid": request_id, "nid": need_id, "text": text, "for_role": for_role, "at": at},
+        {
+            "rid": request_id,
+            "nid": need_id,
+            "text": text,
+            "for_role": for_role,
+            "at": at,
+            "caption": caption(text),
+        },
     ).result_set
     return bool(rows)
 

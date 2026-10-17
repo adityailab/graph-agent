@@ -83,3 +83,17 @@ def test_second_prompt_in_session_follows_the_first(graph: Graph, hook_json: Hoo
     _prompt(graph, hook_json)
     _prompt(graph, hook_json, prompt_id="p-second", prompt="next")
     assert latest_request_id(graph, "s-test") == "p-second"
+
+
+def test_a_wake_up_is_not_recorded_as_a_new_request(graph: Graph, hook_json: HookJson) -> None:
+    ensure_schema(graph)
+    _prompt(graph, hook_json, prompt="Add the avatar")
+    wake = (
+        "<task-notification>\n<summary>Stop hook feedback</summary>\n</task-notification>\n"
+        "<system-reminder>Message m1 from the backend session: ready</system-reminder>"
+    )
+    _prompt(graph, hook_json, prompt=wake, prompt_id="p-wake")
+    rows = graph.query("MATCH (:Session {id: 's-test'})-[:RECEIVED]->(r:Request) RETURN r.id")
+    assert rows.result_set == [["p-test"]]
+    # Edits made while handling the wake-up belong to the request being worked on.
+    assert latest_request_id(graph, "s-test") == "p-test"
