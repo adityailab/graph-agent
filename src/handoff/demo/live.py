@@ -3,9 +3,11 @@ for handoff's own tools, and the tmux grid; then the driver runs in the backgrou
 
 from __future__ import annotations
 
+import contextlib
 import getpass
 import json
 import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -43,16 +45,32 @@ def start_grid(session: str, folder: Path, runner: Runner, *, model: str) -> Non
         runner(cmd)
 
 
-def start_driver(session: str, log: Path) -> None:
-    """Run `handoff demo --drive` detached, so this terminal can attach to the grid."""
-    with log.open("w") as out:
-        subprocess.Popen(  # noqa: S603 - our own command, no shell
+def stop_previous_driver(state: Path) -> None:
+    """Stop the driver of an earlier run, which would keep typing into the new grid."""
+    pid_file = state / "driver.pid"
+    try:
+        pid = int(pid_file.read_text())
+    except (OSError, ValueError):
+        return
+    pid_file.unlink(missing_ok=True)
+    with contextlib.suppress(ProcessLookupError):  # already finished
+        os.kill(pid, signal.SIGTERM)
+
+
+def start_driver(session: str, state: Path) -> None:
+    """Run `handoff demo --drive` detached, so this terminal can attach to the grid. Its pid
+    and log live in handoff's own state folder, outside the scratch project that is reset."""
+    state.mkdir(parents=True, exist_ok=True)
+    stop_previous_driver(state)
+    with (state / "driver.log").open("w") as out:
+        proc = subprocess.Popen(  # noqa: S603 - our own command, no shell
             [str(Path(sys.executable).parent / "handoff"), "demo", "--drive", "--session", session],
             stdout=out,
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
             start_new_session=True,
         )
+    (state / "driver.pid").write_text(str(proc.pid))
 
 
 def launch(
@@ -61,9 +79,10 @@ def launch(
     """Build the grid in `folder` (driven in the background unless `manual`); return what to
     tell the person."""
     prepare_workspace(folder, config, bin_dir=Path(sys.executable).parent)
+    stop_previous_driver(config.home / "demo")
     start_grid(session, folder, runner, model=model)
     if not manual:
-        start_driver(session, folder / "drive.log")
+        start_driver(session, config.home / "demo")
     then = "then type your own prompts." if manual else "the rounds then start by themselves."
     return (
         f"Live demo in {folder}, graph {config.graph_name}. Attach with: tmux attach -t "

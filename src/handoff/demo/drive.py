@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable, Sequence
 
 from handoff.cli.runner import Runner
-from handoff.demo.tmux import done_line, panes_by_role, trust_pending
+from handoff.demo.tmux import done_line, pane_ready, panes_by_role
 
 ROUND_CAP_SECONDS = 480
 POLL_SECONDS = 4.0
@@ -51,13 +51,18 @@ def drive(
         ["tmux", "list-panes", "-t", f"{session}:demo", "-F", "#{pane_index} #{pane_start_command}"]
     ).stdout
     panes = panes_by_role(listing, session)
-    say("waiting for the folder-trust prompt to be accepted in each Claude pane")
+    needed = {role for round_ in rounds for role in round_}
+    absent = sorted(needed - set(panes))
+    if absent:
+        say(f"stopped: no pane found for {', '.join(absent)} (is the grid still open?)")
+        return 1
+    say("waiting for each Claude pane to be ready (accept the folder-trust prompt if shown)")
     if not _wait(
-        lambda: not any(trust_pending(_screen(runner, p)) for p in panes.values()),
+        lambda: all(pane_ready(_screen(runner, panes[r])) for r in needed),
         seconds=TRUST_WAIT_SECONDS,
         sleep=sleep,
     ):
-        say("gave up: the trust prompts were not accepted within 10 minutes")
+        say("gave up: the panes were not ready within 10 minutes")
         return 1
     for n, round_ in enumerate(rounds, 1):
         before = {role: done_line(_screen(runner, panes[role])) for role in round_}

@@ -82,3 +82,9 @@ def panes_by_role(listing: str, session: str) -> dict[str, str]:
         if match:
             panes[match.group(2)] = f"{session}:demo.{match.group(1)}"
     return panes
+
+
+def pane_ready(screen: str) -> bool:
+    """True once Claude Code shows its input and is not asking about trust. Typing earlier
+    would land in the trust dialog, or be lost while Claude starts."""
+    return not trust_pending(screen) and "accept edits on" in screen

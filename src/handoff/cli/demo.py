@@ -18,15 +18,20 @@ from handoff.demo.check import check_graph, reset_graphs
 from handoff.demo.drive import drive
 from handoff.demo.headless import run_session
 from handoff.demo.live import launch
+from handoff.demo.scratch import NotAScratchFolder, prepare_scratch
 from handoff.demo.script import HEADLESS, SHOPLITE
 from handoff.demo.tmux import SESSION
 from handoff.install import install
+
+DEFAULT_GRAPH = "handoff_demo"  # namespaced: the demo deletes this graph on every run
 
 
 def add_parser(commands: Any) -> None:
     """Register the subcommand."""
     p = commands.add_parser("demo", help="watch three sessions collaborate, then check it")
-    p.add_argument("--graph", default="demo", help="graph to (re)create (default: demo)")
+    p.add_argument(
+        "--graph", default=DEFAULT_GRAPH, help=f"graph to (re)create (default: {DEFAULT_GRAPH})"
+    )
     p.add_argument("--workspace", type=Path, help="scratch folder (default: a temp folder)")
     p.add_argument("--model", help="model for the sessions (default: haiku; sonnet with --live)")
     p.add_argument("--no-knowledge", action="store_true", help="skip the knowledge graph")
@@ -108,8 +113,11 @@ def run(args: argparse.Namespace) -> int:
     base = Config.from_env()
     config = Config(base.host, base.port, args.graph, base.home)
     workspace = (args.workspace or Path(tempfile.gettempdir()) / "handoff-demo").resolve()
-    shutil.rmtree(workspace, ignore_errors=True)
-    workspace.mkdir(parents=True)
+    try:
+        prepare_scratch(workspace)
+    except NotAScratchFolder as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     if args.live:
         return _live(args, config, workspace)
     print(

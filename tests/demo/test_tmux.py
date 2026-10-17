@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from handoff.demo.tmux import done_line, layout_commands, panes_by_role, trust_pending
+from handoff.demo.tmux import done_line, layout_commands, pane_ready, panes_by_role, trust_pending
 
 
 def test_the_grid_has_three_sessions_and_the_live_feed() -> None:
@@ -43,3 +43,9 @@ def test_panes_are_found_by_the_role_they_were_started_with() -> None:
         "3 env -i HOME=/h /opt/h/bin/handoff watch\n"
     )
     assert panes_by_role(listing, "hd") == {"frontend": "hd:demo.0", "deploy": "hd:demo.1"}
+
+
+def test_a_pane_is_ready_once_claude_shows_its_input_and_no_trust_prompt() -> None:
+    assert not pane_ready("")  # still starting
+    assert not pane_ready(" > No, exit\n   Yes, I trust this folder")
+    assert pane_ready("> \n  accept edits on (shift+tab to cycle)")

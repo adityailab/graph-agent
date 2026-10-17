@@ -6,6 +6,7 @@ from falkordb import FalkorDB
 
 from handoff.config import Config, knowledge_graph_name
 from handoff.format import render_handoff, select_requests
+from handoff.graph.communication import communication_counts
 from handoff.graph.connection import connect
 from handoff.graph.history import handoff_requests
 from handoff.graph.schema import ensure_schema
@@ -16,16 +17,10 @@ EXPECTED_TEXT = {
     "the need, resolved": "(resolved, id",
     "the backend request": "api/orders.py",
 }
-EXPECTED_EDGES = {
-    "a message delivered to a session": (
-        "MATCH (:Message)-[:DELIVERED_TO]->(:Session) RETURN count(*)"
-    ),
-    "a stand-in answer citing its sources": (
-        "MATCH (:Message {kind: 'standin_answer'})-[:CITES]->() RETURN count(*)"
-    ),
-    "a request that consulted another session's work": (
-        "MATCH (:Request)-[:CONSULTED]->(:Request) RETURN count(*)"
-    ),
+EXPECTED_COMMUNICATION = {
+    "delivered_messages": "a message delivered to a session",
+    "cited_answers": "a stand-in answer citing its sources",
+    "consultations": "a request that consulted another session's work",
 }
 
 
@@ -42,7 +37,8 @@ def check_graph(config: Config) -> tuple[str, list[str]]:
     """The handoff as deploy sees it, and the expected parts that are missing. Counts are
     taken before rendering; rendering records nothing (the tool would add CONSULTED)."""
     graph = connect(config)
-    missing = [n for n, q in EXPECTED_EDGES.items() if graph.query(q).result_set[0][0] == 0]
+    counts = communication_counts(graph)
+    missing = [label for key, label in EXPECTED_COMMUNICATION.items() if counts[key] == 0]
     text = render_handoff(select_requests(handoff_requests(graph, role=None, since=0), 10))
     missing += [name for name, needle in EXPECTED_TEXT.items() if needle not in text]
     return text, missing

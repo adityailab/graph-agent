@@ -20,7 +20,7 @@ class FakeTmux:
         if argv[1] == "list-panes":
             out = LISTING
         elif argv[1] == "capture-pane":
-            out = f"✻ Done for {self.turns[argv[-1]]}s · done 1:00 PM\n> "
+            out = f"Done for {self.turns[argv[-1]]}s · done 1:00 PM\n> \n accept edits on"
         elif argv[1] == "send-keys" and argv[-2] == "-l":
             self.sent.append((argv[3], argv[-1]))
         elif argv[1] == "send-keys" and argv[-1] == "Enter":
@@ -39,3 +39,11 @@ def test_each_round_is_sent_and_waited_for() -> None:
         ("hd:demo.1", "fix it"),
     ]
     assert any("round 2" in line and "done" in line for line in said)
+
+
+def test_a_missing_pane_stops_the_driver_with_a_reason() -> None:
+    tmux = FakeTmux()
+    said: list[str] = []
+    rounds = ({"deploy": "ship it"},)
+    assert drive(rounds, session="hd", runner=tmux, sleep=lambda _: None, say=said.append) == 1
+    assert any("deploy" in line for line in said)
