@@ -17,6 +17,8 @@ that every session reads and writes through hooks and MCP tools.
 - **FalkorDB's algorithms find what matters:** collisions, load-bearing work, bridges and
   themes.
 
+**Demo video:** https://youtu.be/16bKhR6Q08c
+
 Built for [Graph Hacks](https://www.wemakedevs.org/hackathons/falkordb) (WeMakeDevs ×
 FalkorDB). Python 3.12+, MIT licence.
 

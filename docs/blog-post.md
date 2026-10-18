@@ -2,6 +2,8 @@
 
 *Built solo for Graph Hacks (WeMakeDevs × FalkorDB). Code: https://github.com/adityailab/graph-agent*
 
+**Demo video:** https://youtu.be/16bKhR6Q08c
+
 ## The problem
 
 I run Claude Code in several terminals at once: a frontend session, a backend session, a
