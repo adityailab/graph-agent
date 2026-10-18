@@ -26,7 +26,7 @@ def _get(url: str, host: str | None = None) -> tuple[int, str, dict[str, str]]:
     request = urllib.request.Request(url, headers={"Host": host} if host else {})
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
-            return response.status, response.read().decode(), dict(response.headers)
+            return response.status, response.read().decode(errors="replace"), dict(response.headers)
     except urllib.error.HTTPError as exc:
         return exc.code, "", {}
 
@@ -37,6 +37,15 @@ def test_the_page_and_its_assets_are_served(base: str) -> None:
         assert status == 200
         assert body
         assert "default-src 'self'" in headers["Content-Security-Policy"]
+
+
+def test_the_one_typeface_is_served_from_the_same_origin(base: str) -> None:
+    status, body, headers = _get(base + "/style.css")
+    assert 'font-family: "Saira"' in body
+    for weight in (400, 500, 600, 700):
+        status, _, headers = _get(f"{base}/Saira-{weight}.woff2")
+        assert status == 200
+        assert headers["Content-Type"] == "font/woff2"
 
 
 def test_the_state_is_json_of_the_graph(base: str) -> None:
@@ -193,23 +202,31 @@ def test_a_streamed_ask_that_fails_ends_with_an_error_line(asking: str) -> None:
     assert "error" in lines[-1]
 
 
-def test_a_common_question_is_answered_without_the_model(asking: str) -> None:
+def test_even_a_common_question_goes_to_the_model(asking: str) -> None:
     status, body = _post(asking + "/api/ask", {"question": "Who has read whose work?"})
     assert status == 200
-    assert "No session has read" in body["answer"]  # from the graph, not the fake model
-    assert body["queries"] == []
-    assert body["quick"]
+    assert body["answer"].startswith("answer to")  # the model wrote the Cypher, not a canned route
+    assert body["queries"] == ["MATCH (n) RETURN n"]
+    assert "quick" not in body
 
 
-def test_a_follow_up_goes_to_the_model_even_if_it_sounds_common(asking: str) -> None:
-    turns = [{"q": "earlier", "a": "something"}]
-    _, body = _post(
-        asking + "/api/ask", {"question": "which rules are in force?", "history": turns}
-    )
-    assert body["answer"].startswith("answer to")
-
-
-def test_a_streamed_quick_answer_says_no_model_was_used(asking: str) -> None:
+def test_a_streamed_common_question_also_uses_the_model(asking: str) -> None:
     lines = _stream(asking + "/api/ask", {"question": "which rules are in force?", "stream": True})
-    assert any("without a model" in x.get("step", "") for x in lines)
-    assert lines[-1]["quick"]
+    assert not any("without a model" in x.get("step", "") for x in lines)
+    assert "quick" not in lines[-1]
+
+
+def test_what_the_person_is_looking_at_reaches_the_model_with_the_question(asking: str) -> None:
+    _, body = _post(
+        asking + "/api/ask",
+        {"question": "what is this?", "context": "the graph page, decision: use paise"},
+    )
+    assert "what is this?" in body["answer"]
+    assert "use paise" in body["answer"]
+
+
+def test_a_huge_or_malformed_page_context_is_refused_or_trimmed(asking: str) -> None:
+    assert _post(asking + "/api/ask", {"question": "x", "context": 5})[0] == 400
+    status, body = _post(asking + "/api/ask", {"question": "x", "context": "y" * 5000})
+    assert status == 200
+    assert len(body["answer"]) < 1500

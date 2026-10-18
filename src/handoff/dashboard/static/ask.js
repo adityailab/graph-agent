@@ -4,8 +4,7 @@
 (function () {
   "use strict";
   var MC = window.MC, el = MC.el;
-  var form = document.getElementById("ask-form"), input = document.getElementById("ask-input");
-  var send = document.getElementById("ask-send"), log = document.getElementById("ask-log");
+  var askLog = document.getElementById("ask-log"), log = askLog, working = false;  // `log` is where the current question is drawn
   var empty = document.getElementById("ask-empty"), chips = document.getElementById("ask-chips");
   var STARTERS = [
     "What is each session working on right now?",
@@ -28,6 +27,34 @@
     var row = el("div", { "class": "ask-row me" });
     row.appendChild(el("div", { "class": "ask-me" }, text));
     log.appendChild(row); toBottom();
+  }
+
+  // The finished answer: its words, the Cypher it ran, and a copy button. Used live and when mirrored.
+  function finish(body, answer, queries) {
+    var text = el("div", { "class": "ask-answer" }); MC.markdown(text, answer); body.appendChild(text);
+    if (queries.length) {
+      var d = el("details", { "class": "ask-cypher" });
+      d.appendChild(el("summary", {}, "Cypher it ran (" + queries.length + ")"));
+      queries.forEach(function (q) { d.appendChild(el("pre", {}, q)); });
+      body.appendChild(d);
+    }
+    var copy = el("button", { type: "button", "class": "ask-copy" }, "copy answer");
+    copy.addEventListener("click", function () {
+      var ok = function () { copy.textContent = "copied"; setTimeout(function () { copy.textContent = "copy answer"; }, 1200); };
+      if (navigator.clipboard) navigator.clipboard.writeText(answer).then(ok, function () {});
+    });
+    body.appendChild(copy);
+  }
+
+  // Every question asked from another page is also written into the Ask page, so the whole
+  // conversation can be read in one place.
+  function mirror(question, answer, queries, page) {
+    empty.hidden = true;
+    var me = el("div", { "class": "ask-row me" }), bubble = el("div", { "class": "ask-me" }, question);
+    if (page && page !== "ask") bubble.appendChild(el("span", { "class": "from-page" }, "asked on the " + page + " page"));
+    me.appendChild(bubble); askLog.appendChild(me);
+    var row = el("div", { "class": "ask-row bot" }), body = el("div", { "class": "ask-body" });
+    row.appendChild(avatar(false)); row.appendChild(body); finish(body, answer, queries); askLog.appendChild(row);
   }
 
   // One assistant turn: avatar, live steps, a notes line for the words as they arrive, the answer.
@@ -54,26 +81,13 @@
       },
       text: function (words) { live.textContent += words; toBottom(); },
       thought: function (words) { live.classList.add("thinking"); live.textContent += words; toBottom(); },
-      done: function (answer, queries, quick) {
+      done: function (answer, queries) {
         clearInterval(timer); tick(); live.remove(); clock.remove();
         var count = steps.children.length, secs = ((Date.now() - started) / 1000).toFixed(1);
         var how = el("details", { "class": "ask-how" });
         how.appendChild(el("summary", {}, "how it got there · " + count + " steps · " + secs + "s"));
         body.replaceChild(how, steps); how.appendChild(steps);
-        var text = el("div", { "class": "ask-answer" }); MC.markdown(text, answer); body.appendChild(text);
-        if (quick) body.appendChild(el("p", { "class": "dim" }, "answered straight from the graph, no model used · source: " + quick));
-        if (queries.length) {
-          var d = el("details", { "class": "ask-cypher" });
-          d.appendChild(el("summary", {}, "Cypher it ran (" + queries.length + ")"));
-          queries.forEach(function (q) { d.appendChild(el("pre", {}, q)); });
-          body.appendChild(d);
-        }
-        var copy = el("button", { type: "button", "class": "ask-copy" }, "copy answer");
-        copy.addEventListener("click", function () {
-          var ok = function () { copy.textContent = "copied"; setTimeout(function () { copy.textContent = "copy answer"; }, 1200); };
-          if (navigator.clipboard) navigator.clipboard.writeText(answer).then(ok, function () {});
-        });
-        body.appendChild(copy); bot.setAttribute("class", "ask-bot idle"); bot.replaceChild(avatar(false).firstChild, bot.firstChild); toBottom();
+        finish(body, answer, queries); bot.setAttribute("class", "ask-bot idle"); bot.replaceChild(avatar(false).firstChild, bot.firstChild); toBottom();
       },
       fail: function (message) {
         clearInterval(timer); tick(); live.remove(); clock.remove();
@@ -96,15 +110,18 @@
     return pump();
   }
 
-  function busy(on) { send.disabled = on; input.disabled = on; if (!on) input.focus(); }
+  function busy(on) { working = on; }
 
-  function ask(question) {
-    empty.hidden = true; userTurn(question);
+  // `target` is a container to draw into (the dock's answer panel); `context` says what the person is looking at.
+  function ask(question, target, context) {
+    log = target || askLog; if (!target) empty.hidden = true;
+    var page = MC.view();
+    userTurn(question);
     var turn = claudeTurn(), finished = false;
     turn.step("sending the question"); busy(true);
     function end(fn) { if (!finished) { finished = true; fn(); } }
     fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question, history: history.slice(-6), stream: true }) })
+      body: JSON.stringify({ question: question, history: history.slice(-6), stream: true, context: context || "" }) })
       .then(function (r) {
         if ((r.headers.get("Content-Type") || "").indexOf("application/x-ndjson") !== 0) {
           // Rejected before streaming (JSON), or an older dashboard server (an HTML error page).
@@ -118,30 +135,26 @@
           else if (line.text) turn.text(line.text);
           else if (line.thought) turn.thought(line.thought);
           else if (line.error) end(function () { turn.fail(line.error); });
-          else if (line.answer) end(function () { turn.done(line.answer, line.queries || [], line.quick); history.push({ q: question, a: line.answer }); });
+          else if (line.answer) end(function () { turn.done(line.answer, line.queries || []); history.push({ q: question, a: line.answer }); if (target) mirror(question, line.answer, line.queries || [], page); });
         });
       })
       .catch(function (e) { end(function () { turn.fail("could not ask: " + e.message); }); })
       .then(function () { busy(false); });
   }
 
-  form.addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    var q = input.value.trim();
-    if (!q || send.disabled) return;
-    input.value = ""; ask(q);
-  });
   document.getElementById("ask-new").addEventListener("click", function () {
-    if (send.disabled) return;
-    history = []; MC.clear(log); empty.hidden = false; input.focus();
+    if (working) return;
+    history = []; MC.clear(askLog); MC.clear(document.getElementById("dock-chat-log")); empty.hidden = false;
   });
   STARTERS.forEach(function (s) {
     var b = el("button", { type: "button" }, s);
-    b.addEventListener("click", function () { if (!send.disabled) ask(s); });
+    b.addEventListener("click", function () { if (!working) ask(s); });
     chips.appendChild(b);
   });
   var botHolder = document.getElementById("ask-empty-bot");
   if (botHolder) botHolder.appendChild(avatar(true));  // waiting for a question: alive, not asleep
 
+  // The command field (dock.js) asks through here: false when the last question is still being answered.
+  MC.ask = { start: function (q, target, context) { if (working) return false; ask(q, target, context); return true; } };
   MC.views.ask = { update: function () {} };
 })();

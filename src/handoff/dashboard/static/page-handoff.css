@@ -1,0 +1,17 @@
+/* handoff: the drawing is orchestration's (see page-orchestration.css); only the detail below is its own */
+#view-handoff .orch-status b { color: var(--green); font-size: var(--fs-lg); margin-right: var(--s-1); }
+.hf-detail { display: grid; gap: var(--s-3); align-content: start; position: static; }
+.hf-detail .sel { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-3); }
+.hf-detail .sel .dim { font-size: var(--fs-xs); }
+.hcard { padding: var(--s-3); }
+.hcard[open] { border-color: var(--ink); }
+.hcard > summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); }
+.hcard .arrow { color: var(--dim); }
+.hcard .nb { white-space: nowrap; font-size: var(--fs-xs); color: var(--green); font-weight: 700; margin-left: auto; }
+.hcard .peek { flex-basis: 100%; color: var(--dim); font-size: var(--fs-sm); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.hcard[open] .peek { display: none; }
+.hcard .asked { color: var(--dim); font-size: var(--fs-sm); margin: var(--s-3) 0; }
+.hcard ul { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-3); }
+.hcard li { border-left: 3px solid var(--green); padding-left: var(--s-3); overflow-wrap: anywhere; }
+.why-fold { margin: var(--s-1) 0 0; } .why-fold summary { font-size: var(--fs-xs); }
+.why { margin: var(--s-1) 0 0; color: var(--dim); font-size: var(--fs-sm); }

@@ -7,7 +7,7 @@
   var status = document.getElementById("status");
 
   function setView(name) {
-    current = name;
+    current = name; document.body.setAttribute("data-view", name);
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-current", String(b.getAttribute("data-view") === name)); });
     VIEWS.forEach(function (v) { document.getElementById("view-" + v).hidden = v !== name; });
     MC.views.graph.setVisible(name === "graph");
@@ -15,6 +15,12 @@
   }
 
   MC.setView = setView;
+  MC.view = function () { return current; };
+  // What the current page shows, in a sentence or two, for questions like "what is this?".
+  MC.pageContext = function () {
+    var view = MC.views[current], extra = view && view.context ? view.context() : "";
+    return "the " + current + " page of the handoff dashboard" + (extra ? ": " + extra : "");
+  };
 
   function apply(s) {
     MC.words(s.roles.map(function (r) { return r.role; }));
@@ -43,7 +49,7 @@
   document.getElementById("replay").addEventListener("click", function () {
     if (!state) return;
     setView("orchestration");
-    state.events.slice(-12).forEach(function (e, i) { setTimeout(function () { MC.views.orchestration.play(e); }, i * 700); });
+    state.events.slice(-12).forEach(function (e, i) { setTimeout(function () { MC.views.orchestration.play(e); MC.views.handoff.play(e); }, i * 700); });
   });
 
   document.addEventListener("keydown", function (ev) {

@@ -62,6 +62,13 @@
     return out;
   }
 
+  // A small pill naming a thing, with a dot in `colour` (a CSS colour); `solid` fills it.
+  function chip(label, colour, solid) {
+    var c = el("span", { "class": "chip" + (solid ? " solid" : "") }, label);
+    if (colour) c.style.setProperty("--c", colour);
+    return c;
+  }
+
   function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
   // Who an event is aimed at, read from the feed text: {from, to} or null for events about one role.
@@ -99,5 +106,5 @@
     return node;
   }
 
-  window.MC = { clamp: clamp, wrap: wrap, rich: rich, words: words, css: css, clock: clock, color: color, el: el, clear: clear, route: route, countTo: countTo, reduced: reduced, views: {} };
+  window.MC = { chip: chip, clamp: clamp, wrap: wrap, rich: rich, words: words, css: css, clock: clock, color: color, el: el, clear: clear, route: route, countTo: countTo, reduced: reduced, views: {} };
 })();

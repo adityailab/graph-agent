@@ -1,0 +1,72 @@
+/* page-only CSS for 04-graph (shared styles are in shared.css) */
+/* graph */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); margin-bottom: var(--s-3); font-size: var(--fs-sm); }
+.toolbar .grp { display: inline-flex; align-items: center; gap: var(--s-1); flex-wrap: wrap; }
+.toolbar .lbl { color: var(--dim); margin-right: var(--s-1); }
+.seg button { border-radius: 0; margin-left: -1px; font-size: var(--fs-sm); }
+.seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+.seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.toggle { font-size: var(--fs-sm); display: inline-flex; gap: var(--s-1); align-items: baseline; }
+.toggle i { font-style: normal; color: var(--dim); font-size: var(--fs-xs); }
+.toggle[aria-pressed="true"] i { color: inherit; opacity: .8; }
+.toggle[aria-pressed="false"] { color: var(--dim); border-style: dashed; }
+.toolbar .right { margin-left: auto; display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.toolbar button { font-size: var(--fs-sm); }
+
+.graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--s-5); align-items: start; }
+@media (max-width: 1000px) { .graph-layout { grid-template-columns: minmax(0, 1fr); } }
+.canvas-wrap { position: relative; height: clamp(460px, calc(100vh - 330px), 760px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); overflow: hidden; }
+#graph { display: block; width: 100%; height: 100%; }
+.canvas-foot { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); padding: var(--s-2) var(--s-3); border-top: 1px solid var(--line); font-size: var(--fs-xs); color: var(--dim); background: var(--soft); }
+.canvas-foot b { color: var(--ink); }
+.path-bar { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; margin-bottom: var(--s-2); font-size: var(--fs-sm); color: var(--dim); }
+
+/* side panel */
+.graph-side { position: sticky; top: var(--s-2); max-height: calc(100vh - 24px); overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--s-4); display: grid; gap: var(--s-4); align-content: start; }
+@media (max-width: 1000px) { .graph-side { position: static; max-height: none; border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: var(--s-4); } }
+.side-sec { display: grid; gap: var(--s-2); }
+.side-sec h3 { display: flex; gap: var(--s-1); align-items: baseline; }
+.side-sec h3 .n { margin-left: auto; color: var(--dim); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.sumline { font-size: var(--fs-lg); line-height: var(--lh-tight); }
+.sumline small { display: block; font-size: var(--fs-xs); color: var(--dim); margin-top: var(--s-1); }
+.pick { display: grid; gap: var(--s-1); width: 100%; text-align: left; padding: var(--s-2) var(--s-3); background: var(--soft); border: 1px solid var(--line); border-left: 3px solid var(--c, var(--line)); }
+.pick:hover { border-color: var(--ink); border-left-color: var(--c, var(--ink)); }
+.pick .t { overflow-wrap: anywhere; font-size: var(--fs-sm); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pick .m { font-size: var(--fs-xs); color: var(--dim); }
+.pick .m b { color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.chips button { border-radius: 10px; padding: 0 var(--s-2); font-size: var(--fs-xs); font-weight: 700; border-color: var(--c); color: var(--c); line-height: 1.7; }
+.chips button[aria-pressed="true"] { background: var(--c); color: var(--bg); }
+.rels { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-1) var(--s-4); margin: var(--s-2) 0 0; padding: 0; list-style: none; font-size: var(--fs-xs); }
+.rels li { display: flex; align-items: center; gap: var(--s-2); color: var(--dim); }
+.rels li i { width: 16px; height: 3px; background: var(--c); flex: none; }
+.rels li b { margin-left: auto; color: var(--ink); }
+.conn { display: grid; gap: var(--s-2); }
+.conn .rel { color: var(--amber); font-weight: 700; font-size: var(--fs-xs); }
+.conn .connect { margin-left: auto; font-size: var(--fs-xs); padding: 0 var(--s-2); border-color: var(--blue); color: var(--blue); }
+.node-card { border-left: 3px solid var(--c, var(--blue)); display: grid; gap: var(--s-2); }
+.node-card .readall { font-size: var(--fs-xs); color: var(--blue); border: 0; padding: 0; justify-self: start; }
+.learned { font-size: var(--fs-xs); color: var(--dim); display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-2); align-items: center; }
+.grp-h { font-size: var(--fs-xs); color: var(--dim); margin: var(--s-1) 0 0; }
+
+.tip { position: absolute; max-width: 320px; background: var(--bg); border: 1px solid var(--ink); border-radius: 8px; padding: 4px var(--s-2); font-size: var(--fs-sm); pointer-events: none; overflow-wrap: anywhere; z-index: 3; }
+.canvas-foot { border-radius: 0 0 var(--radius) var(--radius); }
+.graph-side .back { justify-self: start; font-size: var(--fs-xs); margin-bottom: var(--s-2); }
+.graph-side .detail { display: grid; gap: var(--s-4); }
+.graph-side .side-sec + .side-sec, .graph-side #side-overview { display: grid; gap: var(--s-4); }
+.graph-side #side-overview[hidden], .graph-side .detail[hidden], .graph-side .mem-list[hidden] { display: none; }
+.path-bar[hidden] { display: none; }
+.path-bar .chip { font-size: var(--fs-xs); }
+.mem-list { margin-top: var(--s-3); }
+
+/* kind toggles each in their own colour: filled when shown, dashed outline when hidden */
+.toggle { border-color: var(--c); }
+button.toggle[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: var(--bg); }
+button.toggle[aria-pressed="false"] { color: var(--c); border-style: dashed; background: transparent; }
+button.toggle[aria-pressed="false"] i { color: var(--c); opacity: .8; }
+/* fit, pin and unpin sit on the canvas itself, top right */
+.canvas-tools { position: absolute; top: var(--s-2); right: var(--s-2); z-index: 4; display: flex; gap: var(--s-1); }
+.canvas-tools[hidden] { display: none; }
+.canvas-tools button { background: var(--bg); font-size: var(--fs-xs); padding: 3px var(--s-2); box-shadow: var(--lift); }
+.canvas-tools button[aria-pressed="true"] { background: var(--ink); }

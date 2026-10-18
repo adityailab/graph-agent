@@ -5,8 +5,11 @@
 (function () {
   "use strict";
   var MC = window.MC;
+  var M = MC.graphModel;
   var holder = document.getElementById("graph"), tip = document.getElementById("tip");
-  var count = document.getElementById("graph-count"), legend = document.getElementById("legend");
+  var bar = document.getElementById("graph-bar"), overview = document.getElementById("side-overview"), detail = document.getElementById("detail"), pathBar = document.getElementById("path-bar");
+  // Choices made in the toolbar and panel: which kinds of node to draw, and an optional single session.
+  var opts = { kinds: { Decision: true, Need: true, Message: true, Request: true, File: true }, only: null, memoryKind: null, model: null, full: null };
   var SIZE = { Session: 6.5, Request: 3.6, Decision: 4, Need: 4, Edit: 2.6, File: 4, Message: 3, Convention: 4.5, Topic: 4 };
   var EDGE = ["#e11d48", "#0ea5e9", "#22c55e", "#a855f7", "#f59e0b", "#14b8a6", "#ec4899", "#84cc16", "#6366f1", "#f97316"], edgeSlots = {};
   var mode = "work", visible = false, last = { work: null, concepts: null, memory: null, sig: "" };
@@ -92,8 +95,9 @@
   function touchesLink(n) { return !!hoverLink && [hoverLink.source.id, hoverLink.target.id].indexOf(n.id) >= 0; }
   function neighbours(a, b) { return links.some(function (l) { var s = l.source.id || l.source, t = l.target.id || l.target; return (s === a.id && t === b.id) || (t === a.id && s === b.id); }); }
 
-  function sync(next) {
-    var fresh = {};
+  function sync(raw) {
+    opts.full = raw; opts.model = M.build(raw);
+    var next = narrowed(raw), fresh = {};
     next.nodes.forEach(function (n) {
       var old = nodes[n.id];
       fresh[n.id] = old ? Object.assign(old, { role: n.role, text: n.text, at: n.at }) : { id: n.id, kind: n.kind, text: n.text, role: n.role, at: n.at };
@@ -110,29 +114,54 @@
     fg.d3Force("link").distance(small() ? 130 : 40);
     fg.d3Force("charge").strength(small() ? -240 : -90);
     fg.graphData({ nodes: Object.keys(fresh).map(function (k) { return fresh[k]; }), links: links });
-    count.textContent = Object.keys(nodes).length + " nodes · " + plain.length + " relationships";
-    MC.graphDetail.refresh(nodes, plain); drawLegend();
+    panel();
   }
 
-  function drawLegend() {
-    MC.clear(legend); var seen = {};
-    var total = {};
-    Object.keys(nodes).forEach(function (k) { var n = nodes[k], key = n.role || n.kind; seen[key] = fill(n); total[key] = (total[key] || 0) + 1; });
-    Object.keys(seen).forEach(function (label) {
-      var s = MC.el("span", {}, (label === "shared" ? "shared by two roles" : label) + " · " + total[label] + (mode === "work" ? " nodes" : "")); s.style.setProperty("--c", seen[label]); legend.appendChild(s);
+  // The toolbar's choices applied to the data: which kinds of node, and one session if chosen.
+  function narrowed(raw) {
+    var keep = {};
+    raw.nodes.forEach(function (n) {
+      var t = n.kind === "Edit" ? "File" : n.kind, off = mode === "work" && t in opts.kinds && !opts.kinds[t];
+      var other = mode === "work" && opts.only && n.role !== opts.only && n.kind !== "Session";
+      if (!off && !other) keep[n.id] = true;
     });
-    var kinds = {}; plain.forEach(function (e) { kinds[e.kind] = (kinds[e.kind] || 0) + 1; });
-    Object.keys(kinds).forEach(function (k) { var t = MC.el("span", { "class": "line" }, k.toLowerCase().replace("_", " ") + " · " + kinds[k] + " links"); t.style.setProperty("--c", edgeColour(k)); legend.appendChild(t); });
-    if (mode === "work") legend.appendChild(MC.el("span", { "class": "plain" }, "◆ decision · ■ file or need (red outline = need) · ● session, request, message · arrows read source → target"));
+    return { nodes: raw.nodes.filter(function (n) { return keep[n.id]; }), edges: raw.edges.filter(function (e) { return keep[e.source] && keep[e.target]; }) };
   }
+
+  // Toolbar, side panel (overview or the selected node) and the focus bar, all from the same data.
+  function panel() {
+    var m = opts.model;
+    if (!m) return;
+    MC.graphBar.render(bar, { mode: mode, kinds: opts.kinds, pinning: pinning, memoryKind: opts.memoryKind }, M.counts(m, null, "session"), on);
+    var n = selected && m.nodes[selected.id];
+    detail.hidden = !n; overview.hidden = !!n; pathBar.hidden = !n; MC.clear(pathBar);
+    if (n) {
+      MC.graphDetail.show(detail, m, n, { select: select, back: clearFocus });
+      pathBar.appendChild(MC.el("span", {}, "focus:"));
+      MC.graphDetail.chain(m, n).forEach(function (c, i) { if (i) pathBar.appendChild(MC.el("span", {}, "→")); pathBar.appendChild(c); });
+      pathBar.appendChild(MC.el("span", {}, "· everything else faded"));
+    } else if (!Object.keys(m.nodes).length) {
+      MC.clear(overview); overview.appendChild(MC.el("p", { "class": "dim" }, mode === "concepts" ? "no concepts yet: run handoff knowledge" : "nothing in the graph yet"));
+    } else MC.graphSide.render(overview, m, { by: "session", only: opts.only }, { select: select, only: setOnly, edgeColour: edgeColour });
+  }
+
+  var pinning = false;
+  var on = {
+    mode: function (m) { mode = m; show(); setTimeout(function () { fit(400, 40); }, 900); },
+    toggle: function (k) { opts.kinds[k] = !opts.kinds[k]; sync(opts.full); },
+    fit: function () { fit(400, 40); },
+    pin: function () { pinning = !pinning; panel(); },
+    unpin: function () { Object.keys(nodes).forEach(function (k) { nodes[k].fx = nodes[k].fy = undefined; }); fg.d3ReheatSimulation(); }
+  };
+  function setOnly(g) { opts.only = opts.only === g ? null : g; sync(opts.full); setTimeout(function () { fit(400, 60); }, 700); }
 
   function resize() { var box = holder.parentNode.getBoundingClientRect(); fg.width(Math.max(300, box.width)).height(box.height); }
 
   function show() {
     document.getElementById("mem-list").hidden = mode !== "memory";
-    var v = last[mode]; nodes = {}; plain = []; links = []; selected = null; MC.graphDetail.clear();
+    var v = last[mode]; nodes = {}; plain = []; links = []; selected = null; opts.only = null;
     fg.graphData({ nodes: [], links: [] });
-    if (v && v.nodes.length) sync(v); else { count.textContent = mode === "concepts" ? "no concepts yet: run handoff knowledge" : ""; MC.clear(legend); }
+    if (v && v.nodes.length) sync(v); else { opts.model = M.build({ nodes: [], edges: [] }); panel(); }
   }
 
   fg.onLinkHover(function (l) { hoverLink = l || null; holder.style.cursor = l ? "pointer" : "default"; });
@@ -141,28 +170,16 @@
     if (n) tip.textContent = n.kind + (n.role ? " (" + n.role + ")" : "") + ": " + stamp(n) + name(n);
   });
   holder.addEventListener("mousemove", function (ev) { var b = holder.getBoundingClientRect(); tip.style.left = Math.min(ev.clientX - b.left + 14, b.width - 340) + "px"; tip.style.top = (ev.clientY - b.top + 14) + "px"; });
-  fg.onNodeClick(function (n) { selected = n; MC.graphDetail.show(n); });
+  fg.onNodeClick(function (n) { selected = n; panel(); });
   // Anything that is not a node puts the graph back to normal: no selection, nothing faded.
-  function clearFocus() { selected = null; hover = null; hoverLink = null; tip.hidden = true; MC.graphDetail.clear(); }
+  function clearFocus() { selected = null; hover = null; hoverLink = null; tip.hidden = true; panel(); }
   fg.onBackgroundClick(clearFocus).onLinkClick(clearFocus);
   holder.addEventListener("mouseleave", function () { hover = null; hoverLink = null; tip.hidden = true; });
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") clearFocus(); });
   // Nodes float free by default; "pin on drag" makes a dragged node stay where it is put.
-  var pinning = false;
   fg.onNodeDragEnd(function (n) { if (pinning) { n.fx = n.x; n.fy = n.y; } });
-  document.getElementById("graph-pin").addEventListener("click", function () {
-    pinning = !pinning; this.setAttribute("aria-pressed", String(pinning)); this.textContent = pinning ? "pin on drag: on" : "pin on drag: off";
-  });
-  document.getElementById("graph-fit").addEventListener("click", function () { fit(400, 40); });
-  document.getElementById("graph-unpin").addEventListener("click", function () { Object.keys(nodes).forEach(function (k) { nodes[k].fx = nodes[k].fy = undefined; }); fg.d3ReheatSimulation(); });
-  document.querySelectorAll("[data-mode]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      mode = b.getAttribute("data-mode");
-      document.querySelectorAll("[data-mode]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
-      show(); setTimeout(function () { fit(400, 40); }, 900);
-    });
-  });
   window.addEventListener("resize", resize);
+  window.addEventListener("handoff-layout", function () { if (visible) { resize(); setTimeout(function () { fit(300, 40); }, 200); } });
 
   function update(state) {
     var sig = JSON.stringify([state.work, state.concepts]);
@@ -175,10 +192,7 @@
 
   // Draw one kind of memory (from the memory page) as its own small graph, in its own mode.
   function showMemory(kind, view) {
-    var button = document.getElementById("graph-memory");
-    last.memory = view; mode = "memory";
-    button.hidden = false; button.textContent = "memory · " + kind;
-    document.querySelectorAll("[data-mode]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === button)); });
+    last.memory = view; mode = "memory"; opts.memoryKind = kind;
     show(); MC.memoryDetail.listKind(kind, document.getElementById("mem-list"));
     setTimeout(function () { fit(400, 40); }, 900);
   }
@@ -186,10 +200,10 @@
   // Jump to one node (from a connection card): select it, centre on it and zoom to read it.
   function select(id) {
     var n = nodes[id]; if (!n) return;
-    selected = n; MC.graphDetail.show(n);
+    selected = n; panel();
     fg.centerAt(n.x, n.y, 500); fg.zoom(Math.max(fg.zoom(), 2.4), 500);
   }
 
-  MC.views.graph = { update: update, select: select, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
+  MC.views.graph = { context: function () { return selected ? "the " + selected.kind + " \"" + selected.text.slice(0, 200) + "\" (" + selected.role + ") is selected in the " + mode + " graph" : "the " + mode + " graph, nothing selected"; }, update: update, select: select, showMemory: showMemory, setVisible: function (v) { visible = v; if (v) { resize(); setTimeout(function () { fit(400, 40); }, 900); } else fg.pauseAnimation(); if (v) fg.resumeAnimation(); } };
   resize();
 })();

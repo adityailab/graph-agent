@@ -10,15 +10,13 @@ from dataclasses import dataclass
 from typing import Any
 
 from handoff.config import Config
-from handoff.dashboard.quick import QuickAnswer, quick_answer
-from handoff.graph.connection import connect, graph_exists
-from handoff.ids import now_ms
 
 Asker = Callable[
     [str, Config, list[tuple[str, str]], Callable[[str, str], None] | None], tuple[str, list[str]]
 ]
 MAX_BODY = 32768
 MAX_QUESTION = 500
+MAX_CONTEXT = 600  # characters of "what the person is looking at"
 MAX_TURNS = 6  # earlier turns the model is shown
 MAX_ANSWER = 1500  # characters of each earlier answer
 _busy = threading.Lock()  # one question at a time: each one spends the person's Claude plan
@@ -43,6 +41,7 @@ class AskRequest:
     question: str
     history: list[tuple[str, str]]
     stream: bool  # send the steps as they happen instead of one answer at the end
+    context: str = ""  # what the person is looking at, so "this" can be answered
 
 
 def parse_ask(body: bytes, content_type: str) -> AskRequest | tuple[int, Any]:
@@ -54,27 +53,19 @@ def parse_ask(body: bytes, content_type: str) -> AskRequest | tuple[int, Any]:
         question = str(sent.get("question", "")).strip()
         history = _history(sent.get("history"))
         stream = sent.get("stream") is True
+        raw = sent.get("context", "")
     except (ValueError, AttributeError):
         return 400, {"error": "unreadable question"}
-    if history is None:
-        return 400, {"error": "unreadable history"}
+    if history is None or not isinstance(raw, str):
+        return 400, {"error": "unreadable history or context"}
     if not question or len(question) > MAX_QUESTION:
         return 400, {"error": f"ask in 1 to {MAX_QUESTION} characters"}
-    return AskRequest(question, history, stream)
+    return AskRequest(question, history, stream, " ".join(raw.split())[:MAX_CONTEXT])
 
 
 def is_busy() -> bool:
     """True while a question is being answered."""
     return _busy.locked()
-
-
-LIVE_MS = 24 * 60 * 60_000
-
-
-def _quick(request: AskRequest, config: Config) -> QuickAnswer | None:
-    if not graph_exists(config):
-        return None
-    return quick_answer(connect(config), request.question, since=now_ms() - LIVE_MS)
 
 
 def run_ask(
@@ -85,15 +76,13 @@ def run_ask(
 ) -> tuple[int, Any]:
     """Ask, calling `progress(kind, text)` on the way (kind is step, text or thought);
     (status, JSON) at the end."""
-    quick = _quick(request, config) if not request.history else None
-    if quick is not None:  # a common question: answered from the graph, no model, no waiting
-        if progress:
-            progress("step", "answering from the graph, without a model")
-        return 200, {"answer": quick.answer, "queries": [], "quick": quick.source}
     if not _busy.acquire(blocking=False):
         return 429, {"error": "still answering the last question"}
     try:
-        answer, queries = asker(request.question, config, request.history, progress)
+        asked = request.question
+        if request.context:  # the model is told where the person is looking, not asked to guess
+            asked += f"\n\n(The person is looking at: {request.context})"
+        answer, queries = asker(asked, config, request.history, progress)
     except FileNotFoundError:
         return 502, {"error": "Claude Code (claude) is not installed"}
     except subprocess.TimeoutExpired:

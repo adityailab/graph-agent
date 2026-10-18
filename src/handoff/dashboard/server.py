@@ -12,6 +12,8 @@ from typing import Any
 from handoff.cli.ask import ask_graph
 from handoff.config import Config
 from handoff.dashboard.chat import MAX_BODY, Asker, AskRequest, is_busy, parse_ask, run_ask
+from handoff.dashboard.command import MAX_BODY as MAX_COMMAND_BODY
+from handoff.dashboard.command import run_command
 from handoff.dashboard.memory_api import PREFIX, memory_response
 from handoff.dashboard.state import snapshot
 from handoff.ids import now_ms
@@ -25,6 +27,7 @@ _TYPES = {  # file suffix -> content type; only these files in static/ are serve
     ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".svg": "image/svg+xml",
+    ".woff2": "font/woff2",
 }
 # Everything is served from this origin; nothing else may load or be framed.
 _SECURITY = {
@@ -46,10 +49,12 @@ def make_server(
     port: int,
     clock: Callable[[], int] = now_ms,
     asker: Asker = ask_graph,
+    folder: Path | None = None,
 ) -> ThreadingHTTPServer:
     """A server on localhost only (port 0 picks a free one). Call serve_forever() to run it."""
 
     allowed_hosts: set[str] = set()  # filled in once the port is known
+    person_folder = folder or Path.cwd()  # whose "person" the command field speaks as
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, status: int, body: bytes, kind: str) -> None:
@@ -103,6 +108,16 @@ def make_server(
         def do_POST(self) -> None:
             if not self._host_ok():
                 self._send(403, b"forbidden", "text/plain")
+            elif self.path == "/api/command":
+                size = min(int(self.headers.get("Content-Length") or 0), MAX_COMMAND_BODY)
+                status, payload = run_command(
+                    self.rfile.read(size),
+                    self.headers.get("Content-Type", ""),
+                    config,
+                    person_folder,
+                    now=clock(),
+                )
+                self._send(status, json.dumps(payload).encode(), "application/json")
             elif self.path != "/api/ask":
                 self._send(404, b"not found", "text/plain")
             else:

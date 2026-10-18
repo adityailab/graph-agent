@@ -74,3 +74,15 @@ def test_nodes_carry_the_time_they_happened(two_sessions: Graph) -> None:
     view = work_graph(two_sessions, limit=100)
     decision = next(n for n in view.nodes if n.kind == "Decision")
     assert decision.at == 112
+
+
+def test_a_decision_node_names_its_topic(two_sessions: Graph) -> None:
+    view = work_graph(two_sessions, limit=200)
+    decision = next(n for n in view.nodes if n.kind == "Decision")
+    assert decision.topic == "profile"
+
+
+def test_a_need_node_says_who_it_asks_and_whether_it_is_open(two_sessions: Graph) -> None:
+    view = work_graph(two_sessions, limit=200)
+    need = next(n for n in view.nodes if n.kind == "Need")
+    assert (need.for_role, need.status) == ("backend", "open")

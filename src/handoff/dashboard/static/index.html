@@ -6,6 +6,13 @@
 <title>handoff mission control</title>
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/page-orchestration.css">
+<link rel="stylesheet" href="/page-graph.css">
+<link rel="stylesheet" href="/page-handoff.css">
+<link rel="stylesheet" href="/page-memory.css">
+<link rel="stylesheet" href="/page-log.css">
+<link rel="stylesheet" href="/page-ask.css">
+<link rel="stylesheet" href="/page-tracks.css">
 <script src="/theme.js"></script>
 </head>
 <body>
@@ -29,65 +36,71 @@
 <div class="layout">
   <main>
     <section id="view-orchestration" class="view">
-      <div class="svg-scroll"><svg id="orch" viewBox="0 0 800 350" role="img" aria-label="Sessions and the messages, needs and reads between them">
-        <defs>
-          <marker id="oa-flow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker>
-          <marker id="oa-message" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
-          <marker id="oa-read" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-read"/></marker>
-          <marker id="oa-need" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-need"/></marker>
-          <marker id="oa-question" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
-          <marker id="oa-standin_answer" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-message"/></marker>
-        </defs>
+      <div class="page-head"><h2>orchestration</h2><span class="dim">who hands what to whom · click a session to open it</span></div>
+      <div class="split">
+      <div class="split-left">
+      <div id="orch-status" class="orch-status"></div>
+      <div class="svg-scroll"><svg id="orch" viewBox="0 0 760 370" role="group" aria-label="Sessions and what moves between them">
+        <defs><marker id="oa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker></defs>
       </svg></div>
+      <div class="orch-key" aria-label="Line key">
+        <span class="k-message"><b>━━ message</b> sent to another session</span>
+        <span class="k-read"><b>╌╌ read</b> opened another session's work</span>
+        <span class="k-need"><b>··· need</b> asked of another session</span>
+        <span>line width = how many · moving dashes = live · a travelling square = just happened</span>
+      </div>
+      </div>
+      <div class="split-right">
       <div id="orch-detail" class="orch-detail"></div>
-      <details class="fold orch-lines"><summary>all lines between sessions</summary><div id="flows" class="flows"></div></details>
-      <p class="hint">Each box is a Claude Code session; its Mac's screen is lit while it is active. Lines carry what moves between them:
-        <span class="k-message">messages ──</span> <span class="k-read">reads of each other's work ── ──</span>
-        <span class="k-need">needs ·····</span> A square travelling along a line is an event happening now.</p>
+      <details class="fold orch-lines"><summary id="lines-summary">all lines between sessions</summary><div id="flows"></div></details>
+      </div>
+      </div>
     </section>
     <section id="view-handoff" class="view" hidden>
-      <div class="ask-bar">
-        <h2>hand-offs</h2>
-        <span class="dim">each arrow is one session reading another's work and learning its decisions · click an arrow or a session</span>
+      <div class="page-head"><h2>hand-offs</h2><span class="dim">who learned what from whose work · click an arrow or a session to open it</span></div>
+      <div class="split">
+      <div class="split-left">
+      <div id="hf-stats" class="orch-status"></div>
+      <div class="svg-scroll"><svg id="hf-graph" viewBox="0 0 760 370" role="group" aria-label="Which session learned decisions from which">
+        <defs><marker id="hfa" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ah-flow"/></marker></defs>
+      </svg></div>
+      <div class="orch-key" aria-label="Line key">
+        <span class="k-decided"><b>◆ decision</b> made by the session the arrow leaves</span>
+        <span class="k-read"><b>╌╌ read</b> by the session it points to</span>
+        <span>moving dashes = live · a travelling square = a read just happened</span>
       </div>
-      <div id="hf-stats" class="stats"></div>
-      <div class="flow-layout">
-        <div class="svg-scroll"><svg id="hf-graph" viewBox="0 0 760 400" role="img" aria-label="Who read whose work, as a workflow">
-          <defs><marker id="hf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
-        </svg></div>
-        <aside id="hf-detail" class="flow-detail"></aside>
+      </div>
+      <aside id="hf-detail" class="flow-detail hf-detail split-right" aria-label="Hand-off detail"></aside>
       </div>
     </section>
     <section id="view-memory" class="view" hidden>
       <div id="memory"></div>
     </section>
     <section id="view-graph" class="view" hidden>
+      <div class="page-head"><h2>graph</h2><span class="dim">the shared graph, live · click a node to read it and walk its connections</span></div>
+      <div id="graph-bar" class="toolbar"></div>
+      <div id="path-bar" class="path-bar" hidden></div>
       <div class="graph-layout">
-        <div class="graph-main">
-          <div class="graph-bar">
-            <button type="button" data-mode="work" aria-pressed="true">work graph</button>
-            <button type="button" data-mode="concepts" aria-pressed="false">concept graph</button>
-            <button type="button" data-mode="memory" id="graph-memory" aria-pressed="false" hidden>memory</button>
-            <button type="button" id="graph-fit">fit</button>
-            <button type="button" id="graph-pin" aria-pressed="false">pin on drag: off</button>
-            <button type="button" id="graph-unpin">unpin all</button>
-          </div>
+        <div>
           <div class="canvas-wrap">
-            <div id="graph" role="img" aria-label="The shared graph, drawn live"></div>
+            <div id="canvas-tools" class="canvas-tools" hidden></div>
+            <div id="graph" role="img" aria-label="The shared graph, drawn live: decisions as diamonds, files and needs as squares"></div>
             <div id="tip" class="tip" hidden></div>
           </div>
+          <div class="canvas-foot">
+            <span><b>◆</b> decision</span><span><b>■</b> file or need (red outline = need)</span><span><b>●</b> session, request, message</span>
+            <span><b>╌╌</b> read · <b>···</b> need · <b>━━</b> message</span>
+            
+          </div>
         </div>
-        <aside class="graph-side">
-          <h2>graph</h2>
-          <p id="graph-count" class="dim"></p>
-          <details class="fold" id="legend-fold" open><summary>legend and counts</summary><div id="legend" class="legend"></div></details>
+        <aside class="graph-side" aria-label="Graph panel">
+          <div id="side-overview"></div>
           <div id="detail" class="detail" hidden></div>
-          <p class="detail-hint dim">Click a node to read it here and see what it is connected to; each connection has a connect button that walks the graph.</p>
           <div id="mem-list" class="mem-list" hidden></div>
-          <details class="fold"><summary>how to use this graph</summary><p class="hint">Drag a node to place it, scroll to zoom, drag the background to pan, click a node to read
-            all of it and its relationships, click empty space or press Esc to clear. The same graph opens in the
-            <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a>
-            (graph <span id="graph-ref"></span>).</p></details>
+          <details class="fold"><summary>how to use this graph</summary>
+            <p class="dim">Click a node to focus it: everything not one hop away fades and its text opens here. Drag to move, scroll to zoom,
+              drag the background to pan, click empty space or press Esc to clear. "hidden: N · show" on a hull opens its other nodes. The same graph opens in the
+              <a href="http://localhost:3000" target="_blank" rel="noopener">FalkorDB Browser</a> (graph <span id="graph-ref"></span>).</p></details>
         </aside>
       </div>
     </section>
@@ -97,8 +110,9 @@
     <section id="view-log" class="view" hidden>
       <div class="ask-bar">
         <h2>activity</h2>
-        <span class="dim">one column per session, newest on top · each dot is something that landed in the graph · click one to read it</span>
+        <span class="dim">one column per session, newest on top · rows line up by time, so an empty cell means that session did nothing then</span>
       </div>
+      <div id="log-kinds" class="log-kinds"></div>
       <div class="flow-layout">
         <div class="flow-scroll"><div id="flow" class="flow"></div></div>
         <aside id="flow-detail" class="flow-detail"></aside>
@@ -117,27 +131,48 @@
           shows what it is doing, and keeps the Cypher so you can check the answer.</p>
         <div id="ask-chips" class="ask-chips"></div>
       </div>
-      <form id="ask-form" class="ask-form">
-        <input id="ask-input" type="text" maxlength="500" autocomplete="off" placeholder="ask a question, or a follow-up…" aria-label="Question">
-        <button id="ask-send" type="submit">ask</button>
-      </form>
     </section>
   </main>
 </div>
+<aside id="dock-chat" class="chat-panel" aria-label="Answers about this page" hidden>
+  <div id="chat-grip" class="chat-grip" role="separator" aria-orientation="vertical" aria-label="Drag to resize the answer panel" tabindex="0"></div>
+  <div class="chat-head"><span>asking about this page</span><button type="button" id="dock-chat-close" aria-label="Close the answer panel">×</button></div>
+  <p id="chat-empty" class="chat-empty">Ask anything about this page or the project, in your own words. The answer and the Cypher behind it show here, and the whole conversation is kept on the Ask page.</p>
+  <div id="dock-chat-log" class="ask-log" aria-live="polite"></div>
+</aside>
+<button type="button" id="bot-button" class="bot-fab" aria-label="Ask about this page" title="Ask about this page (press /)"><svg id="bot-icon" viewBox="0 0 44 36" width="40" height="34" aria-hidden="true"></svg></button>
+<form id="dock" class="dock" role="search" aria-label="Command line">
+  <p id="dock-reply" class="dock-reply" role="status" hidden></p>
+  <label class="dock-row"><span class="ps1" aria-hidden="true">$</span>
+    <input id="dock-input" type="text" name="cmd" autocomplete="off" spellcheck="false" maxlength="2000" aria-label="Command"
+      placeholder="Ask anything about this project…"></label>
+  <p class="dock-hint">Shortcuts: <code>msg backend …</code> message a session · <code>need deploy …</code> ask one for something · <code>go graph</code> change page · <code>/</code> jumps here</p>
+</form>
 <script src="/common.js"></script>
 <script src="/critter.js"></script>
+<script src="/orchmap.js"></script>
+<script src="/orchcards.js"></script>
+<script src="/orchdetail.js"></script>
 <script src="/orchestration.js"></script>
 <script src="/handoffcards.js"></script>
 <script src="/handoff.js"></script>
 <script src="/memorydetail.js"></script>
+<script src="/memkinds.js"></script>
 <script src="/memory.js"></script>
 <script src="/force-graph.min.js"></script>
+<script src="/graphmodel.js"></script>
+<script src="/graphbar.js"></script>
+<script src="/graphside.js"></script>
 <script src="/graphdetail.js"></script>
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>
 <script src="/askmarkdown.js"></script>
+<script src="/logrows.js"></script>
 <script src="/logflow.js"></script>
 <script src="/ask.js"></script>
+<script src="/commands.js"></script>
+<script src="/chatpanel.js"></script>
+<script src="/dock.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
