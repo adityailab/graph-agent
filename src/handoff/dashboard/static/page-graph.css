@@ -23,7 +23,7 @@ button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-c
 .path-bar { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; margin-bottom: var(--s-2); font-size: var(--fs-sm); color: var(--dim); }
 
 /* side panel */
-.graph-side { position: sticky; top: var(--s-2); max-height: calc(100vh - 24px); overflow: auto; border-left: 1px solid var(--line); padding-left: var(--s-4); display: grid; gap: var(--s-4); align-content: start; }
+.graph-side { position: sticky; top: var(--s-2); max-height: calc(100vh - 24px); overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--s-4); display: grid; gap: var(--s-4); align-content: start; }
 @media (max-width: 1000px) { .graph-side { position: static; max-height: none; border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: var(--s-4); } }
 .side-sec { display: grid; gap: var(--s-2); }
 .side-sec h3 { display: flex; gap: var(--s-1); align-items: baseline; }

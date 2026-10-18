@@ -94,9 +94,9 @@
 .orch-edge:focus-visible { outline: none; }
 
 /* orchestration and handoff: the drawing stays in view on the left while the detail scrolls on the right */
-.split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--s-5); align-items: stretch; container-type: inline-size; height: max(420px, calc(100vh - 250px)); }
+.split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--s-5); align-items: stretch; height: max(420px, calc(100vh - 250px)); }
 .split-left { min-width: 0; min-height: 0; overflow-y: auto; }
-.split-right { min-width: 0; min-height: 0; overflow-y: auto; padding-right: var(--s-2); }
+.split-right { min-width: 0; min-height: 0; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--s-4); }
 .split .svg-scroll, .split .orch-status, .split .orch-key { max-width: none; margin-left: 0; margin-right: 0; }
 .split .orch-detail, .split .orch-lines { max-width: none; }
 .split .feed { grid-template-columns: minmax(0, 1fr); }
@@ -105,3 +105,4 @@
   .split { grid-template-columns: minmax(0, 1fr); height: auto; }
   .split-left, .split-right { overflow: visible; }
 }
+#view-orchestration, #view-handoff { container-type: inline-size; }

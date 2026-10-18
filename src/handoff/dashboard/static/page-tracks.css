@@ -1,0 +1,17 @@
+/* tracks: two module cards (shared tokens in style.css) */
+#tracks { display: grid; gap: var(--s-5); max-width: 860px; margin: 0 auto; }
+.mod { --c: var(--ink); padding: var(--s-6); display: grid; gap: var(--s-5); }
+.mod-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); }
+.mod-tag { font-size: var(--fs-xs); font-weight: 600; color: var(--dim); background: var(--soft); padding: 2px var(--s-3); border-radius: 999px; }
+.mod-head h3 { margin: 0; font-size: var(--fs-xl); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); flex: 1 1 260px; }
+.macs { display: flex; gap: var(--s-1); align-items: center; }
+.mod .ask { margin: 0; font-size: var(--fs-lg); color: var(--dim); max-width: 64ch; }
+.chain { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+.chain li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--s-3); align-items: baseline; overflow-wrap: anywhere; font-size: var(--fs-md); }
+.chain .nd { width: 24px; height: 24px; border-radius: 50%; background: var(--soft); color: var(--dim); display: grid; place-items: center; font-size: var(--fs-xs); font-weight: 600; }
+.ev { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: var(--s-3); padding-top: var(--s-4); border-top: 1px solid var(--line); }
+.ev > div { display: grid; gap: var(--s-1); padding: var(--s-2) 0; }
+.ev b { font-size: var(--fs-2xl); line-height: 1; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ink); }
+.ev span { font-size: var(--fs-sm); color: var(--dim); }
+.ev .warn b { color: var(--red); }
+@media (max-width: 600px) { .mod { padding: var(--s-4); } }

@@ -31,7 +31,7 @@
     Object.keys(m.nodes).forEach(function (id) { var g = MC.graphModel.group(m, m.nodes[id], s.by); if (m.nodes[id].kind !== "Session") totals[g] = (totals[g] || 0) + 1; });
     Object.keys(totals).sort().forEach(function (g) {
       var b = el("button", { type: "button", "aria-pressed": String(s.only === g) }, g + " " + totals[g]);
-      b.style.setProperty("--c", s.by === "session" ? MC.color(g) : MC.css("--dim")); b.addEventListener("click", function () { on.only(g); }); box.appendChild(b);
+      b.style.setProperty("--c", s.by === "session" && g !== "shared" ? MC.color(g) : MC.css("--dim")); b.addEventListener("click", function () { on.only(g); }); box.appendChild(b);
     });
     return box;
   }

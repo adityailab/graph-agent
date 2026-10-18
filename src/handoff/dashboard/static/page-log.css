@@ -32,3 +32,5 @@
 .flow-steps button { font-size: var(--fs-xs); border-color: var(--blue); color: var(--blue); }
 .flow-steps button:disabled { opacity: .45; cursor: default; }
 @media (prefers-reduced-motion: reduce) { .flow-node.fresh { animation: none; } }
+.flow-scroll, .flow-detail { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--s-4); }
+.flow-detail { max-height: calc(100vh - 260px); overflow-y: auto; align-content: start; }
