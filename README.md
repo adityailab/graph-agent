@@ -206,17 +206,6 @@ is cheapest). Alternatives for the stand-in and knowledge jobs:
 - Cypher written by a model only runs through FalkorDB's server in strict read-only mode.
 - `handoff demo --workspace` only resets a folder the demo made.
 
-## Limits
-
-- Roles are names you choose per terminal; two terminals with one role in one folder share
-  an identity unless Claude Code's process id tells them apart.
-- Stand-in answers, the knowledge graph and growing entity types spend model calls on your
-  plan; the coordinator, insights and `watch` call no model.
-- FalkorDB 4.22's `betweenness` is a sampled estimate; handoff uses an exact pattern for
-  bridges. The guide teaches sessions this and other 4.22 quirks.
-- The live demo reads Claude Code's screen to know when a turn ended, which may change
-  between versions; the headless demo is the dependable proof.
-
 ## Development
 
 ```bash
