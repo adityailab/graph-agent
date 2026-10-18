@@ -94,14 +94,14 @@
 .orch-edge:focus-visible { outline: none; }
 
 /* orchestration and handoff: the drawing stays in view on the left while the detail scrolls on the right */
-.split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; container-type: inline-size; }
-.split-left { position: sticky; top: var(--s-4); min-width: 0; max-height: calc(100vh - 2 * var(--s-4)); overflow-y: auto; }
-.split-right { min-width: 0; }
+.split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--s-5); align-items: stretch; container-type: inline-size; height: max(420px, calc(100vh - 250px)); }
+.split-left { min-width: 0; min-height: 0; overflow-y: auto; }
+.split-right { min-width: 0; min-height: 0; overflow-y: auto; padding-right: var(--s-2); }
 .split .svg-scroll, .split .orch-status, .split .orch-key { max-width: none; margin-left: 0; margin-right: 0; }
 .split .orch-detail, .split .orch-lines { max-width: none; }
 .split .feed { grid-template-columns: minmax(0, 1fr); }
 .split .sess-head .nav { margin-left: 0; }
 @container (max-width: 900px) {
-  .split { grid-template-columns: minmax(0, 1fr); }
-  .split-left { position: static; max-height: none; overflow: visible; }
+  .split { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .split-left, .split-right { overflow: visible; }
 }

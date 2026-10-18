@@ -49,8 +49,8 @@ kbd { font: inherit; color: var(--dim); margin-right: var(--s-1); }
 .logo .d0 { color: var(--blue); } .logo .d1 { color: var(--purple); } .logo .d2 { color: var(--amber); }
 .logo .hand { stroke: var(--dim); } .logo .screen { fill: #f6f1e4; } .logo .led { fill: #3ddc84; }
 .top .dim { font-size: var(--fs-sm); }
-.top button { margin-left: var(--s-2); font-size: var(--fs-sm); border-color: transparent; color: var(--dim); }
-.top button:hover { background: var(--soft); color: var(--ink); }
+.top button { margin-left: var(--s-2); font-size: var(--fs-sm); background: var(--soft); border: 1px solid var(--line); border-radius: 10px; color: var(--dim); }
+.top button:hover { background: var(--bg); color: var(--ink); }
 .top #theme { margin-left: auto; }
 .status { font-size: var(--fs-sm); }
 .status::before { content: "● "; }

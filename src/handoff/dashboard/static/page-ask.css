@@ -1,0 +1,19 @@
+/* the Ask page and the answer panel: a 760px column, dark question bubble, answer card (shared tokens in style.css) */
+#view-ask { max-width: 760px; margin: 0 auto; }
+#view-ask .ask-log { max-height: none; overflow: visible; padding: 0 0 120px; gap: var(--s-4); }
+.ask-empty { justify-items: start; text-align: left; padding: var(--s-5) 0 var(--s-2); gap: var(--s-3); color: var(--ink); }
+.ask-empty p { font-size: var(--fs-md); }
+.ask-empty .ask-bot { width: 120px; height: 88px; }
+.ask-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--s-2); width: 100%; margin: 0; }
+.ask-chips button { text-align: left; background: var(--soft); padding: var(--s-2) var(--s-3); font-size: var(--fs-sm); display: flex; gap: var(--s-2); border-radius: var(--radius); }
+.ask-chips button::before { content: "?"; color: var(--blue); font-weight: 700; }
+.ask-row.me { justify-content: flex-end; }
+.ask-me { max-width: 80%; background: var(--ink); color: var(--bg); border: 0; border-radius: var(--radius); padding: var(--s-2) var(--s-3); font-size: var(--fs-md); }
+.ask-me::before { content: none; }
+.ask-row:not(.me) { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: var(--s-3); }
+.ask-body { border: 1px solid var(--line); border-left: 1px solid var(--line); background: var(--soft); border-radius: var(--radius); padding: var(--s-3); box-shadow: var(--lift); }
+.ask-cypher pre { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); font-size: var(--fs-xs); }
+.ask-copy { border-color: var(--blue); color: var(--blue); border-radius: var(--radius); padding: 0 var(--s-3); }
+.chat-panel .ask-row:not(.me) { grid-template-columns: 1fr; }
+.chat-panel .ask-bot { display: none; }
+#view-ask .ask-log:empty { padding: 0; }
