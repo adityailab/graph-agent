@@ -73,7 +73,7 @@ the terminals. It reads the same graph the sessions write, every 1.5 seconds, an
 | **Graph**: the shared graph drawn with force-graph (drag, zoom, pan), links coloured and named by relationship, with cards for the selected node and its connections (a connect button walks the graph), and the concept graph and each kind of memory | ![context graph](docs/images/mission-graph.png) |
 | **Tracks**: how handoff answers each competition track, with live numbers | ![tracks](docs/images/mission-tracks.png) |
 
-The **Log** is a swimlane, one column per session; click an event for its full text. **Ask** is a chat with the graphs (common questions answered instantly, the rest by Claude Code); **Tracks** comes last. Nothing leaves your machine: the page is served from `127.0.0.1` only.
+The **Log** is a swimlane on a shared time axis: events that happened together share a row, an empty cell means that session did nothing then, and quiet stretches are marked. Click an event for its full text. **Ask** is a chat with the graphs: every question goes to Claude Code, which writes read-only Cypher. The bot button (or `/`) opens the same chat in a right-hand panel on any page, using that page as context, and the conversation is kept on the Ask page. The `$` field at the bottom of every page also takes `msg <session> …`, `need <session> …` and `go <page>`. The type is Saira throughout, served from your machine. Nothing leaves your machine: the page is served from `127.0.0.1` only.
 
 ## The commands
 

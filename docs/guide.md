@@ -138,7 +138,7 @@ a workflow graph with an arrow from the author to the reader of each read; click
 (the shared graph drawn live: drag nodes, scroll to zoom, links coloured and named by
 relationship; click a node for all of it in the side panel; a toggle shows the concept graph),
 **Memory** (the six kinds of memory with counts, and what each session holds right now and learned from others), **Tracks** (how handoff answers each competition track, with live numbers) and **Log**
-(everything that lands in the graph, in full). **replay** replays the newest events as
+(everything that lands in the graph, on a shared time axis). The `$` field fixed to the bottom of every page takes `ask …`, `msg <session> …`, `need <session> …` and `go <page>`; the bot button opens answers in a right-hand panel. **replay** replays the newest events as
 animation, which is handy when recording.
 The server listens on `127.0.0.1` only and shows the graph of the folder you run it in.
 `handoff demo` starts it for you.
