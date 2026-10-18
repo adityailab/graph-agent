@@ -146,8 +146,13 @@
   }
 
   var pinning = false;
+  // Every graph opens unpinned and fitted: drop pins and pin-on-drag, then fit once it has settled.
+  function fresh() {
+    pinning = false;
+    Object.keys(nodes).forEach(function (k) { nodes[k].fx = nodes[k].fy = undefined; });
+  }
   var on = {
-    mode: function (m) { mode = m; show(); setTimeout(function () { fit(400, 40); }, 900); },
+    mode: function (m) { mode = m; fresh(); show(); setTimeout(function () { fit(400, 40); }, 900); },
     toggle: function (k) { opts.kinds[k] = !opts.kinds[k]; sync(opts.full); },
     fit: function () { fit(400, 40); },
     pin: function () { pinning = !pinning; panel(); },
@@ -193,7 +198,7 @@
   // Draw one kind of memory (from the memory page) as its own small graph, in its own mode.
   function showMemory(kind, view) {
     last.memory = view; mode = "memory"; opts.memoryKind = kind;
-    show(); MC.memoryDetail.listKind(kind, document.getElementById("mem-list"));
+    fresh(); show(); MC.memoryDetail.listKind(kind, document.getElementById("mem-list"));
     setTimeout(function () { fit(400, 40); }, 900);
   }
 
