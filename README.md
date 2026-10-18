@@ -127,6 +127,50 @@ API, DataField, Service, Library, Setting, Concept). The types grow from the dat
 ingested items GraphRAG-SDK proposes kinds the text mentions that we lack (e.g. Pipeline, Job,
 DatabaseTable); sound ones are added for future extraction, up to 20, and saved per graph.
 
+### The graph, mapped
+
+```mermaid
+graph LR
+  Session -->|RECEIVED| Request
+  Request -->|LED_TO| Decision
+  Decision -->|ABOUT| Topic
+  Decision -->|SUPERSEDES| Decision
+  Decision -->|AGREES_WITH| Decision
+  Request -->|CAUSED| Edit
+  Edit -->|TOUCHED| File
+  Request -->|RAISED| Need
+  Need -->|RESOLVED_BY| Request
+  Request -->|CONSULTED| Request
+  Session -->|SENT| Message
+  Message -->|DELIVERED_TO| Session
+  Message -->|REPLY_TO| Message
+  Insight -->|CONCERNS| Related["a Request or File"]
+  Convention
+```
+
+Nodes: `Session` (one per terminal), `Request` (a prompt), `Decision` (with its reason), `Need`,
+`Edit`, `File`, `Message`, `Topic`, `Convention` (a standing rule) and `Insight` (a finding).
+Every id is Claude Code's own (`session_id`, `prompt_id`, `tool_use_id`), so replayed events
+never duplicate.
+
+### Where the agent's decisions come from the graph
+
+| The agent does | It asks the graph |
+|---|---|
+| Gets context on each prompt | Messages waiting for this role, open needs addressed to it, and who recently changed the file it is about to edit (`Message-[:DELIVERED_TO]->Session`, `Need {status:'open'}`, `Edit-[:TOUCHED]->File`) |
+| Explains a file (`why`) | `File<-[:TOUCHED]-Edit<-[:CAUSED]-Request-[:LED_TO]->Decision`: the intent behind each edit |
+| Answers for an absent session | The role's own `Request` and `Decision` history, with the sources it cites |
+| Finds what matters now (`insights`) | `algo.WCC` (collisions), `algo.pageRank` (load-bearing work), `algo.labelPropagation` (themes), and a bridge pattern over `CONSULTED` |
+| Answers a question (`ask`, dashboard chat) | Claude writes read-only Cypher after `graph_guide`; for example, who owes an open need: |
+
+```cypher
+MATCH (s:Session)-[:RECEIVED]->(r:Request)-[:RAISED]->(n:Need {status: 'open'})
+RETURN s.role AS asked_by, n.for_role AS asked_of, n.text AS need
+```
+
+Take the database away and the sessions are blind to each other again: nothing is kept
+anywhere else. The mission control pages are drawn from these same queries, every 1.5 seconds.
+
 ### FalkorDB features in use
 
 | Feature | Used for |
