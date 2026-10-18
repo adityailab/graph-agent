@@ -46,15 +46,15 @@
     body.appendChild(copy);
   }
 
-  // Every question asked from another page is also written into the Ask page, so the whole
-  // conversation can be read in one place.
-  function mirror(question, answer, queries, page) {
-    empty.hidden = true;
+  // One conversation, two places: a question asked in the panel is also written into the Ask page,
+  // and one asked on the Ask page is also written into the panel, so each shows the whole thread.
+  function mirror(question, answer, queries, page, into) {
     var me = el("div", { "class": "ask-row me" }), bubble = el("div", { "class": "ask-me" }, question);
-    if (page && page !== "ask") bubble.appendChild(el("span", { "class": "from-page" }, "asked on the " + page + " page"));
-    me.appendChild(bubble); askLog.appendChild(me);
+    bubble.appendChild(el("span", { "class": "from-page" }, "asked on the " + page + " page"));
+    me.appendChild(bubble); into.appendChild(me);
     var row = el("div", { "class": "ask-row bot" }), body = el("div", { "class": "ask-body" });
-    row.appendChild(avatar(false)); row.appendChild(body); finish(body, answer, queries); askLog.appendChild(row);
+    row.appendChild(avatar(false)); row.appendChild(body); finish(body, answer, queries); into.appendChild(row);
+    into.scrollTop = into.scrollHeight;
   }
 
   // One assistant turn: avatar, live steps, a notes line for the words as they arrive, the answer.
@@ -135,7 +135,7 @@
           else if (line.text) turn.text(line.text);
           else if (line.thought) turn.thought(line.thought);
           else if (line.error) end(function () { turn.fail(line.error); });
-          else if (line.answer) end(function () { turn.done(line.answer, line.queries || []); history.push({ q: question, a: line.answer }); if (target) mirror(question, line.answer, line.queries || [], page); });
+          else if (line.answer) end(function () { turn.done(line.answer, line.queries || []); history.push({ q: question, a: line.answer }); var other = target ? askLog : document.getElementById("dock-chat-log"); if (target) empty.hidden = true; mirror(question, line.answer, line.queries || [], page, other); });
         });
       })
       .catch(function (e) { end(function () { turn.fail("could not ask: " + e.message); }); })
