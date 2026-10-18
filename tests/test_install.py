@@ -148,3 +148,9 @@ def test_settings_that_already_choose_a_graph_beat_the_exported_one(
     )
     install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config, default_graph="team")
     assert _read(tmp_path / ".claude" / "settings.local.json")["env"]["HANDOFF_GRAPH"] == "shop"
+
+
+def test_the_setup_message_says_how_to_open_mission_control(tmp_path: Path, config: Config) -> None:
+    text = install(tmp_path, bin_dir=Path("/opt/h/bin"), config=config)
+    assert "handoff dashboard" in text
+    assert "http://127.0.0.1:8765/" in text
