@@ -18,3 +18,4 @@
 .chat-panel .ask-bot { display: none; }
 #view-ask .ask-log:empty { padding: 0; }
 code, pre, kbd { font-family: var(--mono); }
+.ask-me .from-page { color: inherit; opacity: .8; }
