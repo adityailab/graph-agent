@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/page-graph.css">
 <link rel="stylesheet" href="/page-handoff.css">
 <link rel="stylesheet" href="/page-memory.css">
+<link rel="stylesheet" href="/page-log.css">
 <script src="/theme.js"></script>
 </head>
 <body>
@@ -107,8 +108,9 @@
     <section id="view-log" class="view" hidden>
       <div class="ask-bar">
         <h2>activity</h2>
-        <span class="dim">one column per session, newest on top · each dot is something that landed in the graph · click one to read it</span>
+        <span class="dim">one column per session, newest on top · rows line up by time, so an empty cell means that session did nothing then</span>
       </div>
+      <div id="log-kinds" class="log-kinds"></div>
       <div class="flow-layout">
         <div class="flow-scroll"><div id="flow" class="flow"></div></div>
         <aside id="flow-detail" class="flow-detail"></aside>
@@ -163,6 +165,7 @@
 <script src="/graphview.js"></script>
 <script src="/tracks.js"></script>
 <script src="/askmarkdown.js"></script>
+<script src="/logrows.js"></script>
 <script src="/logflow.js"></script>
 <script src="/ask.js"></script>
 <script src="/commands.js"></script>
