@@ -57,10 +57,34 @@ the others had changed and why without being shown a single diff. The coordinato
 need that had sat open for 95 minutes and reminded the backend, which then offered to
 write the missing tests.
 
+Three real Claude Code sessions in a tmux grid, with the live feed in the corner:
+
+![Three Claude Code sessions and the live feed in tmux](https://raw.githubusercontent.com/adityailab/graph-agent/main/docs/images/blog-terminal.png)
+
 Mission control (`handoff dashboard`) shows the same graph live in a browser: sessions drawn
 as small Macintosh agents with the messages, reads and needs between them, who learned from
 whom, the six kinds of memory, a time-aligned log, and the graph itself. A `$` field at the
 bottom of every page lets you message a session or ask the graph in plain words.
+
+The orchestration page: a workflow of sessions, with a line for each message, read and need.
+
+![Orchestration: three sessions and what moves between them](https://raw.githubusercontent.com/adityailab/graph-agent/main/docs/images/blog-orchestration.png)
+
+Who learned what from whose work, with the decision and the reason behind it.
+
+![Handoff: deploy read backend's work and learned two decisions](https://raw.githubusercontent.com/adityailab/graph-agent/main/docs/images/blog-handoff.png)
+
+The shared graph itself, drawn live from FalkorDB.
+
+![The work graph, coloured by session](https://raw.githubusercontent.com/adityailab/graph-agent/main/docs/images/blog-graph.png)
+
+The log lines events up by time across sessions, so an empty cell means that session did nothing then.
+
+![Log: one column per session on a shared time axis](https://raw.githubusercontent.com/adityailab/graph-agent/main/docs/images/blog-log.png)
+
+And the chat: plain-language questions, with the Cypher Claude wrote kept so you can check the answer.
+
+![Ask: a question and its answer, with the Cypher folded underneath](https://raw.githubusercontent.com/adityailab/graph-agent/main/docs/images/blog-ask.png)
 
 ## What I learned the hard way
 
