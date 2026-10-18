@@ -13,6 +13,11 @@
     "Who has read whose work?"
   ];
   var history = [];  // earlier {q, a} turns
+  var KEEP = "handoff.chat", MAX_TURNS = 40, saved = [];  // saved: {q, a, queries, page}; survives reloads
+
+  // Browser storage can be missing or refuse writes (private windows): the chat then just lasts the visit.
+  function load() { try { var v = JSON.parse(localStorage.getItem(KEEP) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function store() { try { localStorage.setItem(KEEP, JSON.stringify(saved.slice(-MAX_TURNS))); } catch (e) { /* not kept */ } }
 
   function toBottom() { log.scrollTop = log.scrollHeight; }
 
@@ -50,7 +55,7 @@
   // and one asked on the Ask page is also written into the panel, so each shows the whole thread.
   function mirror(question, answer, queries, page, into) {
     var me = el("div", { "class": "ask-row me" }), bubble = el("div", { "class": "ask-me" }, question);
-    bubble.appendChild(el("span", { "class": "from-page" }, "asked on the " + page + " page"));
+    if ((into === askLog) !== (page === "ask")) bubble.appendChild(el("span", { "class": "from-page" }, "asked on the " + page + " page"));
     me.appendChild(bubble); into.appendChild(me);
     var row = el("div", { "class": "ask-row bot" }), body = el("div", { "class": "ask-body" });
     row.appendChild(avatar(false)); row.appendChild(body); finish(body, answer, queries); into.appendChild(row);
@@ -135,7 +140,7 @@
           else if (line.text) turn.text(line.text);
           else if (line.thought) turn.thought(line.thought);
           else if (line.error) end(function () { turn.fail(line.error); });
-          else if (line.answer) end(function () { turn.done(line.answer, line.queries || []); history.push({ q: question, a: line.answer }); var other = target ? askLog : document.getElementById("dock-chat-log"); if (target) empty.hidden = true; mirror(question, line.answer, line.queries || [], page, other); });
+          else if (line.answer) end(function () { turn.done(line.answer, line.queries || []); history.push({ q: question, a: line.answer }); saved.push({ q: question, a: line.answer, queries: line.queries || [], page: page }); store(); var other = target ? askLog : document.getElementById("dock-chat-log"); if (target) empty.hidden = true; mirror(question, line.answer, line.queries || [], page, other); });
         });
       })
       .catch(function (e) { end(function () { turn.fail("could not ask: " + e.message); }); })
@@ -144,7 +149,7 @@
 
   document.getElementById("ask-new").addEventListener("click", function () {
     if (working) return;
-    history = []; MC.clear(askLog); MC.clear(document.getElementById("dock-chat-log")); empty.hidden = false;
+    history = []; saved = []; store(); MC.clear(askLog); MC.clear(document.getElementById("dock-chat-log")); empty.hidden = false;
   });
   STARTERS.forEach(function (s) {
     var b = el("button", { type: "button" }, s);
@@ -153,6 +158,14 @@
   });
   var botHolder = document.getElementById("ask-empty-bot");
   if (botHolder) botHolder.appendChild(avatar(true));  // waiting for a question: alive, not asleep
+
+  // Bring back the conversation from the last visit, into the Ask page and the panel alike.
+  saved = load().filter(function (t) { return t && typeof t.q === "string" && typeof t.a === "string"; });
+  saved.forEach(function (t) {
+    var queries = Array.isArray(t.queries) ? t.queries.filter(function (q) { return typeof q === "string"; }) : [], page = typeof t.page === "string" ? t.page : "ask";
+    history.push({ q: t.q, a: t.a }); empty.hidden = true;
+    mirror(t.q, t.a, queries, page, askLog); mirror(t.q, t.a, queries, page, document.getElementById("dock-chat-log"));
+  });
 
   // The command field (dock.js) asks through here: false when the last question is still being answered.
   MC.ask = { start: function (q, target, context) { if (working) return false; ask(q, target, context); return true; } };
