@@ -85,5 +85,5 @@ handoff demo
 ```
 
 Needs Docker, Claude Code and uv. FalkorDB runs in a container bound to localhost, and
-prompts pass through a redactor before they are stored. There are 646 tests, and the whole
+prompts pass through a redactor before they are stored. There are 655 tests, and the whole
 design, plan and decision log are in the repo.
