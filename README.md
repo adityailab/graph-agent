@@ -17,7 +17,7 @@ that every session reads and writes through hooks and MCP tools.
 - **FalkorDB's algorithms find what matters:** collisions, load-bearing work, bridges and
   themes.
 
-**Demo video:** https://youtu.be/16bKhR6Q08c
+**Demo video:** https://youtu.be/16bKhR6Q08c · **Blog post:** https://dev.to/aditya_patane_bac4d08a75d/handoff-letting-parallel-claude-code-sessions-know-why-each-other-changed-things-29hg
 
 Built for [Graph Hacks](https://www.wemakedevs.org/hackathons/falkordb) (WeMakeDevs ×
 FalkorDB). Python 3.12+, MIT licence.
