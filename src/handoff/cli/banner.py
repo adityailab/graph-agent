@@ -15,7 +15,6 @@ from typing import TextIO
 
 from handoff.cli.style import Palette, colour_enabled
 
-_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 _TAGLINE = "sessions that know what each other are doing, and why"
 
 
@@ -65,24 +64,23 @@ class Step:
 def step(
     label: str, stream: TextIO, *, enabled: bool, interval: float = 0.08, hold: float = 0.3
 ) -> Iterator[Step]:
-    """Show `label` with a spinner while the block runs, then a tick (or a cross). A raised error
+    """Show `label` with growing dots while the block runs, then a tick (or a cross). A raised error
     still propagates; the cross is drawn first."""
-    state = Step()  # `hold`: a quick step still shows its spinner long enough to read
+    state = Step()  # `hold`: a quick step still shows its dots long enough to read
     if not enabled:
         yield state
         return
     p = Palette(True)
     done = threading.Event()
+    stream.write(f" {p.teal('▸')} {label} ")
+    stream.flush()
 
-    def spin() -> None:
-        i = 0
-        while not done.is_set():
-            stream.write(f"\r {p.teal(_FRAMES[i % len(_FRAMES)])} {label}")
+    def pulse() -> None:  # dots are appended, never redrawn: no cursor movement at all
+        while not done.wait(interval):
+            stream.write(p.dim("."))
             stream.flush()
-            i += 1
-            done.wait(interval)
 
-    worker = threading.Thread(target=spin, daemon=True)
+    worker = threading.Thread(target=pulse, daemon=True)
     worker.start()
     started = time.monotonic()
     try:
@@ -94,8 +92,7 @@ def step(
         time.sleep(max(0.0, hold - (time.monotonic() - started)))
         done.set()
         worker.join()
-        mark = p.red("✗") if state.failed else p.green("✓")
-        stream.write(f"\r {mark} {label}\x1b[K\n")
+        stream.write(" " + (p.red("✗") if state.failed else p.green("✓")) + "\n")
         stream.flush()
 
 
