@@ -40,7 +40,9 @@ working on now. They come from `/api/memory/<kind>/graph` (also `/api/memory/<ki
 
 ## Asking the graph
 
-The dashboard's **ask** tab is a chat with the graphs. It remembers the last six turns (so "and who
+The dashboard's **ask** tab is a chat with the graphs; the bot button (or `/`) on any page opens the same
+chat in a right-hand panel, told which page you are on, and both show the one conversation, which is also
+kept in your browser across reloads. It remembers the last six turns (so "and who
 replaced it?" works), shows what Claude Code is doing as it happens (reading the guide, each Cypher
 query, the answer being written) and keeps the Cypher it ran. Thinking text is not exposed by Claude
 Code, so the page shows steps and notes, not raw reasoning.
@@ -60,6 +62,5 @@ request; nothing is ever forgotten or summarised.
   `AGREES_WITH` (one edge per pair, later to earlier, at the later decision's time) and the
   recording session is told. `handoff consolidate` links decisions recorded before this existed and
   folds knowledge-graph concepts whose names differ only in case, spaces or `/ . - _`.
-- In the dashboard's ask tab, the common questions (what each session is on, replaced decisions,
-  agreements, standing rules, who read whose work) are answered straight from the graph in about
-  20 ms with no model. Follow-ups and anything else go to Claude Code.
+- In the dashboard's ask tab every question, including the starter ones, goes to Claude Code, which
+  writes the Cypher; there is no canned route. The starters are only suggestions.

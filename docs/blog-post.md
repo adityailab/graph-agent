@@ -57,6 +57,11 @@ the others had changed and why without being shown a single diff. The coordinato
 need that had sat open for 95 minutes and reminded the backend, which then offered to
 write the missing tests.
 
+Mission control (`handoff dashboard`) shows the same graph live in a browser: sessions drawn
+as small Macintosh agents with the messages, reads and needs between them, who learned from
+whom, the six kinds of memory, a time-aligned log, and the graph itself. A `$` field at the
+bottom of every page lets you message a session or ask the graph in plain words.
+
 ## What I learned the hard way
 
 - **FalkorDB 4.22 has sharp edges, and the graph told me.** `EXISTS {}` is unsupported;
@@ -80,5 +85,5 @@ handoff demo
 ```
 
 Needs Docker, Claude Code and uv. FalkorDB runs in a container bound to localhost, and
-prompts pass through a redactor before they are stored. There are 472 tests, and the whole
+prompts pass through a redactor before they are stored. There are 646 tests, and the whole
 design, plan and decision log are in the repo.
