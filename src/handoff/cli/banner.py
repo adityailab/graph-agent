@@ -62,7 +62,9 @@ class Step:
 
 
 @contextmanager
-def step(label: str, stream: TextIO, *, enabled: bool, interval: float = 0.08) -> Iterator[Step]:
+def step(
+    label: str, stream: TextIO, *, enabled: bool, interval: float = 0.08, hold: float = 0.3
+) -> Iterator[Step]:
     """Show `label` with a spinner while the block runs, then a tick (or a cross). A raised error
     still propagates; the cross is drawn first."""
     state = Step()  # `hold`: a quick step still shows its spinner long enough to read
