@@ -14,16 +14,17 @@ button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-c
 .toolbar .right { margin-left: auto; display: flex; gap: var(--s-2); flex-wrap: wrap; }
 .toolbar button { font-size: var(--fs-sm); }
 
-.graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--s-5); align-items: start; }
-@media (max-width: 1000px) { .graph-layout { grid-template-columns: minmax(0, 1fr); } }
-.canvas-wrap { position: relative; height: clamp(460px, calc(100vh - 330px), 760px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); overflow: hidden; }
+.graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--s-5); align-items: stretch; height: max(440px, calc(100vh - 345px)); }
+.graph-layout > div:first-child { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+@media (max-width: 1000px) { .canvas-wrap { height: 460px; flex: none; } .graph-layout { grid-template-columns: minmax(0, 1fr); height: auto; } .graph-layout > div:first-child { display: block; } }
+.canvas-wrap { position: relative; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); overflow: hidden; }
 #graph { display: block; width: 100%; height: 100%; }
 .canvas-foot { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); padding: var(--s-2) var(--s-3); border-top: 1px solid var(--line); font-size: var(--fs-xs); color: var(--dim); background: var(--soft); }
 .canvas-foot b { color: var(--ink); }
 .path-bar { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; margin-bottom: var(--s-2); font-size: var(--fs-sm); color: var(--dim); }
 
 /* side panel */
-.graph-side { position: sticky; top: var(--s-2); max-height: calc(100vh - 24px); overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--s-4); display: grid; gap: var(--s-4); align-content: start; }
+.graph-side { min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--s-4); display: grid; gap: var(--s-4); align-content: start; }
 @media (max-width: 1000px) { .graph-side { position: static; max-height: none; border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: var(--s-4); } }
 .side-sec { display: grid; gap: var(--s-2); }
 .side-sec h3 { display: flex; gap: var(--s-1); align-items: baseline; }
