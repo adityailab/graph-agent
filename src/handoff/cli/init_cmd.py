@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from handoff.cli.banner import show_banner, stdout_animated, step
 from handoff.cli.runner import run_command
 from handoff.database import LOCAL_HOSTS, DatabaseUnavailable, ensure_database
 from handoff.graph.connection import server_reachable
@@ -39,23 +40,32 @@ def run(args: argparse.Namespace) -> int:
         print(f"{folder} is not a folder.", file=sys.stderr)
         return 1
     config = workspace_config(folder, os.environ)
-    reachable = server_reachable(config)
-    problems = check_prerequisites(
-        run_command, which=shutil.which, need_docker=not reachable and config.host in LOCAL_HOSTS
-    )
+    show = stdout_animated()  # the logo and live checklist only on a real terminal
+    show_banner(sys.stdout, animate=show)
+    with step("checking prerequisites", sys.stdout, enabled=show) as checking:
+        reachable = server_reachable(config)
+        problems = check_prerequisites(
+            run_command,
+            which=shutil.which,
+            need_docker=not reachable and config.host in LOCAL_HOSTS,
+        )
+        if any(not p.optional for p in problems):
+            checking.fail()
     for problem in problems:
         print(f"{'note' if problem.optional else 'missing'}: {problem.fix}", file=sys.stderr)
     if any(not p.optional for p in problems):
         return 1
     try:
-        status = ensure_database(config, run_command)
-        text = install(
-            folder,
-            bin_dir=Path(sys.executable).parent,
-            config=config,
-            falkordb_mcp=not any(p.name == "npx" for p in problems),
-            default_graph=os.environ.get("HANDOFF_GRAPH") or None,
-        )
+        with step("making sure FalkorDB runs", sys.stdout, enabled=show):
+            status = ensure_database(config, run_command)
+        with step("installing hooks and MCP servers", sys.stdout, enabled=show):
+            text = install(
+                folder,
+                bin_dir=Path(sys.executable).parent,
+                config=config,
+                falkordb_mcp=not any(p.name == "npx" for p in problems),
+                default_graph=os.environ.get("HANDOFF_GRAPH") or None,
+            )
     except (DatabaseUnavailable, InstallError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
