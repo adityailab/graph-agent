@@ -71,3 +71,6 @@ button.toggle[aria-pressed="false"] i { color: var(--c); opacity: .8; }
 .canvas-tools[hidden] { display: none; }
 .canvas-tools button { background: var(--bg); font-size: var(--fs-xs); padding: 3px var(--s-2); box-shadow: var(--lift); }
 .canvas-tools button[aria-pressed="true"] { background: var(--ink); }
+.by-role i { font-style: normal; color: var(--c); }
+.by-role .r1 { color: var(--blue); } .by-role .r2 { color: var(--purple); } .by-role .r3 { color: var(--amber); }
+.canvas-foot .c-red { color: var(--red); } .canvas-foot .c-amber { color: var(--amber); } .canvas-foot .c-teal { color: var(--teal); }
