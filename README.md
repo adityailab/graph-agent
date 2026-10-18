@@ -31,7 +31,7 @@ cd your-project
 handoff init
 ```
 
-`handoff init` checks what is missing and says how to fix it, uses a FalkorDB that is
+`handoff init` shows the logo and a live checklist on a terminal (plain text in a pipe, with `NO_COLOR=1` or in CI), checks what is missing and says how to fix it, uses a FalkorDB that is
 already running or starts one in Docker (localhost only, data in a volume), and installs the
 hooks and MCP servers into the folder on a graph of its own. Then start one Claude Code per
 role:
