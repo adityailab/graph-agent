@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from falkordb import Graph
+from redis.exceptions import ResponseError
 
 from handoff.graph.captions import caption
 from handoff.graph.records import MessageView
@@ -88,10 +89,17 @@ def claim_pending_messages(
 
 def has_pending_messages(graph: Graph, *, session_id: str, role: str, since: int) -> bool:
     """Read-only check, so tool calls with nothing to deliver write nothing."""
-    rows = graph.ro_query(
-        _PENDING_MATCH + "RETURN count(m) > 0",
-        {"sid": session_id, "role": role, "since": since},
-    ).result_set
+    try:
+        rows = graph.ro_query(
+            _PENDING_MATCH + "RETURN count(m) > 0",
+            {"sid": session_id, "role": role, "since": since},
+        ).result_set
+    except ResponseError as exc:
+        # FalkorDB cannot read a graph nobody has written to yet (a folder just set up); that
+        # means no messages. Anything else is a real error.
+        if "empty key" in str(exc):
+            return False
+        raise
     return bool(rows and rows[0][0])
 
 

@@ -115,3 +115,8 @@ def test_pending_check_does_not_mark_anything_delivered(three: Graph) -> None:
     assert has_pending_messages(three, session_id="fe1", role="frontend", since=0)
     claim_pending_messages(three, session_id="fe1", role="frontend", since=0, at=20)
     assert not has_pending_messages(three, session_id="fe1", role="frontend", since=0)
+
+
+def test_a_graph_nobody_has_written_to_yet_has_nothing_pending(graph: Graph) -> None:
+    """A session in a freshly set up folder checks for messages before anything is recorded."""
+    assert not has_pending_messages(graph, session_id="s", role="backend", since=0)
