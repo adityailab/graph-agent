@@ -60,3 +60,14 @@ def test_a_step_can_be_marked_failed_without_an_exception() -> None:
     with step("checking prerequisites", out, enabled=True, interval=0.001) as s:
         s.fail()
     assert "✗" in out.getvalue()
+
+
+def test_the_checklist_never_moves_the_cursor() -> None:
+    """Some terminals mangle text printed after a rewritten line, so a step only appends."""
+    out = _Tty()
+    with step("starting FalkorDB", out, enabled=True, interval=0.001, hold=0.02):
+        pass
+    show_banner(out, animate=True, pause=0)
+    assert "\r" not in out.getvalue()
+    assert "\x1b[K" not in out.getvalue()
+    assert "\x1b[2K" not in out.getvalue()
