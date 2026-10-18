@@ -90,8 +90,10 @@ def _instructions(workspace: Path, graph: str, falkordb_mcp: bool) -> str:
         f"2. Open one terminal per role in {workspace} and start Claude Code with it:\n"
         f"{roles}\n"
         "   Claude Code asks once to approve the project's MCP servers.\n"
-        f"3. See the graph at http://localhost:3000 (graph {graph}).\n"
-        "4. Optional, a knowledge graph of the work (needs the 'knowledge' extra), from this\n"
+        "3. Watch the sessions live: run  handoff dashboard  in this folder, then open\n"
+        "   http://127.0.0.1:8765/ (mission control).\n"
+        f"4. See the graph itself at http://localhost:3000 (graph {graph}).\n"
+        "5. Optional, a knowledge graph of the work (needs the 'knowledge' extra), from this\n"
         "   folder:  handoff knowledge"
         f"{extra}"
     )
